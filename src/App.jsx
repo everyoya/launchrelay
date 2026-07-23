@@ -32,7 +32,7 @@ const Opportunity = base44.entities.Opportunity;
 const steps = [
   "Landing",
   "Project Setup",
-  "Import + Timeline",
+  "Source Timeline",
   "Launch Review",
   "Story Studio",
   "Library",
@@ -472,7 +472,7 @@ function ImportTimeline({ activityText, setActivityText, githubRepoInput, setGit
       </div>
     </div>
     <TextArea label="Or paste recent PRs, commits, release notes, or product context" value={activityText} onChange={setActivityText} rows={7} />
-    <div className="mt-4 flex flex-wrap gap-3"><Button onClick={onImport} disabled={isBusy} className="rounded-full bg-orange-400 text-slate-950 hover:bg-orange-300">Import pasted activity</Button><Button onClick={onDetect} disabled={isBusy || !activities.length} variant="ghost" className="rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10">Detect launch moments</Button></div>
+    <div className="mt-4 flex flex-wrap gap-3"><Button onClick={onImport} disabled={isBusy} className="rounded-full bg-orange-400 text-slate-950 hover:bg-orange-300">Import pasted activity</Button><Button onClick={onDetect} disabled={isBusy || !activities.length} variant="ghost" className="rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10">Find launch moments</Button></div>
     <ActivityList activities={activities} />
   </Panel>;
 }
