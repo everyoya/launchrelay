@@ -16,12 +16,14 @@ import {
 } from "lucide-react";
 import {
   createManualActivityItemsFromText,
+  parseGitHubRepoInput,
   generateDeterministicLaunchClusters,
   generateDeterministicOpportunities,
 } from "@/core/launchrelay-core.mjs";
 
 const ProductWorkspace = base44.entities.ProductWorkspace;
 const ActivityItem = base44.entities.ActivityItem;
+const SourceConnection = base44.entities.SourceConnection;
 const LaunchCluster = base44.entities.LaunchCluster;
 const Draft = base44.entities.Draft;
 const Opportunity = base44.entities.Opportunity;
@@ -57,6 +59,7 @@ export default function App() {
   const [workspace, setWorkspace] = useState(initialWorkspace);
   const [workspaceRecord, setWorkspaceRecord] = useState(null);
   const [activityText, setActivityText] = useState(sampleActivity);
+  const [githubRepoInput, setGithubRepoInput] = useState(initialWorkspace.primary_repo_url);
   const [activities, setActivities] = useState([]);
   const [clusters, setClusters] = useState([]);
   const [selectedCluster, setSelectedCluster] = useState(null);
@@ -119,6 +122,67 @@ export default function App() {
       });
       setActivities(normalized.map((item, index) => ({ ...item, id: item.id || `local_activity_${index + 1}` })));
       setStatus("Backend normalizeActivity was unavailable, so manual import used local deterministic fallback.");
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
+  async function importGitHubActivity() {
+    setIsBusy(true);
+    const workspaceId = workspaceRecord?.id || "local_workspace";
+    const importedAt = new Date().toISOString();
+    const parsed = parseGitHubRepoInput(githubRepoInput);
+
+    if (!parsed.isValid) {
+      setStatus(parsed.error);
+      setIsBusy(false);
+      return;
+    }
+
+    try {
+      const connectionPayload = {
+        workspace_id: workspaceId,
+        source_type: "github",
+        connection_mode: "manual_repo_url",
+        repo_owner: parsed.repoOwner,
+        repo_name: parsed.repoName,
+        repo_url: parsed.repoUrl,
+        status: "active",
+        last_imported_at: importedAt,
+      };
+      let sourceConnectionId = null;
+      try {
+        const connection = await SourceConnection.create(connectionPayload);
+        sourceConnectionId = connection.id;
+      } catch (connectionError) {
+        console.warn(connectionError);
+      }
+
+      const response = await base44.functions.invoke("importPublicGitHubActivity", {
+        repoInput: githubRepoInput,
+        workspaceId,
+        sourceConnectionId,
+        importedAt,
+      });
+      const imported = response.data.activityItems || [];
+      const existingKeys = new Set(activities.map((item) => item.dedupe_key || `${item.source_type}:${item.source_id}:${item.title}`));
+      const uniqueImported = imported.filter((item) => {
+        const key = item.dedupe_key || `${item.source_type}:${item.source_id}:${item.title}`;
+        if (existingKeys.has(key)) return false;
+        existingKeys.add(key);
+        return true;
+      });
+
+      const saved = [];
+      for (const item of uniqueImported) {
+        const { id, ...payload } = item;
+        saved.push(await ActivityItem.create(payload));
+      }
+      setActivities((items) => [...items, ...saved]);
+      setStatus(`Imported ${saved.length} new GitHub activities from ${parsed.repoOwner}/${parsed.repoName} through the backend import function.`);
+    } catch (error) {
+      console.error(error);
+      setStatus("Public GitHub import could not complete. Manual paste remains available as the reliable fallback.");
     } finally {
       setIsBusy(false);
     }
@@ -257,7 +321,7 @@ export default function App() {
 
         {screen === 0 && <Landing onStart={() => setScreen(1)} onSample={() => { setWorkspaceRecord({ id: "local_workspace", ...workspace }); setScreen(2); }} />}
         {screen === 1 && <ProjectSetup workspace={workspace} setWorkspace={setWorkspace} onSave={saveWorkspace} isBusy={isBusy} />}
-        {screen === 2 && <ImportTimeline activityText={activityText} setActivityText={setActivityText} activities={activities} onImport={importManualActivity} onDetect={detectLaunchMoments} isBusy={isBusy} />}
+        {screen === 2 && <ImportTimeline activityText={activityText} setActivityText={setActivityText} githubRepoInput={githubRepoInput} setGithubRepoInput={setGithubRepoInput} activities={activities} onImport={importManualActivity} onGitHubImport={importGitHubActivity} onDetect={detectLaunchMoments} isBusy={isBusy} />}
         {screen === 3 && <LaunchReview clusters={clusters} activities={activities} selectedCluster={selectedCluster} setSelectedCluster={setSelectedCluster} onAccept={acceptCluster} onDetect={detectLaunchMoments} />}
         {screen === 4 && <StoryStudio activeTab={activeStudioTab} setActiveTab={setActiveStudioTab} cluster={acceptedCluster} activities={activities} draft={draft} setDraft={setDraft} opportunities={opportunities} onCreateDraft={createDraft} onCreateOpportunities={createOpportunities} onSaveOpportunity={saveOpportunity} isBusy={isBusy} />}
         {screen === 5 && <DraftLibrary draft={draft} opportunities={opportunities} cluster={acceptedCluster} activities={activities} />}
@@ -274,7 +338,7 @@ function Header({ screen, setScreen }) {
         <div className="text-xl font-semibold text-white">Product education from shipped work</div>
       </button>
       <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">
-        Base44 App ID: <span className="font-mono text-orange-200">6a62127209117f2a61e90395</span>
+        Backend-connected workflow · GitHub-first source import
       </div>
     </header>
   );
@@ -345,9 +409,16 @@ function ProjectSetup({ workspace, setWorkspace, onSave, isBusy }) {
   </Panel>;
 }
 
-function ImportTimeline({ activityText, setActivityText, activities, onImport, onDetect, isBusy }) {
-  return <Panel title="Import + Activity Timeline" subtitle="Bring in source material. Manual paste is the credit-safe fallback before GitHub/API import.">
-    <TextArea label="Paste recent PRs, commits, release notes, or product context" value={activityText} onChange={setActivityText} rows={7} />
+function ImportTimeline({ activityText, setActivityText, githubRepoInput, setGithubRepoInput, activities, onImport, onGitHubImport, onDetect, isBusy }) {
+  return <Panel title="Import + Activity Timeline" subtitle="Bring in real source material from a public GitHub repo or manual product notes.">
+    <div className="rounded-3xl border border-blue-300/15 bg-blue-400/10 p-4">
+      <Field label="Public GitHub repo" value={githubRepoInput} onChange={setGithubRepoInput} />
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <Button onClick={onGitHubImport} disabled={isBusy} className="rounded-full bg-blue-300 text-slate-950 hover:bg-blue-200">Import public GitHub activity</Button>
+        <span className="text-xs text-blue-100/80">No OAuth required. Pulls, commits, and releases are normalized by a Base44 backend function.</span>
+      </div>
+    </div>
+    <TextArea label="Or paste recent PRs, commits, release notes, or product context" value={activityText} onChange={setActivityText} rows={7} />
     <div className="mt-4 flex flex-wrap gap-3"><Button onClick={onImport} disabled={isBusy} className="rounded-full bg-orange-400 text-slate-950 hover:bg-orange-300">Import pasted activity</Button><Button onClick={onDetect} disabled={isBusy || !activities.length} variant="ghost" className="rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10">Detect launch moments</Button></div>
     <ActivityList activities={activities} />
   </Panel>;

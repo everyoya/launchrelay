@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   parseGitHubRepoInput,
+  createGitHubActivityItemsFromPayloads,
   createManualActivityItemsFromText,
   generateDeterministicLaunchClusters,
   generateDeterministicOpportunities,
@@ -45,6 +46,26 @@ test('createManualActivityItemsFromText turns labeled lines into normalized acti
   assert.equal(items[1].source_type, 'manual_note');
   assert.equal(items[2].impact_hint, 'Possible onboarding/user activation impact.');
   assert.equal(items[0].workspace_id, 'workspace_1');
+});
+
+test('createGitHubActivityItemsFromPayloads normalizes PRs, commits, and releases with dedupe keys', () => {
+  const items = createGitHubActivityItemsFromPayloads({
+    pulls: [{ number: 12, title: 'Improve onboarding setup', body: 'welcome flow', html_url: 'https://github.com/everyoya/launchrelay/pull/12', user: { login: 'everyoya' }, updated_at: '2026-07-23T00:00:00Z' }],
+    commits: [{ sha: 'abc123', html_url: 'https://github.com/everyoya/launchrelay/commit/abc123', commit: { message: 'fix signup redirect after account creation', author: { name: 'Yotam', date: '2026-07-23T01:00:00Z' } }, author: { login: 'everyoya' } }],
+    releases: [{ id: 7, tag_name: 'v0.1.0', name: 'LaunchRelay v0.1.0', body: 'First release', html_url: 'https://github.com/everyoya/launchrelay/releases/tag/v0.1.0', author: { login: 'everyoya' }, published_at: '2026-07-23T02:00:00Z' }],
+  }, {
+    workspaceId: 'workspace_1',
+    sourceConnectionId: 'connection_1',
+    repoOwner: 'everyoya',
+    repoName: 'launchrelay',
+    importedAt: '2026-07-23T03:00:00.000Z',
+  });
+
+  assert.equal(items.length, 3);
+  assert.deepEqual(items.map((item) => item.source_type), ['github_pr', 'github_commit', 'manual_release_note']);
+  assert.ok(items.every((item) => item.dedupe_key.startsWith('github:everyoya/launchrelay:')));
+  assert.equal(items[0].workspace_id, 'workspace_1');
+  assert.equal(items[0].source_connection_id, 'connection_1');
 });
 
 test('generateDeterministicLaunchClusters creates source-linked launch clusters with user value', () => {
