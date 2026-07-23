@@ -1,0 +1,23 @@
+{
+  "name": "ActivityItem",
+  "type": "object",
+  "properties": {
+    "workspace_id": { "type": "string" },
+    "source_connection_id": { "type": "string" },
+    "source_type": { "type": "string", "enum": ["github_pr", "github_commit", "manual_note", "manual_release_note", "asset_note", "sample"] },
+    "source_id": { "type": "string" },
+    "source_url": { "type": "string" },
+    "title": { "type": "string" },
+    "body": { "type": "string" },
+    "author": { "type": "string" },
+    "occurred_at": { "type": "string" },
+    "imported_at": { "type": "string" },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "product_area": { "type": "string" },
+    "impact_hint": { "type": "string" },
+    "status": { "type": "string", "enum": ["active", "hidden", "duplicate"], "default": "active" },
+    "raw_payload": { "type": "string" },
+    "dedupe_key": { "type": "string" }
+  },
+  "required": ["workspace_id", "source_type", "title"]
+}

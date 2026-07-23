@@ -1,0 +1,16 @@
+{
+  "name": "ProductWorkspace",
+  "type": "object",
+  "properties": {
+    "name": { "type": "string", "description": "Product or workspace name" },
+    "description": { "type": "string", "description": "What the product does" },
+    "target_audience": { "type": "string", "description": "Primary audience for product education" },
+    "product_stage": { "type": "string", "description": "Product stage, such as MVP or growth" },
+    "primary_repo_url": { "type": "string", "description": "Primary public GitHub repo URL" },
+    "primary_channels": { "type": "string", "description": "Primary education/publishing channels" },
+    "positioning_notes": { "type": "string", "description": "Strategic positioning context" },
+    "terminology_notes": { "type": "string", "description": "Preferred words and product terminology" },
+    "style_guidance": { "type": "string", "description": "Writing style guidance" }
+  },
+  "required": ["name", "description"]
+}

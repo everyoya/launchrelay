@@ -1,0 +1,19 @@
+{
+  "name": "Draft",
+  "type": "object",
+  "properties": {
+    "workspace_id": { "type": "string" },
+    "launch_cluster_id": { "type": "string" },
+    "promoted_opportunity_id": { "type": "string" },
+    "draft_type": { "type": "string", "enum": ["feature_launch", "product_education_post", "release_note", "announcement", "demo_script", "other"] },
+    "title": { "type": "string" },
+    "body": { "type": "string" },
+    "status": { "type": "string", "enum": ["draft", "ready", "published"], "default": "draft" },
+    "source_summary": { "type": "string" },
+    "generation_inputs_snapshot": { "type": "string" },
+    "source_activity_item_ids": { "type": "array", "items": { "type": "string" } },
+    "asset_ids": { "type": "array", "items": { "type": "string" } },
+    "published_at": { "type": "string" }
+  },
+  "required": ["workspace_id", "title", "body"]
+}

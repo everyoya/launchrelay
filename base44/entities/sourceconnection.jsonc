@@ -1,0 +1,16 @@
+{
+  "name": "SourceConnection",
+  "type": "object",
+  "properties": {
+    "workspace_id": { "type": "string" },
+    "source_type": { "type": "string", "enum": ["github", "manual", "sample"] },
+    "connection_mode": { "type": "string", "enum": ["manual_repo_url", "pasted_activity", "sample_seed", "oauth_deferred"] },
+    "repo_owner": { "type": "string" },
+    "repo_name": { "type": "string" },
+    "repo_url": { "type": "string" },
+    "status": { "type": "string", "enum": ["active", "import_failed", "needs_attention", "disconnected"], "default": "active" },
+    "last_imported_at": { "type": "string" },
+    "last_import_error": { "type": "string" }
+  },
+  "required": ["workspace_id", "source_type", "connection_mode"]
+}

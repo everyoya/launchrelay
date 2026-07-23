@@ -1,0 +1,18 @@
+{
+  "name": "Opportunity",
+  "type": "object",
+  "properties": {
+    "workspace_id": { "type": "string" },
+    "launch_cluster_id": { "type": "string" },
+    "title": { "type": "string" },
+    "angle": { "type": "string" },
+    "audience": { "type": "string" },
+    "format": { "type": "string", "enum": ["tutorial", "faq", "docs", "use_case", "enablement", "announcement", "comparison", "other"] },
+    "why_it_matters": { "type": "string" },
+    "suggested_next_step": { "type": "string" },
+    "source_reasoning": { "type": "string" },
+    "status": { "type": "string", "enum": ["suggested", "saved", "ignored", "promoted_to_draft"], "default": "suggested" },
+    "promoted_draft_id": { "type": "string" }
+  },
+  "required": ["workspace_id", "launch_cluster_id", "title"]
+}
