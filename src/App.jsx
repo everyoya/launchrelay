@@ -21,6 +21,7 @@ import {
   generateDeterministicLaunchClusters,
   generateDeterministicOpportunities,
 } from "@/core/launchrelay-core.mjs";
+import { createGuardrailedDraft } from "@/core/content-guardrails.mjs";
 
 const ProductWorkspace = base44.entities.ProductWorkspace;
 const ActivityItem = base44.entities.ActivityItem;
@@ -274,19 +275,21 @@ export default function App() {
   async function createDraft() {
     if (!acceptedCluster) return;
     setIsBusy(true);
-    const sourceTitles = activities
-      .filter((item) => acceptedCluster.activity_item_ids?.includes(item.id))
-      .map((item) => item.title);
-    const body = `# ${acceptedCluster.title}\n\n${workspace.name} recently shipped a set of related changes that point to a clear product education moment.\n\n## What changed\n${sourceTitles.map((title) => `- ${title}`).join("\n")}\n\n## Why it matters\n${acceptedCluster.why_it_matters}\n\n## User value\n${acceptedCluster.user_value}\n\n## Suggested launch framing\nThis is not just a list of shipped changes. It is a story about helping ${workspace.target_audience} understand and use the product more effectively.\n\n## Sources used\n${sourceTitles.map((title) => `- ${title}`).join("\n")}`;
+    const sourceItems = activities.filter((item) => acceptedCluster.activity_item_ids?.includes(item.id));
+    const guardrailed = createGuardrailedDraft({
+      workspace,
+      cluster: acceptedCluster,
+      sources: sourceItems,
+    });
     const draftPayload = {
       workspace_id: workspaceRecord?.id || "local_workspace",
       launch_cluster_id: acceptedCluster.id,
       draft_type: "feature_launch",
-      title: acceptedCluster.title,
-      body,
+      title: guardrailed.title,
+      body: guardrailed.body,
       status: "draft",
-      source_summary: `Generated from ${sourceTitles.length} accepted source activities.`,
-      generation_inputs_snapshot: JSON.stringify({ workspace, cluster: acceptedCluster, sourceTitles }),
+      source_summary: `Generated from ${sourceItems.length} accepted source activities with the ${guardrailed.template_label} harness and ${guardrailed.psychological_driver} driver.`,
+      generation_inputs_snapshot: JSON.stringify({ workspace, cluster: acceptedCluster, guardrails: guardrailed }),
       source_activity_item_ids: acceptedCluster.activity_item_ids || [],
     };
 

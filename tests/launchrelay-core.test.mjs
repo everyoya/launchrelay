@@ -8,6 +8,13 @@ import {
   generateDeterministicLaunchClusters,
   generateDeterministicOpportunities,
 } from '../src/core/launchrelay-core.mjs';
+import {
+  applyContentGuardrails,
+  createGuardrailedDraft,
+  evaluateContentReadiness,
+  findGuardrailViolations,
+  selectPsychologicalDriver,
+} from '../src/core/content-guardrails.mjs';
 
 test('parseGitHubRepoInput accepts full GitHub repo URLs', () => {
   assert.deepEqual(parseGitHubRepoInput('https://github.com/base44/launchrelay'), {
@@ -99,4 +106,42 @@ test('generateDeterministicOpportunities creates five useful follow-up ideas fro
   assert.equal(opportunities[0].workspace_id, 'workspace_1');
   assert.equal(opportunities[0].launch_cluster_id, 'cluster_1');
   assert.ok(opportunities.every((item) => item.why_it_matters.length > 20));
+});
+
+test('applyContentGuardrails strips common AI slop phrases', () => {
+  const cleaned = applyContentGuardrails('Teams can leverage onboarding changes instead of using a game-changing, seamless workflow.');
+
+  assert.doesNotMatch(cleaned, /game-changing|seamless|leverage/i);
+  assert.match(cleaned, /use onboarding/i);
+});
+
+test('evaluateContentReadiness asks interview questions when critical context is missing', () => {
+  const readiness = evaluateContentReadiness({ cluster: {}, workspace: {}, sources: [] });
+
+  assert.equal(readiness.ready, false);
+  assert.ok(readiness.missing.includes('source_evidence'));
+  assert.equal(readiness.interview_questions.length, 2);
+});
+
+test('selectPsychologicalDriver maps reliability work to safety', () => {
+  const driver = selectPsychologicalDriver('fix backend fallback error and improve reliability');
+
+  assert.equal(driver.label, 'Safety & Compliance');
+});
+
+test('createGuardrailedDraft creates source-grounded draft metadata without banned phrases', () => {
+  const draft = createGuardrailedDraft({
+    workspace: { target_audience: 'Product educators' },
+    cluster: {
+      title: 'Faster onboarding for new teams',
+      why_it_matters: 'These changes help users get started with less confusion.',
+      user_value: 'Less setup friction for new users.',
+      audience: 'New workspace admins',
+    },
+    sources: [{ title: 'Added onboarding checklist', body: 'welcome flow' }],
+  });
+
+  assert.match(draft.body, /Source trail/);
+  assert.equal(draft.template_label, 'Feature Launch Story');
+  assert.deepEqual(findGuardrailViolations(draft.body), []);
 });

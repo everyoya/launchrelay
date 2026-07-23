@@ -181,17 +181,28 @@ Users can paste PR summaries, commit notes, release notes, or product notes. Lau
 
 This keeps the product usable even when public GitHub API access is rate-limited, unavailable, or blocked.
 
-## AI and deterministic generation
+## AI, deterministic generation, and guardrails
 
 LaunchRelay is structured for AI-assisted launch detection, story coproduction, and opportunity expansion.
 
 Current honest status:
 
 - deterministic generation/fallback is implemented for reliability
+- an anti-slop content guardrail harness is implemented for draft generation
 - optional LLM enhancement is planned but not yet active
 - generated outputs are saved as product workflow records, not regenerated on every page load
 
-This is intentional for product reliability and cost-conscious design.
+The content guardrail harness includes:
+
+- banned corporate/AI-slop phrase detection
+- plain-language replacement rules
+- content readiness checks
+- interview-question generation when context is missing
+- content template metadata
+- psychological driver selection
+- source-trail preservation
+
+This is intentional for product reliability and cost-conscious design. Future LLM output should pass through this same harness before it is saved.
 
 ## How to run locally
 
