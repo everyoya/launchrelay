@@ -259,14 +259,14 @@ export default function App() {
     const updated = { ...cluster, status: "accepted" };
     setSelectedCluster(updated);
     setClusters((items) => items.map((item) => (item.id === cluster.id ? updated : item)));
+    setStatus("Human review complete: launch moment accepted for Story Studio.");
+    setScreen(4);
     try {
       if (!String(cluster.id).startsWith("local_")) await LaunchCluster.update(cluster.id, { status: "accepted" });
-      setStatus("Human review complete: launch moment accepted for Story Studio.");
     } catch (error) {
       console.error(error);
       setStatus("Launch moment accepted locally and ready for Story Studio.");
     }
-    setScreen(4);
   }
 
   async function createDraft() {
