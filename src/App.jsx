@@ -93,24 +93,32 @@ export default function App() {
   async function importManualActivity() {
     setIsBusy(true);
     const workspaceId = workspaceRecord?.id || "local_workspace";
-    const normalized = createManualActivityItemsFromText(activityText, {
-      workspaceId,
-      importedAt: new Date().toISOString(),
-      idPrefix: "local_activity",
-    });
+    const importedAt = new Date().toISOString();
 
     try {
+      const response = await base44.functions.invoke("normalizeActivity", {
+        activityText,
+        workspaceId,
+        importedAt,
+        idPrefix: "backend_activity",
+      });
+      const normalized = response.data.activityItems || [];
       const saved = [];
       for (const item of normalized) {
         const { id, ...payload } = item;
         saved.push(await ActivityItem.create(payload));
       }
       setActivities(saved);
-      setStatus(`Imported ${saved.length} activity items into Base44 entities.`);
+      setStatus(`Backend normalizeActivity imported ${saved.length} activity items into Base44 entities.`);
     } catch (error) {
       console.error(error);
+      const normalized = createManualActivityItemsFromText(activityText, {
+        workspaceId,
+        importedAt,
+        idPrefix: "local_activity",
+      });
       setActivities(normalized.map((item, index) => ({ ...item, id: item.id || `local_activity_${index + 1}` })));
-      setStatus("Base44 entity write was unavailable, so imported activity is running locally as fallback.");
+      setStatus("Backend normalizeActivity was unavailable, so manual import used local deterministic fallback.");
     } finally {
       setIsBusy(false);
     }
@@ -123,13 +131,15 @@ export default function App() {
     }
     setIsBusy(true);
     const workspaceId = workspaceRecord?.id || "local_workspace";
-    const generated = generateDeterministicLaunchClusters(activities, {
-      workspaceId,
-      targetAudience: workspace.target_audience,
-      manualContext: workspace.positioning_notes,
-    });
 
     try {
+      const response = await base44.functions.invoke("detectLaunchMoments", {
+        activityItems: activities,
+        workspaceId,
+        targetAudience: workspace.target_audience,
+        manualContext: workspace.positioning_notes,
+      });
+      const generated = response.data.launchClusters || [];
       const saved = [];
       for (const cluster of generated) {
         const { id, ...payload } = cluster;
@@ -137,13 +147,18 @@ export default function App() {
       }
       setClusters(saved);
       setSelectedCluster(saved[0] || null);
-      setStatus("Launch Detection created a source-linked cluster. LLM enhancement can replace this fallback when enabled.");
+      setStatus("Backend detectLaunchMoments created a source-linked launch cluster and saved it to Base44.");
     } catch (error) {
       console.error(error);
+      const generated = generateDeterministicLaunchClusters(activities, {
+        workspaceId,
+        targetAudience: workspace.target_audience,
+        manualContext: workspace.positioning_notes,
+      });
       const local = generated.map((cluster, index) => ({ ...cluster, id: cluster.id || `local_cluster_${index + 1}` }));
       setClusters(local);
       setSelectedCluster(local[0] || null);
-      setStatus("Launch Detection is running with deterministic fallback until Base44 writes/functions are available.");
+      setStatus("Backend detectLaunchMoments was unavailable, so launch detection used local deterministic fallback.");
     } finally {
       setIsBusy(false);
     }
@@ -198,19 +213,23 @@ export default function App() {
   async function createOpportunities() {
     if (!acceptedCluster) return;
     setIsBusy(true);
-    const generated = generateDeterministicOpportunities(acceptedCluster, {
-      workspaceId: workspaceRecord?.id || "local_workspace",
-    });
+    const workspaceId = workspaceRecord?.id || "local_workspace";
 
     try {
+      const response = await base44.functions.invoke("expandOpportunities", {
+        cluster: acceptedCluster,
+        workspaceId,
+      });
+      const generated = response.data.opportunities || [];
       const saved = [];
       for (const opportunity of generated) saved.push(await Opportunity.create(opportunity));
       setOpportunities(saved);
-      setStatus("Opportunity Expansion saved five follow-up education opportunities.");
+      setStatus("Backend expandOpportunities saved five follow-up education opportunities.");
     } catch (error) {
       console.error(error);
+      const generated = generateDeterministicOpportunities(acceptedCluster, { workspaceId });
       setOpportunities(generated.map((item, index) => ({ ...item, id: `local_opportunity_${index + 1}` })));
-      setStatus("Opportunities generated with deterministic fallback for demo reliability.");
+      setStatus("Backend expandOpportunities was unavailable, so opportunities used local deterministic fallback.");
     } finally {
       setIsBusy(false);
     }
