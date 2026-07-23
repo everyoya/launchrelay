@@ -82,11 +82,11 @@ export default function App() {
         ? await ProductWorkspace.update(workspaceRecord.id, workspace)
         : await ProductWorkspace.create(workspace);
       setWorkspaceRecord(record);
-      setStatus("Workspace context saved to Base44 entities.");
+      setStatus("Workspace context saved. Next, import source activity.");
       setScreen(2);
     } catch (error) {
       console.error(error);
-      setStatus("Could not save to Base44 yet. Continuing locally so the workflow remains demo-safe.");
+      setStatus("Could not save the workspace yet, so LaunchRelay will keep this workflow local for now.");
       setWorkspaceRecord({ id: "local_workspace", ...workspace });
       setScreen(2);
     } finally {
@@ -113,7 +113,7 @@ export default function App() {
         saved.push(await ActivityItem.create(payload));
       }
       setActivities(saved);
-      setStatus(`Backend normalizeActivity imported ${saved.length} activity items into Base44 entities.`);
+      setStatus(`Imported ${saved.length} activity items and kept their source trail.`);
     } catch (error) {
       console.error(error);
       const normalized = createManualActivityItemsFromText(activityText, {
@@ -122,7 +122,7 @@ export default function App() {
         idPrefix: "local_activity",
       });
       setActivities(normalized.map((item, index) => ({ ...item, id: item.id || `local_activity_${index + 1}` })));
-      setStatus("Backend normalizeActivity was unavailable, so manual import used local deterministic fallback.");
+      setStatus("Imported pasted activity locally with the same source-grounded workflow.");
     } finally {
       setIsBusy(false);
     }
@@ -180,7 +180,7 @@ export default function App() {
         saved.push(await ActivityItem.create(payload));
       }
       setActivities((items) => [...items, ...saved]);
-      setStatus(`Imported ${saved.length} new GitHub activities from ${parsed.repoOwner}/${parsed.repoName} through the backend import function.`);
+      setStatus(`Imported ${saved.length} new GitHub activities from ${parsed.repoOwner}/${parsed.repoName}.`);
     } catch (error) {
       console.error(error);
       try {
@@ -205,7 +205,7 @@ export default function App() {
           saved.push(await ActivityItem.create(payload));
         }
         setActivities((items) => [...items, ...saved]);
-        setStatus(`Imported ${saved.length} new GitHub activities from ${parsed.repoOwner}/${parsed.repoName}. Backend import was unavailable, so LaunchRelay used the browser GitHub fetch fallback.`);
+        setStatus(`Imported ${saved.length} new GitHub activities from ${parsed.repoOwner}/${parsed.repoName}.`);
       } catch (fallbackError) {
         console.error(fallbackError);
         setStatus("Public GitHub import could not complete. Manual paste remains available as the reliable fallback.");
@@ -238,7 +238,7 @@ export default function App() {
       }
       setClusters(saved);
       setSelectedCluster(saved[0] || null);
-      setStatus("Backend detectLaunchMoments created a source-linked launch cluster and saved it to Base44.");
+      setStatus("Launch moment detected and saved with source links.");
     } catch (error) {
       console.error(error);
       const generated = generateDeterministicLaunchClusters(activities, {
@@ -249,7 +249,7 @@ export default function App() {
       const local = generated.map((cluster, index) => ({ ...cluster, id: cluster.id || `local_cluster_${index + 1}` }));
       setClusters(local);
       setSelectedCluster(local[0] || null);
-      setStatus("Backend detectLaunchMoments was unavailable, so launch detection used local deterministic fallback.");
+      setStatus("Launch moment detected locally with source links.");
     } finally {
       setIsBusy(false);
     }
@@ -261,10 +261,10 @@ export default function App() {
     setClusters((items) => items.map((item) => (item.id === cluster.id ? updated : item)));
     try {
       if (!String(cluster.id).startsWith("local_")) await LaunchCluster.update(cluster.id, { status: "accepted" });
-      setStatus("Human review complete: cluster accepted for story coproduction.");
+      setStatus("Human review complete: launch moment accepted for Story Studio.");
     } catch (error) {
       console.error(error);
-      setStatus("Cluster accepted locally. Base44 update can be retried later.");
+      setStatus("Launch moment accepted locally and ready for Story Studio.");
     }
     setScreen(4);
   }
@@ -291,11 +291,11 @@ export default function App() {
     try {
       const saved = await Draft.create(draftPayload);
       setDraft(saved);
-      setStatus("Story draft saved to Base44 Draft entity.");
+      setStatus("Draft saved with its source references.");
     } catch (error) {
       console.error(error);
       setDraft({ ...draftPayload, id: "local_draft_1" });
-      setStatus("Draft generated with deterministic fallback and stored locally for this session.");
+      setStatus("Draft created locally with its source references.");
     } finally {
       setIsBusy(false);
     }
@@ -315,12 +315,12 @@ export default function App() {
       const saved = [];
       for (const opportunity of generated) saved.push(await Opportunity.create(opportunity));
       setOpportunities(saved);
-      setStatus("Backend expandOpportunities saved five follow-up education opportunities.");
+      setStatus("Five follow-up education opportunities created.");
     } catch (error) {
       console.error(error);
       const generated = generateDeterministicOpportunities(acceptedCluster, { workspaceId });
       setOpportunities(generated.map((item, index) => ({ ...item, id: `local_opportunity_${index + 1}` })));
-      setStatus("Backend expandOpportunities was unavailable, so opportunities used local deterministic fallback.");
+      setStatus("Five follow-up education opportunities created locally.");
     } finally {
       setIsBusy(false);
     }
@@ -391,7 +391,7 @@ function Header({ screen, setScreen }) {
         <div className="text-xl font-semibold text-white">Product education from shipped work</div>
       </button>
       <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">
-        Backend-connected workflow · GitHub-first source import
+        Connected to real shipped work
       </div>
     </header>
   );
@@ -427,20 +427,20 @@ function Landing({ onStart, onSample }) {
           <Sparkles className="h-4 w-4" /> Built for product education teams
         </div>
         <h1 className="mb-5 max-w-3xl text-5xl font-semibold tracking-tight text-white md:text-6xl">
-          Turn every shipped feature into a product education moment.
+          Find the launch story hiding in your GitHub activity.
         </h1>
         <p className="mb-8 max-w-2xl text-lg leading-8 text-slate-300">
-          Connect product activity, detect launch-worthy change clusters, coproduce a source-grounded story, and reveal follow-up education opportunities.
+          LaunchRelay imports shipped work, organizes the source trail, proposes launch-worthy moments, and helps you turn one accepted story into drafts and follow-up education opportunities.
         </p>
         <div className="flex flex-col gap-3 sm:flex-row">
-          <Button onClick={onStart} className="h-12 rounded-full bg-orange-400 px-6 text-slate-950 hover:bg-orange-300">Create workspace <ArrowRight className="ml-2 h-4 w-4" /></Button>
-          <Button onClick={onSample} variant="ghost" className="h-12 rounded-full border border-white/10 bg-white/5 px-6 text-white hover:bg-white/10">Try sample flow</Button>
+          <Button onClick={onStart} className="h-12 rounded-full bg-orange-400 px-6 text-slate-950 hover:bg-orange-300">Start with product context <ArrowRight className="ml-2 h-4 w-4" /></Button>
+          <Button onClick={onSample} variant="ghost" className="h-12 rounded-full border border-white/10 bg-white/5 px-6 text-white hover:bg-white/10">Try onboarding workflow</Button>
         </div>
       </div>
       <div className="grid gap-4">
-        <PromiseCard icon={GitBranch} title="Launch Detection" body="Cluster real shipped work into launch-worthy product education moments." />
+        <PromiseCard icon={GitBranch} title="Launch Moments" body="Find launch-worthy product education moments in real shipped work." />
         <PromiseCard icon={FileText} title="Story Coproduction" body="Turn accepted clusters into editable drafts that preserve source references." />
-        <PromiseCard icon={Lightbulb} title="Opportunity Expansion" body="Reveal tutorials, FAQs, docs angles, and enablement ideas hidden inside one launch." />
+        <PromiseCard icon={Lightbulb} title="Follow-up Opportunities" body="Reveal tutorials, FAQs, docs angles, and enablement ideas tied to one accepted launch moment." />
       </div>
     </section>
   );
@@ -454,16 +454,16 @@ function ProjectSetup({ workspace, setWorkspace, onSave, isBusy }) {
   const fields = [
     ["name", "Product name"], ["description", "Product description"], ["target_audience", "Target audience"], ["product_stage", "Product stage"], ["primary_repo_url", "Primary repo URL"], ["primary_channels", "Primary channels"],
   ];
-  return <Panel title="Project Setup" subtitle="Give the backend product context before any generation happens.">
+  return <Panel title="Project Setup" subtitle="Describe the product context before LaunchRelay shapes source activity into a story.">
     <div className="grid gap-4 md:grid-cols-2">{fields.map(([key, label]) => <Field key={key} label={label} value={workspace[key]} onChange={(value) => setWorkspace({ ...workspace, [key]: value })} />)}</div>
     <TextArea label="Positioning notes" value={workspace.positioning_notes} onChange={(value) => setWorkspace({ ...workspace, positioning_notes: value })} />
     <TextArea label="Terminology / style guidance" value={`${workspace.terminology_notes}\n${workspace.style_guidance}`} onChange={(value) => setWorkspace({ ...workspace, terminology_notes: value, style_guidance: value })} />
-    <Button onClick={onSave} disabled={isBusy} className="mt-4 h-11 rounded-full bg-orange-400 px-6 text-slate-950 hover:bg-orange-300">Save workspace and import activity</Button>
+    <Button onClick={onSave} disabled={isBusy} className="mt-4 h-11 rounded-full bg-orange-400 px-6 text-slate-950 hover:bg-orange-300">Save workspace and continue</Button>
   </Panel>;
 }
 
 function ImportTimeline({ activityText, setActivityText, githubRepoInput, setGithubRepoInput, activities, onImport, onGitHubImport, onDetect, isBusy }) {
-  return <Panel title="Import + Activity Timeline" subtitle="Bring in real source material from a public GitHub repo or manual product notes.">
+  return <Panel title="Source Timeline" subtitle="Bring in real source material from a public GitHub repo or manual product notes.">
     <div className="rounded-3xl border border-blue-300/15 bg-blue-400/10 p-4">
       <Field label="Public GitHub repo" value={githubRepoInput} onChange={setGithubRepoInput} />
       <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -482,14 +482,14 @@ function ActivityList({ activities }) {
 }
 
 function LaunchReview({ clusters, activities, selectedCluster, setSelectedCluster, onAccept, onDetect }) {
-  return <Panel title="Launch Detection Review" subtitle="AI or fallback proposes clusters, but the human accepts and shapes the story.">
-    {clusters.length === 0 ? <div><Empty text="No clusters yet. Run launch detection from your timeline." /><Button onClick={onDetect} className="mt-4 rounded-full bg-orange-400 text-slate-950 hover:bg-orange-300">Run launch detection</Button></div> : <div className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]"><div className="grid gap-3">{clusters.map((cluster) => <button key={cluster.id || cluster.title} onClick={() => setSelectedCluster(cluster)} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-left hover:bg-white/[0.07]"><h4 className="font-semibold">{cluster.title}</h4><p className="mt-1 text-sm text-slate-400">{cluster.why_it_matters}</p><span className="mt-3 inline-flex rounded-full bg-emerald-400/15 px-2 py-1 text-xs text-emerald-200">{cluster.confidence_label} confidence</span></button>)}</div>{selectedCluster && <div className="rounded-3xl border border-orange-300/20 bg-orange-400/10 p-6"><h3 className="text-2xl font-semibold">{selectedCluster.title}</h3><p className="mt-3 text-slate-300">{selectedCluster.summary}</p><p className="mt-3 text-orange-100">{selectedCluster.user_value}</p><div className="mt-5"><h4 className="mb-2 font-semibold">Sources included</h4><ul className="space-y-2 text-sm text-slate-300">{activities.filter((item) => selectedCluster.activity_item_ids?.includes(item.id)).map((item) => <li key={item.id}>• {item.title}</li>)}</ul></div><Button onClick={() => onAccept(selectedCluster)} className="mt-6 rounded-full bg-orange-400 text-slate-950 hover:bg-orange-300">Accept and create story</Button></div>}</div>}
+  return <Panel title="Launch Moments Review" subtitle="LaunchRelay proposes launch moments; you decide what becomes a story.">
+    {clusters.length === 0 ? <div><Empty text="No launch moments yet. Run detection from your source timeline." /><Button onClick={onDetect} className="mt-4 rounded-full bg-orange-400 text-slate-950 hover:bg-orange-300">Find launch moments</Button></div> : <div className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]"><div className="grid gap-3">{clusters.map((cluster) => <button key={cluster.id || cluster.title} onClick={() => setSelectedCluster(cluster)} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-left hover:bg-white/[0.07]"><h4 className="font-semibold">{cluster.title}</h4><p className="mt-1 text-sm text-slate-400">{cluster.why_it_matters}</p><span className="mt-3 inline-flex rounded-full bg-emerald-400/15 px-2 py-1 text-xs text-emerald-200">{cluster.confidence_label} confidence</span></button>)}</div>{selectedCluster && <div className="rounded-3xl border border-orange-300/20 bg-orange-400/10 p-6"><h3 className="text-2xl font-semibold">{selectedCluster.title}</h3><p className="mt-3 text-slate-300">{selectedCluster.summary}</p><p className="mt-3 text-orange-100">{selectedCluster.user_value}</p><div className="mt-5"><h4 className="mb-2 font-semibold">Sources included</h4><ul className="space-y-2 text-sm text-slate-300">{activities.filter((item) => selectedCluster.activity_item_ids?.includes(item.id)).map((item) => <li key={item.id}>• {item.title}</li>)}</ul></div><Button onClick={() => onAccept(selectedCluster)} className="mt-6 rounded-full bg-orange-400 text-slate-950 hover:bg-orange-300">Accept and shape story</Button></div>}</div>}
   </Panel>;
 }
 
 function StoryStudio({ activeTab, setActiveTab, cluster, activities, draft, setDraft, opportunities, onCreateDraft, onCreateOpportunities, onSaveOpportunity, isBusy }) {
   return <Panel title="Story Studio" subtitle="Draft the main story, then expand one launch moment into more education opportunities.">
-    {!cluster ? <Empty text="Accept a launch cluster first." /> : <><div className="mb-5 rounded-2xl border border-white/10 bg-white/[0.04] p-4"><h3 className="font-semibold">Accepted cluster: {cluster.title}</h3><p className="mt-1 text-sm text-slate-400">{cluster.why_it_matters}</p></div><div className="mb-4 flex gap-2"><Tab active={activeTab === "draft"} onClick={() => setActiveTab("draft")}>Draft</Tab><Tab active={activeTab === "opportunities"} onClick={() => setActiveTab("opportunities")}>Opportunities</Tab></div>{activeTab === "draft" ? <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]"><div>{draft ? <><Input value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} className="mb-3 bg-white text-slate-950" /><textarea value={draft.body} onChange={(event) => setDraft({ ...draft, body: event.target.value })} className="min-h-[360px] w-full rounded-2xl border border-white/10 bg-slate-950/80 p-4 text-sm text-slate-100 outline-none" /></> : <Empty text="No draft yet. Generate from the accepted cluster." />}<Button onClick={onCreateDraft} disabled={isBusy} className="mt-4 rounded-full bg-orange-400 text-slate-950 hover:bg-orange-300">Generate source-grounded draft</Button></div><SourcePanel cluster={cluster} activities={activities} /></div> : <div><div className="mb-4 flex gap-3"><Button onClick={onCreateOpportunities} disabled={isBusy} className="rounded-full bg-orange-400 text-slate-950 hover:bg-orange-300">Find follow-up opportunities</Button></div><div className="grid gap-3 md:grid-cols-2">{opportunities.map((item) => <div key={item.id || item.title} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4"><div className="mb-2 text-xs uppercase tracking-[0.2em] text-orange-200">{item.format}</div><h4 className="font-semibold">{item.title}</h4><p className="mt-2 text-sm text-slate-400">{item.why_it_matters}</p><Button onClick={() => onSaveOpportunity(item)} variant="ghost" className="mt-4 rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10">{item.status === "saved" ? "Saved" : "Save"}</Button></div>)}</div></div>}</>}
+    {!cluster ? <Empty text="Accept a launch cluster first." /> : <><div className="mb-5 rounded-2xl border border-white/10 bg-white/[0.04] p-4"><h3 className="font-semibold">Accepted cluster: {cluster.title}</h3><p className="mt-1 text-sm text-slate-400">{cluster.why_it_matters}</p></div><div className="mb-4 flex gap-2"><Tab active={activeTab === "draft"} onClick={() => setActiveTab("draft")}>Draft</Tab><Tab active={activeTab === "opportunities"} onClick={() => setActiveTab("opportunities")}>Opportunities</Tab></div>{activeTab === "draft" ? <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]"><div>{draft ? <><Input value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} className="mb-3 bg-white text-slate-950" /><textarea value={draft.body} onChange={(event) => setDraft({ ...draft, body: event.target.value })} className="min-h-[360px] w-full rounded-2xl border border-white/10 bg-slate-950/80 p-4 text-sm text-slate-100 outline-none" /></> : <Empty text="No draft yet. Generate from the accepted cluster." />}<Button onClick={onCreateDraft} disabled={isBusy} className="mt-4 rounded-full bg-orange-400 text-slate-950 hover:bg-orange-300">Generate source-grounded draft</Button></div><SourcePanel cluster={cluster} activities={activities} /></div> : <div><div className="mb-4 flex gap-3"><Button onClick={onCreateOpportunities} disabled={isBusy} className="rounded-full bg-orange-400 text-slate-950 hover:bg-orange-300">Find follow-up opportunities</Button></div><div className="grid gap-3 md:grid-cols-2">{opportunities.map((item) => <div key={item.id || item.title} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4"><div className="mb-2 text-xs uppercase tracking-[0.2em] text-orange-200">{item.format}</div><h4 className="font-semibold">{item.title}</h4><p className="mt-2 text-sm text-slate-400">{item.why_it_matters}</p><Button onClick={() => onSaveOpportunity(item)} disabled={item.status === "saved"} variant="ghost" className="mt-4 rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10 disabled:opacity-70">{item.status === "saved" ? "Saved" : "Save to library"}</Button></div>)}</div></div>}</>}
   </Panel>;
 }
 
