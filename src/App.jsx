@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import {
   createManualActivityItemsFromText,
+  createGitHubActivityItemsFromPayloads,
   parseGitHubRepoInput,
   generateDeterministicLaunchClusters,
   generateDeterministicOpportunities,
@@ -182,7 +183,33 @@ export default function App() {
       setStatus(`Imported ${saved.length} new GitHub activities from ${parsed.repoOwner}/${parsed.repoName} through the backend import function.`);
     } catch (error) {
       console.error(error);
-      setStatus("Public GitHub import could not complete. Manual paste remains available as the reliable fallback.");
+      try {
+        const githubPayloads = await fetchPublicGitHubPayloads(parsed.repoOwner, parsed.repoName);
+        const imported = createGitHubActivityItemsFromPayloads(githubPayloads, {
+          workspaceId,
+          sourceConnectionId: null,
+          repoOwner: parsed.repoOwner,
+          repoName: parsed.repoName,
+          importedAt,
+        });
+        const existingKeys = new Set(activities.map((item) => item.dedupe_key || `${item.source_type}:${item.source_id}:${item.title}`));
+        const uniqueImported = imported.filter((item) => {
+          const key = item.dedupe_key || `${item.source_type}:${item.source_id}:${item.title}`;
+          if (existingKeys.has(key)) return false;
+          existingKeys.add(key);
+          return true;
+        });
+        const saved = [];
+        for (const item of uniqueImported) {
+          const { id, ...payload } = item;
+          saved.push(await ActivityItem.create(payload));
+        }
+        setActivities((items) => [...items, ...saved]);
+        setStatus(`Imported ${saved.length} new GitHub activities from ${parsed.repoOwner}/${parsed.repoName}. Backend import was unavailable, so LaunchRelay used the browser GitHub fetch fallback.`);
+      } catch (fallbackError) {
+        console.error(fallbackError);
+        setStatus("Public GitHub import could not complete. Manual paste remains available as the reliable fallback.");
+      }
     } finally {
       setIsBusy(false);
     }
@@ -328,6 +355,32 @@ export default function App() {
       </div>
     </div>
   );
+}
+
+
+async function fetchPublicGitHubPayloads(owner, repo) {
+  const [repoResponse, pullsResponse, commitsResponse, releasesResponse] = await Promise.all([
+    fetchGitHubJson(`https://api.github.com/repos/${owner}/${repo}`),
+    fetchGitHubJson(`https://api.github.com/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=20`),
+    fetchGitHubJson(`https://api.github.com/repos/${owner}/${repo}/commits?per_page=20`),
+    fetchGitHubJson(`https://api.github.com/repos/${owner}/${repo}/releases?per_page=10`),
+  ]);
+
+  return {
+    repo: repoResponse,
+    pulls: pullsResponse,
+    commits: commitsResponse,
+    releases: releasesResponse,
+  };
+}
+
+async function fetchGitHubJson(url) {
+  const response = await fetch(url, { headers: { Accept: "application/vnd.github+json" } });
+  if (!response.ok) {
+    if (response.status === 404) throw new Error("Public GitHub repo not found. Private repos require a later OAuth connection.");
+    throw new Error(`GitHub API request failed with ${response.status}.`);
+  }
+  return response.json();
 }
 
 function Header({ screen, setScreen }) {
