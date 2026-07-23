@@ -95,6 +95,31 @@ export default function App() {
     }
   }
 
+  function startOnboardingWorkflow() {
+    const workspaceRecordSeed = { id: "local_workspace", ...workspace };
+    const importedAt = new Date().toISOString();
+    const seededActivities = createManualActivityItemsFromText(sampleActivity, {
+      workspaceId: workspaceRecordSeed.id,
+      importedAt,
+      idPrefix: "onboarding_activity",
+    });
+    const seededClusters = generateDeterministicLaunchClusters(seededActivities, {
+      workspaceId: workspaceRecordSeed.id,
+      targetAudience: workspace.target_audience,
+      manualContext: workspace.positioning_notes,
+    });
+
+    setWorkspaceRecord(workspaceRecordSeed);
+    setActivityText(sampleActivity);
+    setActivities(seededActivities);
+    setClusters(seededClusters);
+    setSelectedCluster(seededClusters[0] || null);
+    setDraft(null);
+    setOpportunities([]);
+    setStatus("Onboarding workflow loaded with source activity and a suggested launch moment.");
+    setScreen(3);
+  }
+
   async function importManualActivity() {
     setIsBusy(true);
     const workspaceId = workspaceRecord?.id || "local_workspace";
@@ -351,7 +376,7 @@ export default function App() {
         <StepNav screen={screen} setScreen={setScreen} />
         <StatusBar status={status} isBusy={isBusy} />
 
-        {screen === 0 && <Landing onStart={() => setScreen(1)} onSample={() => { setWorkspaceRecord({ id: "local_workspace", ...workspace }); setScreen(2); }} />}
+        {screen === 0 && <Landing onStart={() => setScreen(1)} onSample={startOnboardingWorkflow} />}
         {screen === 1 && <ProjectSetup workspace={workspace} setWorkspace={setWorkspace} onSave={saveWorkspace} isBusy={isBusy} />}
         {screen === 2 && <ImportTimeline activityText={activityText} setActivityText={setActivityText} githubRepoInput={githubRepoInput} setGithubRepoInput={setGithubRepoInput} activities={activities} onImport={importManualActivity} onGitHubImport={importGitHubActivity} onDetect={detectLaunchMoments} isBusy={isBusy} />}
         {screen === 3 && <LaunchReview clusters={clusters} activities={activities} selectedCluster={selectedCluster} setSelectedCluster={setSelectedCluster} onAccept={acceptCluster} onDetect={detectLaunchMoments} />}
