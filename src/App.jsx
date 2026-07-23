@@ -160,7 +160,7 @@ export default function App() {
         console.warn(connectionError);
       }
 
-      const response = await base44.functions.invoke("importPublicGitHubActivity", {
+      const response = await invokeFunctionWithTimeout("importPublicGitHubActivity", {
         repoInput: githubRepoInput,
         workspaceId,
         sourceConnectionId,
@@ -225,7 +225,7 @@ export default function App() {
     const workspaceId = workspaceRecord?.id || "local_workspace";
 
     try {
-      const response = await base44.functions.invoke("detectLaunchMoments", {
+      const response = await invokeFunctionWithTimeout("detectLaunchMoments", {
         activityItems: activities,
         workspaceId,
         targetAudience: workspace.target_audience,
@@ -312,7 +312,7 @@ export default function App() {
     const workspaceId = workspaceRecord?.id || "local_workspace";
 
     try {
-      const response = await base44.functions.invoke("expandOpportunities", {
+      const response = await invokeFunctionWithTimeout("expandOpportunities", {
         cluster: acceptedCluster,
         workspaceId,
       });
@@ -377,6 +377,13 @@ async function fetchPublicGitHubPayloads(owner, repo) {
     commits: commitsResponse,
     releases: releasesResponse,
   };
+}
+
+async function invokeFunctionWithTimeout(functionName, payload, timeoutMs = 8000) {
+  return Promise.race([
+    base44.functions.invoke(functionName, payload),
+    new Promise((_, reject) => setTimeout(() => reject(new Error(`${functionName} timed out after ${timeoutMs}ms`)), timeoutMs)),
+  ]);
 }
 
 async function fetchGitHubJson(url) {
