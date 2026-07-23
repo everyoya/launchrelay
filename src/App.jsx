@@ -239,6 +239,7 @@ export default function App() {
       setClusters(saved);
       setSelectedCluster(saved[0] || null);
       setStatus("Launch moment detected and saved with source links.");
+      setScreen(3);
     } catch (error) {
       console.error(error);
       const generated = generateDeterministicLaunchClusters(activities, {
@@ -250,6 +251,7 @@ export default function App() {
       setClusters(local);
       setSelectedCluster(local[0] || null);
       setStatus("Launch moment detected locally with source links.");
+      setScreen(3);
     } finally {
       setIsBusy(false);
     }
