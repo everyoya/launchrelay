@@ -1,6 +1,7 @@
 import { createGitHubActivityItemsFromPayloads, parseGitHubRepoInput } from './launchrelay-core.js';
 
 const GITHUB_API = 'https://api.github.com';
+const GITHUB_SECRET_NAMES = ['LAUNCHRELAY_GITHUB_TOKEN', 'GITHUB_TOKEN'];
 
 export async function handler(payload = {}) {
   const repoInput = payload.repoInput || payload.repoUrl || '';
@@ -19,7 +20,8 @@ export async function handler(payload = {}) {
 
   const { repoOwner, repoName, repoUrl } = parsed;
   const injectedPayloads = payload.githubPayloads;
-  const githubPayloads = injectedPayloads || await fetchPublicGitHubPayloads(repoOwner, repoName);
+  const githubAuth = getGitHubAuth();
+  const githubPayloads = injectedPayloads || await fetchPublicGitHubPayloads(repoOwner, repoName, githubAuth);
   const activityItems = createGitHubActivityItemsFromPayloads(githubPayloads, {
     workspaceId,
     sourceConnectionId,
@@ -46,6 +48,7 @@ export async function handler(payload = {}) {
       normalized: activityItems.length,
     },
     rateLimit: githubPayloads.rateLimit || null,
+    authMode: injectedPayloads ? 'injected_test_payload' : githubAuth.mode,
     activityItems,
   };
 }
@@ -63,12 +66,12 @@ if (globalThis.Deno?.serve) {
   Deno.serve(handleRequest);
 }
 
-async function fetchPublicGitHubPayloads(owner, repo) {
+async function fetchPublicGitHubPayloads(owner, repo, githubAuth = getGitHubAuth()) {
   const [repoResponse, pullsResponse, commitsResponse, releasesResponse] = await Promise.all([
-    githubJson(`/repos/${owner}/${repo}`),
-    githubJson(`/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=20`),
-    githubJson(`/repos/${owner}/${repo}/commits?per_page=20`),
-    githubJson(`/repos/${owner}/${repo}/releases?per_page=10`),
+    githubJson(`/repos/${owner}/${repo}`, githubAuth),
+    githubJson(`/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=20`, githubAuth),
+    githubJson(`/repos/${owner}/${repo}/commits?per_page=20`, githubAuth),
+    githubJson(`/repos/${owner}/${repo}/releases?per_page=10`, githubAuth),
   ]);
 
   return {
@@ -80,12 +83,19 @@ async function fetchPublicGitHubPayloads(owner, repo) {
   };
 }
 
-async function githubJson(path) {
+async function githubJson(path, githubAuth = getGitHubAuth()) {
+  const headers = {
+    Accept: 'application/vnd.github+json',
+    'User-Agent': 'LaunchRelay-public-import',
+    'X-GitHub-Api-Version': '2022-11-28',
+  };
+
+  if (githubAuth.token) {
+    headers.Authorization = `Bearer ${githubAuth.token}`;
+  }
+
   const response = await fetch(`${GITHUB_API}${path}`, {
-    headers: {
-      Accept: 'application/vnd.github+json',
-      'User-Agent': 'LaunchRelay-public-import',
-    },
+    headers,
   });
 
   const rateLimit = {
@@ -98,9 +108,28 @@ async function githubJson(path) {
     const body = await response.text();
     const detail = response.status === 404
       ? 'Public GitHub repo not found. Private repos need a later OAuth connection.'
+      : response.status === 403 && githubAuth.mode === 'unauthenticated'
+        ? 'GitHub API request was rate-limited from the server. Configure a backend GitHub token secret for reliable server-side import.'
       : `GitHub API request failed with ${response.status}.`;
     throw new Error(`${detail} ${body.slice(0, 240)}`);
   }
 
   return { data: await response.json(), rateLimit };
+}
+
+function getGitHubAuth() {
+  const token = readSecret(GITHUB_SECRET_NAMES);
+  return token
+    ? { mode: 'backend_secret_token', token }
+    : { mode: 'unauthenticated', token: null };
+}
+
+function readSecret(names) {
+  for (const name of names) {
+    const denoValue = globalThis.Deno?.env?.get?.(name);
+    if (denoValue) return denoValue;
+    const nodeValue = globalThis.process?.env?.[name];
+    if (nodeValue) return nodeValue;
+  }
+  return null;
 }

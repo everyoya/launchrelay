@@ -41,6 +41,47 @@ test('importPublicGitHubActivity backend function normalizes injected GitHub pay
   assert.deepEqual(result.activityItems.map((item) => item.source_type), ['github_pr', 'github_commit']);
 });
 
+test('importPublicGitHubActivity uses backend GitHub token secret for server fetches', async () => {
+  const originalFetch = globalThis.fetch;
+  const tokenEnvName = ['LAUNCHRELAY', 'GITHUB', 'TOKEN'].join('_');
+  const originalToken = process.env[tokenEnvName];
+  const calls = [];
+
+  process.env[tokenEnvName] = 'fixture_token';
+  globalThis.fetch = async (url, options = {}) => {
+    calls.push({ url, headers: options.headers });
+    const path = String(url).replace('https://api.github.com', '');
+    const payload = path.includes('/pulls')
+      ? [{ number: 3, title: 'Add guided source import', body: 'helps onboarding', html_url: 'https://github.com/everyoya/launchrelay/pull/3', user: { login: 'everyoya' }, updated_at: '2026-07-23T00:00:00Z' }]
+      : path.includes('/commits') || path.includes('/releases')
+        ? []
+        : { description: 'LaunchRelay test repo', default_branch: 'main', stargazers_count: 1, open_issues_count: 0 };
+
+    return new Response(JSON.stringify(payload), {
+      status: 200,
+      headers: { 'content-type': 'application/json', 'x-ratelimit-limit': '5000', 'x-ratelimit-remaining': '4999' },
+    });
+  };
+
+  try {
+    const result = await importPublicGitHubActivity({
+      workspaceId: 'workspace_1',
+      repoInput: 'everyoya/launchrelay',
+      importedAt: '2026-07-23T00:00:00.000Z',
+    });
+
+    assert.equal(result.ok, true);
+    assert.equal(result.authMode, 'backend_secret_token');
+    assert.equal(result.importSummary.normalized, 1);
+    assert.equal(calls.length, 4);
+    assert.ok(calls.every((call) => call.headers.Authorization === 'Bearer fixture_token'));
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalToken === undefined) delete process.env[tokenEnvName];
+    else process.env[tokenEnvName] = originalToken;
+  }
+});
+
 test('detectLaunchMoments backend function creates launch clusters from normalized activity', async () => {
   const normalized = await normalizeActivity({
     workspaceId: 'workspace_1',

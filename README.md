@@ -163,15 +163,27 @@ The intended flow:
 3. Imported activity becomes normalized ActivityItem records.
 4. Launch detection uses those records as source material.
 
-Known caveat:
+Current reliability model:
 
-Direct deployed backend GitHub fetch has returned 503 in the live app, so the current product preserves a browser-side public GitHub fetch plus deterministic normalization and Base44 entity writes as the reliable fallback path.
+The backend GitHub import function is callable and supports a backend-only GitHub token secret for reliable server-side API access.
 
-This should be described honestly as:
+Supported modes:
 
-- public GitHub import exists
-- the workflow works end-to-end
-- server-side GitHub fetch needs further investigation before claiming all GitHub fetching is server-side
+- `backend_secret_token` — preferred production path. Configure `LAUNCHRELAY_GITHUB_TOKEN` as a Base44 secret so the server sends authenticated GitHub API requests.
+- `unauthenticated` — fallback path. Works for low-volume public imports but can hit GitHub's shared-IP rate limits.
+- browser fallback — keeps public GitHub import usable if the server-side GitHub request is unavailable or rate-limited.
+
+To configure the preferred token-backed import path:
+
+```bash
+# Use Base44's KEY=VALUE secret format here; paste the real token only in your terminal.
+npx base44 secrets set '<backend GitHub token secret entry>'
+npx base44 functions deploy importPublicGitHubActivity
+```
+
+Secret name: `LAUNCHRELAY_GITHUB_TOKEN`.
+
+Use a minimal GitHub token where possible. For the current public-repo import, read-only public repository metadata is enough; private repo import should be treated as a later OAuth/user-connection feature.
 
 ## Manual fallback
 
