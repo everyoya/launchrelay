@@ -50,6 +50,19 @@ export async function handler(payload = {}) {
   };
 }
 
+export async function handleRequest(req) {
+  try {
+    const payload = await req.json().catch(() => ({}));
+    return Response.json(await handler(payload));
+  } catch (error) {
+    return Response.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 400 });
+  }
+}
+
+if (globalThis.Deno?.serve) {
+  Deno.serve(handleRequest);
+}
+
 async function fetchPublicGitHubPayloads(owner, repo) {
   const [repoResponse, pullsResponse, commitsResponse, releasesResponse] = await Promise.all([
     githubJson(`/repos/${owner}/${repo}`),
