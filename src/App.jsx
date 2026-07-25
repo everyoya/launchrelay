@@ -122,8 +122,10 @@ export default function App() {
         const user = normalizeResponse(await base44.auth.me());
         if (!isValidUserSession(user)) throw new Error("No active Base44 user session");
         if (cancelled) return;
+        setDemoMode(false);
         setCurrentUser(user);
-        await loadUserWorkspaceData({ setWorkspace, setWorkspaceRecord, setActivities, setClusters, setSelectedCluster, setDraft, setOpportunities });
+        resetWorkspaceState({ setWorkspace, setWorkspaceRecord, setActivities, setClusters, setSelectedCluster, setDraft, setOpportunities });
+        await loadUserWorkspaceData(user, { setWorkspace, setWorkspaceRecord, setActivities, setClusters, setSelectedCluster, setDraft, setOpportunities });
         if (cancelled) return;
         const routeView = initialViewFromLocation();
         const postLoginView = consumePostLoginView();
@@ -197,12 +199,9 @@ export default function App() {
   async function logout() {
     setDemoMode(false);
     setCurrentUser(null);
-    setWorkspaceRecord(null);
-    setActivities([]);
-    setClusters([]);
-    setSelectedCluster(null);
-    setDraft(null);
-    setOpportunities([]);
+    resetWorkspaceState({ setWorkspace, setWorkspaceRecord, setActivities, setClusters, setSelectedCluster, setDraft, setOpportunities });
+    forgetPostLoginView();
+    clearLocalAuthToken();
     base44.auth.logout(`${window.location.origin}${window.location.pathname}`);
   }
 
@@ -1789,11 +1788,22 @@ function normalizeListResponse(response) {
   return [];
 }
 
-async function loadUserWorkspaceData(setters) {
+function resetWorkspaceState(setters) {
+  const { setWorkspace, setWorkspaceRecord, setActivities, setClusters, setSelectedCluster, setDraft, setOpportunities } = setters;
+  setWorkspace(initialWorkspace);
+  setWorkspaceRecord(null);
+  setActivities([]);
+  setClusters([]);
+  setSelectedCluster(null);
+  setDraft(null);
+  setOpportunities([]);
+}
+
+async function loadUserWorkspaceData(user, setters) {
   const { setWorkspace, setWorkspaceRecord, setActivities, setClusters, setSelectedCluster, setDraft, setOpportunities } = setters;
   try {
-    const workspaces = normalizeListResponse(await ProductWorkspace.list("-updated_date", 1));
-    const workspaceRecord = workspaces[0] || null;
+    const workspaces = normalizeListResponse(await ProductWorkspace.list("-updated_date", 25));
+    const workspaceRecord = selectUserOwnedRecord(workspaces, user);
     if (!workspaceRecord) return;
 
     setWorkspace({ ...initialWorkspace, ...workspaceRecord });
@@ -1805,10 +1815,10 @@ async function loadUserWorkspaceData(setters) {
       Draft.filter(workspaceQuery, "-updated_date", 20),
       Opportunity.filter(workspaceQuery, "-updated_date", 50),
     ]);
-    const loadedActivities = normalizeListResponse(activityRecords);
-    const loadedClusters = normalizeListResponse(clusterRecords);
-    const loadedDrafts = normalizeListResponse(draftRecords);
-    const loadedOpportunities = normalizeListResponse(opportunityRecords);
+    const loadedActivities = normalizeUserScopedList(normalizeListResponse(activityRecords), user);
+    const loadedClusters = normalizeUserScopedList(normalizeListResponse(clusterRecords), user);
+    const loadedDrafts = normalizeUserScopedList(normalizeListResponse(draftRecords), user);
+    const loadedOpportunities = normalizeUserScopedList(normalizeListResponse(opportunityRecords), user);
     setActivities(loadedActivities);
     setClusters(loadedClusters);
     setSelectedCluster(loadedClusters.find((cluster) => cluster.status === "accepted" || cluster.status === "edited") || loadedClusters[0] || null);
@@ -1817,6 +1827,36 @@ async function loadUserWorkspaceData(setters) {
   } catch (error) {
     console.warn("Could not restore workspace records yet:", error);
   }
+}
+
+function selectUserOwnedRecord(records, user) {
+  const items = Array.isArray(records) ? records : [];
+  if (!items.length) return null;
+  const owned = items.filter((record) => isRecordOwnedByUser(record, user));
+  if (owned.length) return owned[0];
+  const exposesOwnerMetadata = items.some(recordHasOwnerMetadata);
+  return exposesOwnerMetadata ? null : items[0];
+}
+
+function normalizeUserScopedList(records, user) {
+  const items = Array.isArray(records) ? records : [];
+  const owned = items.filter((record) => isRecordOwnedByUser(record, user));
+  if (owned.length) return owned;
+  const exposesOwnerMetadata = items.some(recordHasOwnerMetadata);
+  return exposesOwnerMetadata ? [] : items;
+}
+
+function recordHasOwnerMetadata(record) {
+  return Boolean(record && (record.created_by || record.created_by_id || record.user_id || record.owner_id || record.owner_email));
+}
+
+function isRecordOwnedByUser(record, user) {
+  if (!record || !user) return false;
+  const userIds = [user.id, user._id, user.user_id, user.created_by_id].filter(Boolean).map((value) => String(value).toLowerCase());
+  const userEmails = [user.email, user.created_by].filter(Boolean).map((value) => String(value).toLowerCase());
+  const recordIds = [record.created_by_id, record.user_id, record.owner_id].filter(Boolean).map((value) => String(value).toLowerCase());
+  const recordEmails = [record.created_by, record.owner_email, record.email].filter(Boolean).map((value) => String(value).toLowerCase());
+  return recordIds.some((value) => userIds.includes(value)) || recordEmails.some((value) => userEmails.includes(value));
 }
 
 function displayUserName(user) {
@@ -1872,10 +1912,18 @@ function rememberPostLoginView(view) {
 function consumePostLoginView() {
   try {
     const view = window.localStorage.getItem("launchrelay_post_login_view");
-    window.localStorage.removeItem("launchrelay_post_login_view");
+    forgetPostLoginView();
     return view;
   } catch (error) {
     return null;
+  }
+}
+
+function forgetPostLoginView() {
+  try {
+    window.localStorage.removeItem("launchrelay_post_login_view");
+  } catch (error) {
+    console.warn("Could not clear post-login view:", error);
   }
 }
 
