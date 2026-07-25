@@ -5,14 +5,11 @@ import { Input } from "@/components/ui/input";
 import {
   AlertCircle,
   ArrowRight,
-  Bell,
   BookOpen,
   Boxes,
   Check,
   CheckCircle2,
-  ChevronDown,
   CircleDot,
-  Command,
   ExternalLink,
   FileText,
   GitBranch,
@@ -23,7 +20,6 @@ import {
   Lightbulb,
   Loader2,
   Menu,
-  MoreHorizontal,
   PenLine,
   Plus,
   Search,
@@ -92,7 +88,11 @@ export default function App() {
   const [draft, setDraft] = useState(null);
   const [opportunities, setOpportunities] = useState([]);
   const [sourceTab, setSourceTab] = useState("context");
-  const [libraryTab, setLibraryTab] = useState("drafts");
+  const [libraryTab, setLibraryTab] = useState("Drafts");
+  const [settingsTab, setSettingsTab] = useState("general");
+  const [launchFilter, setLaunchFilter] = useState("all");
+  const [globalSearch, setGlobalSearch] = useState("");
+  const [librarySearch, setLibrarySearch] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
   const [importPhase, setImportPhase] = useState("idle");
@@ -111,7 +111,7 @@ export default function App() {
     () => activities.filter((item) => acceptedCluster?.activity_item_ids?.includes(item.id)),
     [activities, acceptedCluster]
   );
-  const savedOpportunities = opportunities.filter((item) => item.status === "saved" || item.status === "promoted_to_draft");
+  const visibleOpportunities = opportunities.filter((item) => item.status !== "ignored");
   const draftRows = draft ? [draft] : [];
 
   function goApp(nextView) {
@@ -122,6 +122,29 @@ export default function App() {
   function goPublic(nextView = "public-home") {
     setView(nextView);
     setSidebarOpen(false);
+  }
+
+  function runGlobalSearch(query) {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return;
+    const destinations = [
+      { id: "overview", label: "overview home dashboard source health" },
+      { id: "sources", label: "sources import github repository connections notes assets activity" },
+      { id: "launch-moments", label: "launch moments detection review evidence confidence status" },
+      { id: "story-studio", label: "story studio draft editor assistant sources" },
+      { id: "opportunities", label: "opportunities angles follow up education save promote ignore" },
+      { id: "library", label: "library drafts ready published moments assets search" },
+      { id: "settings", label: "settings workspace account billing model ai base44 connections" },
+      { id: "help", label: "help docs documentation workflow guide readme submission" },
+    ];
+    const match = destinations.find((item) => item.label.includes(normalized)) || destinations.find((item) => normalized.includes(item.id.replace("-", " ")));
+    if (match) {
+      goApp(match.id);
+      setStatus({ tone: "success", message: `Opened ${viewLabel(match.id)} from search.` });
+      setGlobalSearch("");
+    } else {
+      setStatus({ tone: "warning", message: "No matching workspace section found. Try Sources, Library, Settings, or Help." });
+    }
   }
 
   async function saveWorkspace() {
@@ -439,11 +462,53 @@ export default function App() {
     }
   }
 
+  async function saveDraft() {
+    if (!draft) return;
+    const savedAt = new Date().toISOString();
+    const updated = { ...draft, updated_at: savedAt };
+    setDraft(updated);
+    try {
+      if (draft.id && !String(draft.id).startsWith("local_")) {
+        await Draft.update(draft.id, { title: draft.title, body: draft.body, status: draft.status || "draft" });
+      }
+      setStatus({ tone: "success", message: "Draft saved and kept visible in Library." });
+    } catch (error) {
+      console.error(error);
+      setStatus({ tone: "warning", message: "Draft saved locally for this session. Remote save can be retried later." });
+    }
+  }
+
+  async function markDraftReady() {
+    if (!draft) return;
+    const updated = { ...draft, status: "ready", updated_at: new Date().toISOString() };
+    setDraft(updated);
+    setLibraryTab("Ready");
+    try {
+      if (draft.id && !String(draft.id).startsWith("local_")) await Draft.update(draft.id, { status: "ready" });
+      setStatus({ tone: "success", message: "Draft marked ready in Library." });
+    } catch (error) {
+      console.error(error);
+      setStatus({ tone: "warning", message: "Draft marked ready locally in Library." });
+    }
+  }
+
   function promoteOpportunity(opportunity) {
     const updated = { ...opportunity, status: "promoted_to_draft" };
     setOpportunities((items) => items.map((item) => (sameOpportunity(item, opportunity) ? updated : item)));
     setStatus({ tone: "success", message: "Opportunity promoted. Story Studio is preloaded with the source launch moment." });
     goApp("story-studio");
+  }
+
+  async function ignoreOpportunity(opportunity) {
+    const updated = { ...opportunity, status: "ignored" };
+    setOpportunities((items) => items.map((item) => (sameOpportunity(item, opportunity) ? updated : item)));
+    try {
+      if (opportunity.id && !String(opportunity.id).startsWith("local_")) await Opportunity.update(opportunity.id, { status: "ignored" });
+      setStatus({ tone: "success", message: "Opportunity ignored and hidden from the active list." });
+    } catch (error) {
+      console.error(error);
+      setStatus({ tone: "warning", message: "Opportunity ignored locally and hidden from the active list." });
+    }
   }
 
   if (isPublic) {
@@ -453,6 +518,7 @@ export default function App() {
         goPublic={goPublic}
         goApp={goApp}
         onSample={startOnboardingWorkflow}
+        onAuthProvider={(provider) => base44.auth.loginWithProvider(provider, window.location.href)}
       />
     );
   }
@@ -462,16 +528,17 @@ export default function App() {
       <div className="flex min-h-screen">
         <Sidebar view={view} goApp={goApp} goPublic={goPublic} workspace={workspace} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
         <div className="flex min-w-0 flex-1 flex-col lg:pl-72">
-          <Topbar view={view} goApp={goApp} status={status} isBusy={isBusy} setSidebarOpen={setSidebarOpen} />
+          <Topbar view={view} goApp={goApp} globalSearch={globalSearch} setGlobalSearch={setGlobalSearch} onSearch={runGlobalSearch} setSidebarOpen={setSidebarOpen} />
           <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8">
             <StatusNotice status={status} isBusy={isBusy} />
             {view === "overview" && <Overview workspace={workspace} activities={activities} clusters={clusters} selectedCluster={selectedCluster} draftRows={draftRows} opportunities={opportunities} onReview={() => goApp("launch-moments")} onImport={() => goApp("sources")} onDetect={detectLaunchMoments} />}
             {view === "sources" && <Sources workspace={workspace} setWorkspace={setWorkspace} onSave={saveWorkspace} sourceTab={sourceTab} setSourceTab={setSourceTab} activityText={activityText} setActivityText={setActivityText} githubRepoInput={githubRepoInput} setGithubRepoInput={setGithubRepoInput} activities={activities} importPhase={importPhase} isBusy={isBusy} onImport={importManualActivity} onGitHubImport={importGitHubActivity} onDetect={detectLaunchMoments} />}
-            {view === "launch-moments" && <LaunchMoments clusters={clusters} activities={activities} selectedCluster={selectedCluster} selectedSources={selectedSources} setSelectedCluster={setSelectedCluster} onAccept={acceptCluster} onDetect={detectLaunchMoments} isBusy={isBusy} />}
-            {view === "story-studio" && <StoryStudio cluster={acceptedCluster} activities={activities} sourceItems={acceptedSources} draft={draft} setDraft={setDraft} onCreateDraft={createDraft} onCreateOpportunities={createOpportunities} isBusy={isBusy} onBack={() => goApp("launch-moments")} />}
-            {view === "opportunities" && <Opportunities opportunities={opportunities} cluster={acceptedCluster} onCreateOpportunities={createOpportunities} onSaveOpportunity={saveOpportunity} onPromote={promoteOpportunity} isBusy={isBusy} />}
-            {view === "library" && <LibraryScreen libraryTab={libraryTab} setLibraryTab={setLibraryTab} draftRows={draftRows} opportunities={opportunities} clusters={clusters} activities={activities} cluster={acceptedCluster} />}
-            {view === "settings" && <SettingsScreen workspace={workspace} setWorkspace={setWorkspace} onSave={saveWorkspace} isBusy={isBusy} />}
+            {view === "launch-moments" && <LaunchMoments clusters={clusters} activities={activities} selectedCluster={selectedCluster} selectedSources={selectedSources} setSelectedCluster={setSelectedCluster} onAccept={acceptCluster} onDetect={detectLaunchMoments} isBusy={isBusy} launchFilter={launchFilter} setLaunchFilter={setLaunchFilter} />}
+            {view === "story-studio" && <StoryStudio cluster={acceptedCluster} sourceItems={acceptedSources} draft={draft} setDraft={setDraft} onSaveDraft={saveDraft} onCreateDraft={createDraft} onCreateOpportunities={createOpportunities} isBusy={isBusy} onBack={() => goApp("launch-moments")} />}
+            {view === "opportunities" && <Opportunities opportunities={visibleOpportunities} cluster={acceptedCluster} onCreateOpportunities={createOpportunities} onSaveOpportunity={saveOpportunity} onPromote={promoteOpportunity} onIgnore={ignoreOpportunity} isBusy={isBusy} />}
+            {view === "library" && <LibraryScreen libraryTab={libraryTab} setLibraryTab={setLibraryTab} draftRows={draftRows} opportunities={opportunities} clusters={clusters} activities={activities} cluster={acceptedCluster} onMarkDraftReady={markDraftReady} librarySearch={librarySearch} setLibrarySearch={setLibrarySearch} />}
+            {view === "settings" && <SettingsScreen workspace={workspace} setWorkspace={setWorkspace} onSave={saveWorkspace} isBusy={isBusy} settingsTab={settingsTab} setSettingsTab={setSettingsTab} githubRepoInput={githubRepoInput} activities={activities} importPhase={importPhase} />}
+            {view === "help" && <HelpDocsScreen goApp={goApp} />}
           </main>
         </div>
       </div>
@@ -479,7 +546,7 @@ export default function App() {
   );
 }
 
-function PublicSite({ view, goPublic, goApp, onSample }) {
+function PublicSite({ view, goPublic, goApp, onSample, onAuthProvider }) {
   const isAuth = view === "sign-in";
   return (
     <div className="min-h-screen bg-[var(--lr-canvas)] text-[var(--lr-text)]">
@@ -501,7 +568,7 @@ function PublicSite({ view, goPublic, goApp, onSample }) {
           </div>
         </div>
       </header>
-      {isAuth ? <SignIn onSample={onSample} goPublic={goPublic} goApp={goApp} /> : <MarketingHome onSample={onSample} goPublic={goPublic} />}
+      {isAuth ? <SignIn onSample={onSample} goPublic={goPublic} goApp={goApp} onAuthProvider={onAuthProvider} /> : <MarketingHome onSample={onSample} goPublic={goPublic} />}
     </div>
   );
 }
@@ -556,21 +623,20 @@ function MarketingHome({ onSample, goPublic }) {
   );
 }
 
-function SignIn({ onSample, goPublic, goApp }) {
+function SignIn({ onSample, goPublic, goApp, onAuthProvider }) {
   return (
     <main className="mx-auto grid min-h-[calc(100vh-73px)] max-w-6xl items-center gap-10 px-5 py-12 lg:grid-cols-[0.95fr_1.05fr]">
       <div>
         <Badge tone="blue">Sample or connect when ready</Badge>
         <h1 className="mt-5 text-4xl font-semibold tracking-[-0.035em]">Turn shipped work into trusted product education.</h1>
-        <p className="mt-4 max-w-xl leading-7 text-[var(--lr-text-2)]">Use the sample workspace now, or start building your product profile. Authentication providers are represented here as product-ready placeholders until the final Base44 auth path is wired.</p>
+        <p className="mt-4 max-w-xl leading-7 text-[var(--lr-text-2)]">Sign in with Base44 authentication, explore the sample workspace, or start by adding product context.</p>
       </div>
       <section className="rounded-[24px] border border-[var(--lr-border)] bg-white p-6 shadow-[var(--lr-shadow)]">
         <h2 className="text-xl font-semibold">Sign in to LaunchRelay</h2>
         <p className="mt-2 text-sm text-[var(--lr-text-2)]">Choose a workspace entry path.</p>
         <div className="mt-6 grid gap-3">
-          <AuthButton icon={GitBranch} label="Continue with GitHub" disabled />
-          <AuthButton icon={UserCircle} label="Continue with Google" disabled />
-          <AuthButton icon={Command} label="Continue with email" disabled />
+          <AuthButton icon={GitBranch} label="Continue with GitHub" onClick={() => onAuthProvider("github")} />
+          <AuthButton icon={UserCircle} label="Continue with Google" onClick={() => onAuthProvider("google")} />
         </div>
         <div className="my-6 h-px bg-[var(--lr-border)]" />
         <Button onClick={onSample} className="h-11 w-full rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Explore sample workspace</Button>
@@ -596,14 +662,11 @@ function Sidebar({ view, goApp, goPublic, workspace, sidebarOpen, setSidebarOpen
           </button>
           <button className="rounded-lg p-2 text-[var(--lr-muted)] hover:bg-[var(--lr-surface-2)] lg:hidden" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar"><X className="h-4 w-4" /></button>
         </div>
-        <div className="px-4 py-4">
-          <button className="flex w-full items-center justify-between rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] px-3 py-3 text-left hover:bg-[var(--lr-surface-2)]">
-            <span>
-              <span className="block text-sm font-semibold">{workspace.name}</span>
-              <span className="block text-xs text-[var(--lr-muted)]">{workspace.product_stage} · Product education</span>
-            </span>
-            <ChevronDown className="h-4 w-4 text-[var(--lr-muted)]" />
-          </button>
+        <div className="px-4 py-3">
+          <div className="rounded-2xl bg-[var(--lr-canvas)] px-3 py-3">
+            <div className="text-xs font-medium uppercase tracking-[0.08em] text-[var(--lr-muted)]">Active workspace</div>
+            <div className="mt-1 text-sm font-semibold">{workspace.name}</div>
+          </div>
         </div>
         <nav className="flex-1 space-y-1 px-3" aria-label="App navigation">
           {appNav.map(({ id, label, icon: Icon }) => {
@@ -618,8 +681,7 @@ function Sidebar({ view, goApp, goPublic, workspace, sidebarOpen, setSidebarOpen
         </nav>
         <div className="border-t border-[var(--lr-border)] p-3">
           <button onClick={() => goApp("settings")} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium ${view === "settings" ? "bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]"}`}><Settings className="h-4 w-4" />Workspace settings</button>
-          <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]"><HelpCircle className="h-4 w-4" />Help & docs</button>
-          <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]"><Sparkles className="h-4 w-4" />What’s new</button>
+          <button onClick={() => goApp("help")} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium ${view === "help" ? "bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]"}`}><HelpCircle className="h-4 w-4" />Help & docs</button>
           <div className="mt-3 flex items-center gap-3 rounded-2xl bg-[var(--lr-canvas)] p-3">
             <UserCircle className="h-8 w-8 text-[var(--lr-muted)]" />
             <div className="min-w-0">
@@ -633,8 +695,8 @@ function Sidebar({ view, goApp, goPublic, workspace, sidebarOpen, setSidebarOpen
   );
 }
 
-function Topbar({ view, goApp, status, isBusy, setSidebarOpen }) {
-  const current = appNav.find((item) => item.id === view)?.label || (view === "settings" ? "Workspace settings" : "Overview");
+function Topbar({ view, goApp, globalSearch, setGlobalSearch, onSearch, setSidebarOpen }) {
+  const current = viewLabel(view);
   return (
     <header className="sticky top-0 z-20 border-b border-[var(--lr-border)] bg-[var(--lr-canvas)]/92 px-4 py-3 backdrop-blur sm:px-6 lg:px-8">
       <div className="flex items-center gap-3">
@@ -643,16 +705,21 @@ function Topbar({ view, goApp, status, isBusy, setSidebarOpen }) {
           <div className="text-xs text-[var(--lr-muted)]">LaunchRelay / {current}</div>
           <div className="truncate text-sm font-semibold text-[var(--lr-text)]">{current}</div>
         </div>
-        <div className="hidden min-w-[260px] items-center gap-2 rounded-xl border border-[var(--lr-border)] bg-white px-3 py-2 text-sm text-[var(--lr-muted)] md:flex">
-          <Search className="h-4 w-4" /> Search sources, drafts, moments
-          <span className="ml-auto rounded-md bg-[var(--lr-surface-2)] px-1.5 py-0.5 text-[11px]">⌘K</span>
-        </div>
+        <label className="hidden min-w-[260px] items-center gap-2 rounded-xl border border-[var(--lr-border)] bg-white px-3 py-2 text-sm text-[var(--lr-muted)] md:flex">
+          <Search className="h-4 w-4" />
+          <input
+            aria-label="Search workspace sections"
+            value={globalSearch}
+            onChange={(event) => setGlobalSearch(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") onSearch(globalSearch);
+            }}
+            placeholder="Search sections, drafts, moments"
+            className="min-w-0 flex-1 bg-transparent text-[var(--lr-text)] outline-none placeholder:text-[var(--lr-muted)]"
+          />
+          <button type="button" onClick={() => onSearch(globalSearch)} className="rounded-md bg-[var(--lr-surface-2)] px-1.5 py-0.5 text-[11px]">Enter</button>
+        </label>
         <Button onClick={() => goApp("sources")} className="hidden rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e] sm:inline-flex"><Plus className="mr-2 h-4 w-4" />Import activity</Button>
-        <button className="rounded-xl border border-[var(--lr-border)] bg-white p-2 text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]" aria-label="Notifications"><Bell className="h-4 w-4" /></button>
-        <div className="hidden items-center gap-2 rounded-xl border border-[var(--lr-border)] bg-white px-3 py-2 text-xs text-[var(--lr-text-2)] xl:flex">
-          {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--lr-orange)]" /> : <StatusIcon tone={status.tone} />}
-          {status.message.slice(0, 44)}{status.message.length > 44 ? "..." : ""}
-        </div>
       </div>
     </header>
   );
@@ -726,14 +793,28 @@ function Sources({ workspace, setWorkspace, onSave, sourceTab, setSourceTab, act
   );
 }
 
-function LaunchMoments({ clusters, activities, selectedCluster, selectedSources, setSelectedCluster, onAccept, onDetect, isBusy }) {
+function LaunchMoments({ clusters, activities, selectedCluster, selectedSources, setSelectedCluster, onAccept, onDetect, isBusy, launchFilter, setLaunchFilter }) {
+  const filters = [
+    ["all", "All"],
+    ["needs-review", "Needs review"],
+    ["accepted", "Accepted"],
+    ["high-confidence", "High confidence"],
+  ];
+  const filteredClusters = clusters.filter((cluster) => {
+    if (launchFilter === "needs-review") return cluster.status !== "accepted" && cluster.status !== "edited";
+    if (launchFilter === "accepted") return cluster.status === "accepted" || cluster.status === "edited";
+    if (launchFilter === "high-confidence") return /high/i.test(cluster.confidence_label || "") || Number(cluster.confidence_score || 0) >= 0.8;
+    return true;
+  });
   return (
     <Page title="Launch Moments" eyebrow="Launch Detection" description="Review detected change clusters, inspect evidence, and decide what deserves a story." action={<Button onClick={onDetect} disabled={isBusy || !activities.length} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Detect new moments</Button>}>
-      <div className="mb-5 flex flex-wrap gap-2">
-        {['Date', 'Status', 'Impact', 'Source type', 'Confidence', 'Product area'].map((filter) => <FilterChip key={filter}>{filter}</FilterChip>)}
+      <div className="mb-5 flex flex-wrap gap-2" role="tablist" aria-label="Launch moment filters">
+        {filters.map(([id, label]) => <TabButton key={id} active={launchFilter === id} onClick={() => setLaunchFilter(id)}>{label}</TabButton>)}
       </div>
       {clusters.length === 0 ? (
         <EmptyState icon={CircleDot} title="No launch moments detected yet" body="Import source activity, then run detection to see candidate launch moments with their evidence." actionLabel="Detect moments" onAction={onDetect} disabled={!activities.length || isBusy} />
+      ) : filteredClusters.length === 0 ? (
+        <EmptyState icon={CircleDot} title="No moments match this filter" body="Switch filters or run detection again after importing more source activity." />
       ) : (
         <div className="grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)_360px]">
           <SectionCard title="Source timeline" description={`${activities.length} receipts available`} compact>
@@ -743,7 +824,7 @@ function LaunchMoments({ clusters, activities, selectedCluster, selectedSources,
           </SectionCard>
           <SectionCard title="Detected candidates" description="Prioritized by source count, confidence, and product value." compact>
             <div className="space-y-3">
-              {clusters.map((cluster) => <MomentCandidate key={cluster.id || cluster.title} cluster={cluster} active={selectedCluster?.id === cluster.id} onClick={() => setSelectedCluster(cluster)} />)}
+              {filteredClusters.map((cluster) => <MomentCandidate key={cluster.id || cluster.title} cluster={cluster} active={selectedCluster?.id === cluster.id} onClick={() => setSelectedCluster(cluster)} />)}
             </div>
           </SectionCard>
           <EvidencePanel cluster={selectedCluster} sources={selectedSources} onAccept={onAccept} />
@@ -753,7 +834,7 @@ function LaunchMoments({ clusters, activities, selectedCluster, selectedSources,
   );
 }
 
-function StoryStudio({ cluster, activities, sourceItems, draft, setDraft, onCreateDraft, onCreateOpportunities, isBusy, onBack }) {
+function StoryStudio({ cluster, sourceItems, draft, setDraft, onSaveDraft, onCreateDraft, onCreateOpportunities, isBusy, onBack }) {
   if (!cluster) {
     return <Page title="Story Studio" eyebrow="Story Coproduction" description="Accept a launch moment first so every draft starts with source evidence."><EmptyState icon={PenLine} title="No accepted launch moment" body="Story Studio needs a reviewed launch moment before it can draft grounded content." actionLabel="Review launch moments" onAction={onBack} /></Page>;
   }
@@ -775,8 +856,8 @@ function StoryStudio({ cluster, activities, sourceItems, draft, setDraft, onCrea
               <Input aria-label="Draft title" value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} className="h-12 rounded-xl border-[var(--lr-border)] bg-white text-lg font-semibold text-[var(--lr-text)]" />
               <textarea aria-label="Draft body" value={draft.body} onChange={(event) => setDraft({ ...draft, body: event.target.value })} className="min-h-[520px] w-full rounded-2xl border border-[var(--lr-border)] bg-white p-5 text-sm leading-7 text-[var(--lr-text)] shadow-sm outline-none focus:ring-2 focus:ring-[var(--lr-orange)]" />
               <div className="flex flex-wrap gap-2">
-                <Button className="rounded-xl bg-[var(--lr-text)] text-white shadow-none hover:bg-black">Save draft</Button>
-                <Button variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Mark ready</Button>
+                <Button onClick={onSaveDraft} className="rounded-xl bg-[var(--lr-text)] text-white shadow-none hover:bg-black">Save draft</Button>
+                <span className="inline-flex items-center rounded-xl border border-[var(--lr-border)] bg-[var(--lr-surface-2)] px-3 py-2 text-sm text-[var(--lr-text-2)]">Mark ready from Library</span>
               </div>
             </div>
           ) : (
@@ -789,52 +870,165 @@ function StoryStudio({ cluster, activities, sourceItems, draft, setDraft, onCrea
   );
 }
 
-function Opportunities({ opportunities, cluster, onCreateOpportunities, onSaveOpportunity, onPromote, isBusy }) {
+function Opportunities({ opportunities, cluster, onCreateOpportunities, onSaveOpportunity, onPromote, onIgnore, isBusy }) {
   return (
     <Page title="Opportunities" eyebrow="Opportunity Expansion" description="One shipped moment can become a complete product education system." action={<Button onClick={onCreateOpportunities} disabled={isBusy || !cluster} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Generate opportunities</Button>}>
       {!cluster ? <EmptyState icon={Lightbulb} title="No source moment selected" body="Accept a launch moment before expanding it into education opportunities." /> : opportunities.length === 0 ? <EmptyState icon={Lightbulb} title="No opportunities generated yet" body="Generate follow-up angles from the accepted launch moment." actionLabel="Generate opportunities" onAction={onCreateOpportunities} disabled={isBusy} /> : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {opportunities.map((item) => <OpportunityCard key={item.id || item.title} item={item} onSave={() => onSaveOpportunity(item)} onPromote={() => onPromote(item)} />)}
+          {opportunities.map((item) => <OpportunityCard key={item.id || item.title} item={item} onSave={() => onSaveOpportunity(item)} onPromote={() => onPromote(item)} onIgnore={() => onIgnore(item)} />)}
         </div>
       )}
     </Page>
   );
 }
 
-function LibraryScreen({ libraryTab, setLibraryTab, draftRows, opportunities, clusters, activities, cluster }) {
+function LibraryScreen({ libraryTab, setLibraryTab, draftRows, opportunities, clusters, activities, cluster, onMarkDraftReady, librarySearch, setLibrarySearch }) {
   const tabs = ["Drafts", "Ready", "Published", "Opportunities", "Moments", "Assets"];
+  const draftTableRows = draftRows.map((item) => [
+    item.title,
+    item.draft_type || "Launch story",
+    cluster?.title || "Accepted moment",
+    item.status || "draft",
+    nowLabel,
+    item.status === "ready" ? <Badge tone="green">Ready</Badge> : <Button onClick={onMarkDraftReady} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Mark ready</Button>,
+  ]);
+  const readyDraftRows = draftRows.filter((item) => item.status === "ready").map((item) => [item.title, item.draft_type || "Launch story", cluster?.title || "Accepted moment", item.status, nowLabel]);
   const rowsByTab = {
-    Drafts: draftRows.map((item) => [item.title, item.draft_type || "Launch story", cluster?.title || "Accepted moment", item.status || "draft", "Owner", nowLabel]),
-    Ready: [],
+    Drafts: draftTableRows,
+    Ready: readyDraftRows,
     Published: [],
-    Opportunities: opportunities.map((item) => [item.title, item.format || "Education", cluster?.title || "Launch moment", item.status || "open", "Owner", nowLabel]),
-    Moments: clusters.map((item) => [item.title, "Launch moment", `${item.activity_item_ids?.length || 0} sources`, item.status || "candidate", "Owner", nowLabel]),
+    Opportunities: opportunities.map((item) => [item.title, item.format || "Education", cluster?.title || "Launch moment", item.status || "open", nowLabel]),
+    Moments: clusters.map((item) => [item.title, "Launch moment", `${item.activity_item_ids?.length || 0} sources`, item.status || "candidate", nowLabel]),
     Assets: [],
   };
-  const activeRows = rowsByTab[libraryTab] || [];
+  const columnsByTab = {
+    Drafts: ["Title", "Type", "Linked moment", "Status", "Updated", "Action"],
+    Ready: ["Title", "Type", "Linked moment", "Status", "Updated"],
+    Published: ["Title", "Type", "Linked moment", "Status", "Updated"],
+    Opportunities: ["Title", "Type", "Linked moment", "Status", "Updated"],
+    Moments: ["Title", "Type", "Sources", "Status", "Updated"],
+    Assets: ["Title", "Type", "Linked moment", "Status", "Updated"],
+  };
+  const query = librarySearch.trim().toLowerCase();
+  const activeRows = (rowsByTab[libraryTab] || []).filter((row) => !query || row.some((cell) => String(cell?.props?.children || cell || "").toLowerCase().includes(query)));
   return (
     <Page title="Library" eyebrow="Durable archive" description="Find drafts, opportunities, moments, and assets with their source references intact.">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2">{tabs.map((tab) => <TabButton key={tab} active={libraryTab === tab} onClick={() => setLibraryTab(tab)}>{tab}</TabButton>)}</div>
-        <div className="flex items-center gap-2 rounded-xl border border-[var(--lr-border)] bg-white px-3 py-2 text-sm text-[var(--lr-muted)]"><Search className="h-4 w-4" /> Search library</div>
+        <label className="flex items-center gap-2 rounded-xl border border-[var(--lr-border)] bg-white px-3 py-2 text-sm text-[var(--lr-muted)]">
+          <Search className="h-4 w-4" />
+          <input aria-label="Search library" value={librarySearch} onChange={(event) => setLibrarySearch(event.target.value)} placeholder="Search library" className="min-w-[160px] bg-transparent text-[var(--lr-text)] outline-none placeholder:text-[var(--lr-muted)]" />
+        </label>
       </div>
       <SectionCard title={`${libraryTab} view`} description={`${activities.length} source activities → ${cluster ? 1 : 0} accepted moment → ${draftRows.length} draft → ${opportunities.filter((item) => item.status === "saved" || item.status === "promoted_to_draft").length} saved opportunities.`}>
-        <DataTable columns={["Title", "Type", "Linked moment", "Status", "Owner", "Updated"]} rows={activeRows} empty={`No ${libraryTab.toLowerCase()} saved yet.`} />
+        <DataTable columns={columnsByTab[libraryTab] || columnsByTab.Drafts} rows={activeRows} empty={query ? `No ${libraryTab.toLowerCase()} match “${librarySearch}”.` : `No ${libraryTab.toLowerCase()} saved yet.`} />
       </SectionCard>
     </Page>
   );
 }
 
-function SettingsScreen({ workspace, setWorkspace, onSave, isBusy }) {
+function HelpDocsScreen({ goApp }) {
   return (
-    <Page title="Workspace settings" eyebrow="Settings" description="Keep product intelligence and account controls out of the everyday story workflow." action={<Button onClick={onSave} disabled={isBusy} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Save settings</Button>}>
-      <div className="grid gap-5 xl:grid-cols-[260px_1fr]">
-        <SectionCard title="Settings" description="Workspace areas" compact>
-          {['General', 'Product intelligence', 'Connections', 'Team', 'Account & billing'].map((item, index) => <button key={item} className={`mb-1 flex w-full rounded-xl px-3 py-2 text-left text-sm ${index === 0 ? 'bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]' : 'text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]'}`}>{item}</button>)}
+    <Page title="Help & docs" eyebrow="Workspace guide" description="A lightweight guide to the current LaunchRelay workflow, built for a real product walkthrough.">
+      <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
+        <div className="space-y-5">
+          <SectionCard title="What LaunchRelay does" description="LaunchRelay turns shipped work into source-grounded product education.">
+            <div className="grid gap-3 md:grid-cols-3">
+              <PillarCard title="1. Import source activity" body="Bring in GitHub work or paste shipped-work notes as explicit source receipts." icon={GitBranch} />
+              <PillarCard title="2. Review launch moments" body="Detect candidate product stories and keep the human approval gate central." icon={ShieldCheck} />
+              <PillarCard title="3. Shape drafts and opportunities" body="Create editable drafts and follow-up ideas while preserving source links." icon={FileText} />
+            </div>
+          </SectionCard>
+          <SectionCard title="Current build reality" description="What is working in this Base44 contest version.">
+            <MiniTimeline items={[
+              "Base44 entities store workspaces, source activity, launch moments, drafts, and opportunities.",
+              "Backend functions normalize activity, import public GitHub activity, detect launch moments, and expand opportunities.",
+              "Drafting and opportunity generation use deterministic code and content guardrails by default.",
+              "Future AI can be connected as an optional, source-grounded assistant path.",
+            ]} />
+          </SectionCard>
+        </div>
+        <SectionCard title="Quick actions" description="Jump into the main walkthrough." compact>
+          <div className="grid gap-2">
+            <Button onClick={() => goApp("sources")} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Import or paste activity</Button>
+            <Button onClick={() => goApp("launch-moments")} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Review launch moments</Button>
+            <Button onClick={() => goApp("story-studio")} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Open Story Studio</Button>
+            <Button onClick={() => goApp("library")} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Open Library</Button>
+          </div>
         </SectionCard>
-        <ProductContextForm workspace={workspace} setWorkspace={setWorkspace} onSave={onSave} isBusy={isBusy} settingsMode />
       </div>
     </Page>
+  );
+}
+
+function SettingsScreen({ workspace, setWorkspace, onSave, isBusy, settingsTab, setSettingsTab, githubRepoInput, activities, importPhase }) {
+  const tabs = [
+    ["general", "General"],
+    ["model", "AI model"],
+    ["connections", "Connections"],
+    ["billing", "Account & billing"],
+  ];
+  return (
+    <Page title="Workspace settings" eyebrow="Settings" description="Manage product context, source connections, model options, and account readiness." action={<Button onClick={onSave} disabled={isBusy} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Save settings</Button>}>
+      <div className="grid gap-5 xl:grid-cols-[260px_1fr]">
+        <SectionCard title="Settings" description="Workspace areas" compact>
+          {tabs.map(([id, label]) => <button key={id} onClick={() => setSettingsTab(id)} className={`mb-1 flex w-full rounded-xl px-3 py-2 text-left text-sm ${settingsTab === id ? 'bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]' : 'text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]'}`}>{label}</button>)}
+        </SectionCard>
+        {settingsTab === "general" && <ProductContextForm workspace={workspace} setWorkspace={setWorkspace} onSave={onSave} isBusy={isBusy} settingsMode />}
+        {settingsTab === "model" && <ModelSettingsPanel />}
+        {settingsTab === "connections" && <SettingsConnectionsPanel githubRepoInput={githubRepoInput} activities={activities} importPhase={importPhase} />}
+        {settingsTab === "billing" && <AccountBillingPanel />}
+      </div>
+    </Page>
+  );
+}
+
+function ModelSettingsPanel() {
+  return (
+    <SectionCard title="AI model connection" description="Prepare optional AI assistance without turning the core workflow into a black-box writer.">
+      <div className="mb-4 rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4 text-sm text-[var(--lr-text-2)]">
+        Coming soon: connect a Base44-supported model or bring another approved provider. Current drafts still use deterministic templates and source checks.
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        <StatusRow label="Current mode" value="Deterministic generation" />
+        <StatusRow label="Preferred path" value="Base44 AI connection" />
+        <StatusRow label="Human gate" value="Required before publishing" />
+        <StatusRow label="Source grounding" value="Always required" />
+      </div>
+    </SectionCard>
+  );
+}
+
+function SettingsConnectionsPanel({ githubRepoInput, activities, importPhase }) {
+  return (
+    <SectionCard title="Connections" description="Source connections feed the product education workflow.">
+      <div className="grid gap-4 md:grid-cols-2">
+        <StatusRow label="Primary repository" value={githubRepoInput || "Not set"} />
+        <StatusRow label="Imported records" value={`${activities.length} source activities`} />
+        <StatusRow label="Import path" value="Base44 function with browser fallback" />
+        <StatusRow label="Current phase" value={importPhase || "idle"} />
+      </div>
+      <p className="mt-4 text-sm leading-6 text-[var(--lr-text-2)]">
+        Connections are where LaunchRelay remembers which product sources can become source receipts. For this build, GitHub repository import and manual shipped-work notes are the active paths.
+      </p>
+    </SectionCard>
+  );
+}
+
+function AccountBillingPanel() {
+  return (
+    <SectionCard title="Account & billing" description="Account controls are prepared for a real workspace path, with paid controls kept inactive until needed.">
+      <Badge tone="blue">Coming soon</Badge>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <StatusRow label="Workspace plan" value="Contest workspace" />
+        <StatusRow label="Billing status" value="Not connected" />
+        <StatusRow label="Credits policy" value="Credit-safe deterministic core" />
+        <StatusRow label="Upgrade path" value="Add after auth + billing are verified" />
+      </div>
+      <p className="mt-4 text-sm leading-6 text-[var(--lr-text-2)]">
+        This keeps account expectations visible without requesting payment details or enabling paid AI features during the submission flow.
+      </p>
+    </SectionCard>
   );
 }
 
@@ -953,11 +1147,8 @@ function EvidencePanel({ cluster, sources, onAccept }) {
       </div>
       <div className="mt-5 grid gap-2">
         <Button onClick={() => onAccept(cluster)} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Accept and open Story Studio</Button>
-        <div className="grid grid-cols-2 gap-2">
-          <GhostAction disabled>Edit soon</GhostAction>
-          <GhostAction disabled>Dismiss soon</GhostAction>
-          <GhostAction disabled>Merge soon</GhostAction>
-          <GhostAction disabled>Split soon</GhostAction>
+        <div className="rounded-2xl border border-dashed border-[var(--lr-border)] bg-[var(--lr-canvas)] p-3 text-sm text-[var(--lr-text-2)]">
+          Refinement tools coming soon: edit, dismiss, merge, and split moments after the core review path is stable.
         </div>
       </div>
     </SectionCard>
@@ -985,10 +1176,10 @@ function AssistantPanel({ cluster, sourceItems, onCreateOpportunities, isBusy })
   );
 }
 
-function OpportunityCard({ item, onSave, onPromote }) {
+function OpportunityCard({ item, onSave, onPromote, onIgnore }) {
   return (
     <article className="rounded-2xl border border-[var(--lr-border)] bg-white p-5 shadow-sm">
-      <div className="mb-3 flex items-center justify-between gap-2"><Badge tone="orange">{item.format || "Education"}</Badge><button aria-label="More opportunity actions" className="rounded-lg p-1 text-[var(--lr-muted)] hover:bg-[var(--lr-surface-2)]"><MoreHorizontal className="h-4 w-4" /></button></div>
+      <div className="mb-3 flex items-center justify-between gap-2"><Badge tone="orange">{item.format || "Education"}</Badge><Badge tone="blue">{item.status || "open"}</Badge></div>
       <h3 className="text-lg font-semibold tracking-[-0.015em]">{item.title}</h3>
       <p className="mt-2 text-sm leading-6 text-[var(--lr-text-2)]">{item.angle || item.why_it_matters}</p>
       <dl className="mt-4 space-y-2 text-sm">
@@ -999,7 +1190,7 @@ function OpportunityCard({ item, onSave, onPromote }) {
       <div className="mt-5 flex flex-wrap gap-2">
         <Button onClick={onSave} disabled={item.status === "saved"} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">{item.status === "saved" ? "Saved" : "Save"}</Button>
         <Button onClick={onPromote} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Promote to draft</Button>
-        <Button variant="ghost" className="rounded-xl text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]">Ignore</Button>
+        <Button onClick={onIgnore} variant="ghost" className="rounded-xl text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]">Ignore</Button>
       </div>
     </article>
   );
@@ -1082,16 +1273,8 @@ function FoundationList({ cluster, sourceItems }) {
   return <dl className="space-y-3">{rows.map(([label, value]) => <InfoLine key={label} label={label} value={value} />)}</dl>;
 }
 
-function AssistantAction({ children }) {
-  return <button className="rounded-xl border border-[var(--lr-border)] bg-white px-3 py-2 text-sm text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]">{children}</button>;
-}
-
-function GhostAction({ children, disabled = false }) {
-  return <Button disabled={disabled} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)] disabled:cursor-not-allowed disabled:bg-[var(--lr-surface-2)] disabled:text-[var(--lr-muted)]">{children}</Button>;
-}
-
-function AuthButton({ icon: Icon, label, disabled }) {
-  return <button disabled={disabled} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--lr-border)] bg-white text-sm font-medium text-[var(--lr-text-2)] disabled:cursor-not-allowed disabled:opacity-60"><Icon className="h-4 w-4" />{label}<span className="text-xs text-[var(--lr-muted)]">soon</span></button>;
+function AuthButton({ icon: Icon, label, onClick, disabled = false }) {
+  return <button type="button" onClick={onClick} disabled={disabled} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--lr-border)] bg-white text-sm font-medium text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)] disabled:cursor-not-allowed disabled:opacity-60"><Icon className="h-4 w-4" />{label}</button>;
 }
 
 function PillarCard({ icon: Icon, title, body }) {
@@ -1121,10 +1304,6 @@ function TextArea({ label, value, onChange, rows = 4 }) {
 
 function TabButton({ active, onClick, children }) {
   return <button onClick={onClick} className={`rounded-xl px-3 py-2 text-sm font-medium ${active ? "bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "border border-[var(--lr-border)] bg-white text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]"}`}>{children}</button>;
-}
-
-function FilterChip({ children }) {
-  return <button className="rounded-xl border border-[var(--lr-border)] bg-white px-3 py-2 text-sm text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]">{children}</button>;
 }
 
 function Badge({ children, tone = "orange" }) {
@@ -1168,6 +1347,20 @@ function MiniTimeline({ items }) {
 
 function BrandMark() {
   return <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--lr-orange)] text-white shadow-sm"><Layers3 className="h-5 w-5" /></div>;
+}
+
+function viewLabel(view) {
+  const labels = {
+    overview: "Overview",
+    sources: "Sources",
+    "launch-moments": "Launch Moments",
+    "story-studio": "Story Studio",
+    opportunities: "Opportunities",
+    library: "Library",
+    settings: "Workspace settings",
+    help: "Help & docs",
+  };
+  return labels[view] || "Overview";
 }
 
 function sourceTypeLabel(sourceType) {
