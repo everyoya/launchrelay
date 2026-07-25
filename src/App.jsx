@@ -248,6 +248,27 @@ export default function App() {
     }
   }
 
+  async function ensureWorkspaceRecord() {
+    if (workspaceRecord?.id && !String(workspaceRecord.id).startsWith("local_")) return workspaceRecord;
+    if (!currentUser || demoMode) {
+      const localRecord = workspaceRecord || { id: "local_workspace", ...workspace };
+      setWorkspaceRecord(localRecord);
+      return localRecord;
+    }
+    try {
+      const created = await ProductWorkspace.create(workspace);
+      setWorkspaceRecord(created);
+      setWorkspace({ ...initialWorkspace, ...created });
+      return created;
+    } catch (error) {
+      console.error(error);
+      const localRecord = { id: "local_workspace", ...workspace };
+      setWorkspaceRecord(localRecord);
+      setStatus({ tone: "warning", message: "Could not create the remote workspace yet. This session can continue locally, but sign back in after saving context to persist it." });
+      return localRecord;
+    }
+  }
+
   function startOnboardingWorkflow() {
     const workspaceRecordSeed = { id: "local_workspace", ...workspace };
     const importedAt = new Date().toISOString();
@@ -279,7 +300,8 @@ export default function App() {
     setIsBusy(true);
     setImportPhase("normalizing");
     setStatus({ tone: "loading", message: "Normalizing pasted activity into source records..." });
-    const workspaceId = workspaceRecord?.id || "local_workspace";
+    const activeWorkspace = await ensureWorkspaceRecord();
+    const workspaceId = activeWorkspace.id;
     const importedAt = new Date().toISOString();
 
     try {
@@ -317,8 +339,6 @@ export default function App() {
     setIsBusy(true);
     setImportPhase("connecting");
     setStatus({ tone: "loading", message: "Connecting to GitHub source activity..." });
-    const workspaceId = workspaceRecord?.id || "local_workspace";
-    const importedAt = new Date().toISOString();
     const parsed = parseGitHubRepoInput(githubRepoInput);
 
     if (!parsed.isValid) {
@@ -327,6 +347,10 @@ export default function App() {
       setIsBusy(false);
       return;
     }
+
+    const activeWorkspace = await ensureWorkspaceRecord();
+    const workspaceId = activeWorkspace.id;
+    const importedAt = new Date().toISOString();
 
     try {
       const connectionPayload = {
@@ -418,7 +442,8 @@ export default function App() {
     }
     setIsBusy(true);
     setStatus({ tone: "loading", message: "Detecting launch-worthy change clusters..." });
-    const workspaceId = workspaceRecord?.id || "local_workspace";
+    const activeWorkspace = await ensureWorkspaceRecord();
+    const workspaceId = activeWorkspace.id;
 
     try {
       const response = await invokeFunctionWithTimeout("detectLaunchMoments", {
@@ -477,9 +502,10 @@ export default function App() {
     setIsBusy(true);
     setStatus({ tone: "loading", message: "Creating a source-grounded draft with guardrails..." });
     const sourceItems = activities.filter((item) => acceptedCluster.activity_item_ids?.includes(item.id));
+    const activeWorkspace = await ensureWorkspaceRecord();
     const guardrailed = createGuardrailedDraft({ workspace, cluster: acceptedCluster, sources: sourceItems });
     const draftPayload = {
-      workspace_id: workspaceRecord?.id || "local_workspace",
+      workspace_id: activeWorkspace.id,
       launch_cluster_id: acceptedCluster.id,
       draft_type: "feature_launch",
       title: guardrailed.title,
@@ -511,7 +537,8 @@ export default function App() {
     }
     setIsBusy(true);
     setStatus({ tone: "loading", message: "Expanding one shipped moment into follow-up education opportunities..." });
-    const workspaceId = workspaceRecord?.id || "local_workspace";
+    const activeWorkspace = await ensureWorkspaceRecord();
+    const workspaceId = activeWorkspace.id;
 
     try {
       const response = await invokeFunctionWithTimeout("expandOpportunities", { cluster: acceptedCluster, workspaceId });
@@ -1803,30 +1830,45 @@ async function loadUserWorkspaceData(user, setters) {
   const { setWorkspace, setWorkspaceRecord, setActivities, setClusters, setSelectedCluster, setDraft, setOpportunities } = setters;
   try {
     const workspaces = normalizeListResponse(await ProductWorkspace.list("-updated_date", 25));
-    const workspaceRecord = selectUserOwnedRecord(workspaces, user);
-    if (!workspaceRecord) return;
+    let workspaceRecord = selectUserOwnedRecord(workspaces, user);
+
+    if (!workspaceRecord) {
+      const activityRecords = normalizeUserScopedList(normalizeListResponse(await ActivityItem.list("-updated_date", 100)), user);
+      if (!activityRecords.length) return;
+      const recoveredWorkspaceId = activityRecords[0].workspace_id || "local_workspace";
+      workspaceRecord = { id: recoveredWorkspaceId, ...initialWorkspace };
+      setWorkspace(workspaceRecord);
+      setWorkspaceRecord(workspaceRecord);
+      await hydrateWorkspaceChildren(recoveredWorkspaceId, user, setters, activityRecords);
+      return;
+    }
 
     setWorkspace({ ...initialWorkspace, ...workspaceRecord });
     setWorkspaceRecord(workspaceRecord);
-    const workspaceQuery = { workspace_id: workspaceRecord.id };
-    const [activityRecords, clusterRecords, draftRecords, opportunityRecords] = await Promise.all([
-      ActivityItem.filter(workspaceQuery, "-occurred_at", 100),
-      LaunchCluster.filter(workspaceQuery, "-updated_date", 50),
-      Draft.filter(workspaceQuery, "-updated_date", 20),
-      Opportunity.filter(workspaceQuery, "-updated_date", 50),
-    ]);
-    const loadedActivities = normalizeUserScopedList(normalizeListResponse(activityRecords), user);
-    const loadedClusters = normalizeUserScopedList(normalizeListResponse(clusterRecords), user);
-    const loadedDrafts = normalizeUserScopedList(normalizeListResponse(draftRecords), user);
-    const loadedOpportunities = normalizeUserScopedList(normalizeListResponse(opportunityRecords), user);
-    setActivities(loadedActivities);
-    setClusters(loadedClusters);
-    setSelectedCluster(loadedClusters.find((cluster) => cluster.status === "accepted" || cluster.status === "edited") || loadedClusters[0] || null);
-    setDraft(loadedDrafts[0] || null);
-    setOpportunities(loadedOpportunities);
+    await hydrateWorkspaceChildren(workspaceRecord.id, user, setters);
   } catch (error) {
     console.warn("Could not restore workspace records yet:", error);
   }
+}
+
+async function hydrateWorkspaceChildren(workspaceId, user, setters, preloadedActivities = null) {
+  const { setActivities, setClusters, setSelectedCluster, setDraft, setOpportunities } = setters;
+  const workspaceQuery = { workspace_id: workspaceId };
+  const [activityRecords, clusterRecords, draftRecords, opportunityRecords] = await Promise.all([
+    preloadedActivities || ActivityItem.filter(workspaceQuery, "-occurred_at", 100),
+    LaunchCluster.filter(workspaceQuery, "-updated_date", 50),
+    Draft.filter(workspaceQuery, "-updated_date", 20),
+    Opportunity.filter(workspaceQuery, "-updated_date", 50),
+  ]);
+  const loadedActivities = Array.isArray(preloadedActivities) ? preloadedActivities : normalizeUserScopedList(normalizeListResponse(activityRecords), user);
+  const loadedClusters = normalizeUserScopedList(normalizeListResponse(clusterRecords), user);
+  const loadedDrafts = normalizeUserScopedList(normalizeListResponse(draftRecords), user);
+  const loadedOpportunities = normalizeUserScopedList(normalizeListResponse(opportunityRecords), user);
+  setActivities(loadedActivities);
+  setClusters(loadedClusters);
+  setSelectedCluster(loadedClusters.find((cluster) => cluster.status === "accepted" || cluster.status === "edited") || loadedClusters[0] || null);
+  setDraft(loadedDrafts[0] || null);
+  setOpportunities(loadedOpportunities);
 }
 
 function selectUserOwnedRecord(records, user) {
