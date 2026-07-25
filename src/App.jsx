@@ -118,6 +118,7 @@ export default function App() {
     let cancelled = false;
     async function restoreSession() {
       try {
+        hydrateAuthTokenFromUrl();
         const user = normalizeResponse(await base44.auth.me());
         if (!isValidUserSession(user)) throw new Error("No active Base44 user session");
         if (cancelled) return;
@@ -1522,9 +1523,17 @@ function sameOpportunity(left, right) {
 
 function initialViewFromLocation() {
   if (typeof window === "undefined") return "public-home";
-  const hash = window.location.hash.replace(/^#\/?/, "");
-  if (appRouteIds.includes(hash) || publicRouteIds.includes(hash)) return hash;
+  const hashRoute = extractHashRoute(window.location.hash);
+  if (appRouteIds.includes(hashRoute) || publicRouteIds.includes(hashRoute)) return hashRoute;
   return "public-home";
+}
+
+function extractHashRoute(hash) {
+  return String(hash || "")
+    .replace(/^#\/?/, "")
+    .split("?")[0]
+    .split("&")[0]
+    .trim();
 }
 
 function isAppRoute(view) {
@@ -1592,8 +1601,34 @@ function isValidUserSession(user) {
   return Boolean(user && (user.id || user.email || user.created_by_id));
 }
 
+function hydrateAuthTokenFromUrl() {
+  if (typeof window === "undefined") return null;
+  const hashParts = String(window.location.hash || "").split("?");
+  const hashParams = new URLSearchParams(hashParts[1] || "");
+  const searchParams = new URLSearchParams(window.location.search || "");
+  const token = hashParams.get("access_token") || searchParams.get("access_token");
+  if (!token) return null;
+
+  base44.setToken(token);
+  rememberPostLoginView(extractHashRoute(window.location.hash) || "overview");
+
+  hashParams.delete("access_token");
+  hashParams.delete("is_new_user");
+  searchParams.delete("access_token");
+  searchParams.delete("is_new_user");
+
+  const cleanHashRoute = extractHashRoute(window.location.hash) || "overview";
+  const cleanHashQuery = hashParams.toString();
+  const cleanHash = `#/${cleanHashRoute}${cleanHashQuery ? `?${cleanHashQuery}` : ""}`;
+  const cleanSearch = searchParams.toString();
+  const cleanUrl = `${window.location.pathname}${cleanSearch ? `?${cleanSearch}` : ""}${cleanHash}`;
+  window.history.replaceState({}, document.title, cleanUrl);
+  return token;
+}
+
 function hasLocalAuthToken() {
   try {
+    hydrateAuthTokenFromUrl();
     return Boolean(window.localStorage.getItem("base44_access_token") || window.localStorage.getItem("token"));
   } catch (error) {
     return false;
