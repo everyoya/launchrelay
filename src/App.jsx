@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,8 +6,6 @@ import {
   AlertCircle,
   ArrowRight,
   BookOpen,
-  Boxes,
-  Check,
   CheckCircle2,
   CircleDot,
   ExternalLink,
@@ -55,7 +53,7 @@ const appNav = [
   { id: "library", label: "Library", icon: Library },
 ];
 
-const publicNav = ["Product", "How it works", "Use cases", "Example output"];
+const publicNav = ["Product", "How it works", "Use cases"];
 
 const sampleActivity = `PR: Added onboarding checklist for first workspace setup
 Commit: fixed signup redirect after account creation
@@ -96,9 +94,15 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
   const [importPhase, setImportPhase] = useState("idle");
-  const [status, setStatus] = useState({ tone: "ready", message: "Ready to turn shipped work into source-grounded product education." });
+  const [status, setStatus] = useState(null);
 
   const isPublic = view.startsWith("public") || view === "sign-in";
+  useEffect(() => {
+    if (!status || status.tone === "loading") return undefined;
+    const timer = window.setTimeout(() => setStatus(null), 3600);
+    return () => window.clearTimeout(timer);
+  }, [status]);
+
   const acceptedCluster = useMemo(
     () => clusters.find((cluster) => cluster.status === "accepted" || cluster.status === "edited") || null,
     [clusters]
@@ -129,11 +133,11 @@ export default function App() {
     if (!normalized) return;
     const destinations = [
       { id: "overview", label: "overview home dashboard source health" },
-      { id: "sources", label: "sources import github repository connections notes assets activity" },
+      { id: "sources", label: "sources import github repository connections notes activity" },
       { id: "launch-moments", label: "launch moments detection review evidence confidence status" },
       { id: "story-studio", label: "story studio draft editor assistant sources" },
       { id: "opportunities", label: "opportunities angles follow up education save promote ignore" },
-      { id: "library", label: "library drafts ready published moments assets search" },
+      { id: "library", label: "library drafts ready published moments search" },
       { id: "settings", label: "settings workspace account billing model ai base44 connections" },
       { id: "help", label: "help docs documentation workflow guide readme submission" },
     ];
@@ -155,7 +159,7 @@ export default function App() {
         ? await ProductWorkspace.update(workspaceRecord.id, workspace)
         : await ProductWorkspace.create(workspace);
       setWorkspaceRecord(record);
-      setStatus({ tone: "success", message: "Workspace context saved. Import source activity when ready." });
+      setStatus({ tone: "success", message: "Workspace context saved. Import source activity next." });
       goApp("sources");
     } catch (error) {
       console.error(error);
@@ -376,13 +380,13 @@ export default function App() {
     const updated = { ...cluster, status: "accepted" };
     setSelectedCluster(updated);
     setClusters((items) => items.map((item) => (item.id === cluster.id ? updated : item)));
-    setStatus({ tone: "success", message: "Human review complete. Launch moment is ready for Story Studio." });
+    setStatus({ tone: "success", message: "Human review complete. Opening Story Studio." });
     goApp("story-studio");
     try {
       if (cluster.id && !String(cluster.id).startsWith("local_")) await LaunchCluster.update(cluster.id, { status: "accepted" });
     } catch (error) {
       console.error(error);
-      setStatus({ tone: "warning", message: "Launch moment accepted locally and ready for Story Studio." });
+      setStatus({ tone: "warning", message: "Launch moment accepted locally. Opening Story Studio." });
     }
   }
 
@@ -578,7 +582,6 @@ function MarketingHome({ onSample, goPublic }) {
     <main>
       <section className="mx-auto grid max-w-7xl gap-10 px-5 py-16 lg:grid-cols-[0.95fr_1.05fr] lg:py-24">
         <div className="flex flex-col justify-center">
-          <Badge tone="orange">Built from real shipped work</Badge>
           <h1 className="mt-5 max-w-3xl text-5xl font-semibold tracking-[-0.045em] text-[var(--lr-text)] md:text-6xl">
             Your product already contains its next great story.
           </h1>
@@ -589,7 +592,6 @@ function MarketingHome({ onSample, goPublic }) {
             <Button onClick={() => goPublic("sign-in")} className="h-12 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">Start with your repository <ArrowRight className="ml-2 h-4 w-4" /></Button>
             <Button onClick={onSample} variant="ghost" className="h-12 rounded-xl border border-[var(--lr-border)] bg-white px-5 text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Explore a sample workspace</Button>
           </div>
-          <p className="mt-5 text-sm font-medium text-[var(--lr-text-2)]">No blank prompt. No disconnected AI copy. Every story begins with work your team actually shipped.</p>
         </div>
         <SourceToStoryPreview />
       </section>
@@ -612,13 +614,6 @@ function MarketingHome({ onSample, goPublic }) {
           <PillarCard title="Founder-led teams" body="Keep product education flowing from the work already happening." icon={Layers3} />
         </div>
       </section>
-      <section id="example-output" className="mx-auto max-w-7xl px-5 py-12">
-        <div className="rounded-[28px] border border-[var(--lr-border)] bg-white p-6 shadow-sm">
-          <Badge tone="green">Example output</Badge>
-          <h2 className="mt-4 text-2xl font-semibold tracking-[-0.025em]">Faster onboarding for new teams</h2>
-          <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--lr-text-2)]">A source-grounded launch draft explaining how onboarding changes reduce setup friction, with inline references to the PRs, commits, and notes that created the launch moment.</p>
-        </div>
-      </section>
     </main>
   );
 }
@@ -627,7 +622,7 @@ function SignIn({ onSample, goPublic, goApp, onAuthProvider }) {
   return (
     <main className="mx-auto grid min-h-[calc(100vh-73px)] max-w-6xl items-center gap-10 px-5 py-12 lg:grid-cols-[0.95fr_1.05fr]">
       <div>
-        <Badge tone="blue">Sample or connect when ready</Badge>
+        <Badge tone="blue">Sample workspace or product context</Badge>
         <h1 className="mt-5 text-4xl font-semibold tracking-[-0.035em]">Turn shipped work into trusted product education.</h1>
         <p className="mt-4 max-w-xl leading-7 text-[var(--lr-text-2)]">Sign in with Base44 authentication, explore the sample workspace, or start by adding product context.</p>
       </div>
@@ -685,8 +680,8 @@ function Sidebar({ view, goApp, goPublic, workspace, sidebarOpen, setSidebarOpen
           <div className="mt-3 flex items-center gap-3 rounded-2xl bg-[var(--lr-canvas)] p-3">
             <UserCircle className="h-8 w-8 text-[var(--lr-muted)]" />
             <div className="min-w-0">
-              <div className="truncate text-sm font-medium">Builder workspace</div>
-              <div className="text-xs text-[var(--lr-muted)]">Local product build</div>
+              <div className="truncate text-sm font-medium">LaunchRelay workspace</div>
+              <div className="text-xs text-[var(--lr-muted)]">Sample product education workspace</div>
             </div>
           </div>
         </div>
@@ -726,6 +721,7 @@ function Topbar({ view, goApp, globalSearch, setGlobalSearch, onSearch, setSideb
 }
 
 function StatusNotice({ status, isBusy }) {
+  if (!status) return null;
   return (
     <div className={`mb-5 flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm ${statusClasses(status.tone)}`} role="status" aria-live="polite">
       {isBusy ? <Loader2 className="mt-0.5 h-4 w-4 animate-spin" /> : <StatusIcon tone={status.tone} />}
@@ -743,7 +739,7 @@ function Overview({ workspace, activities, clusters, selectedCluster, draftRows,
           <div className="grid gap-4 md:grid-cols-3">
             <MetricCard label="Source activities" value={activities.length} help="PRs, commits, releases, and notes" />
             <MetricCard label="Detected moments" value={clusters.length} help="Launch-worthy clusters" />
-            <MetricCard label="Drafts + opportunities" value={draftRows.length + opportunities.length} help="Saved or ready to shape" />
+            <MetricCard label="Drafts + opportunities" value={draftRows.length + opportunities.length} help="Saved or in progress" />
           </div>
           <SectionCard title="Moments needing review" description="LaunchRelay keeps the human decision point central.">
             {clusters.length ? (
@@ -759,8 +755,16 @@ function Overview({ workspace, activities, clusters, selectedCluster, draftRows,
           </SectionCard>
         </div>
         <aside className="space-y-5">
-          <HealthCard title="Source health" items={[`${activities.length} source records`, importHealthLabel(activities), "GitHub + manual fallback ready"]} />
-          <HealthCard title="Product context" items={[workspace.name, workspace.target_audience, workspace.primary_channels]} />
+          <SectionCard title="Source health" description="Concrete source state for this workspace." compact>
+            <StatusRow label="Source records" value={`${activities.length} imported`} />
+            <StatusRow label="Source mode" value={activities.length ? sourceModeLabel(activities) : "No source records yet"} />
+            <StatusRow label="Next action" value={activities.length ? "Review detected moments" : "Import GitHub activity or paste notes"} />
+          </SectionCard>
+          <SectionCard title="Product context" description="Active positioning inputs." compact>
+            <StatusRow label="Product" value={workspace.name} />
+            <StatusRow label="Audience" value={workspace.target_audience} />
+            <StatusRow label="Channels" value={workspace.primary_channels} />
+          </SectionCard>
           <SectionCard title="Recent activity" description="Latest workflow signals.">
             <MiniTimeline items={[activities.length ? `${activities.length} source receipts imported` : "Waiting for source import", clusters.length ? `${clusters.length} launch moments detected` : "Detection not run yet", draftRows.length ? "Draft created" : "No draft yet"]} />
           </SectionCard>
@@ -775,7 +779,6 @@ function Sources({ workspace, setWorkspace, onSave, sourceTab, setSourceTab, act
     ["context", "Product context"],
     ["connections", "Connections"],
     ["notes", "Notes"],
-    ["assets", "Assets"],
   ];
   return (
     <Page title="Sources" eyebrow="Source trail" description="Connect product context and shipped-work evidence before LaunchRelay detects moments." action={<Button onClick={activities.length ? onDetect : onGitHubImport} disabled={isBusy} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">{activities.length ? "Detect new moments" : "Import GitHub activity"}</Button>}>
@@ -785,7 +788,6 @@ function Sources({ workspace, setWorkspace, onSave, sourceTab, setSourceTab, act
       {sourceTab === "context" && <ProductContextForm workspace={workspace} setWorkspace={setWorkspace} onSave={onSave} isBusy={isBusy} />}
       {sourceTab === "connections" && <ConnectionsPanel githubRepoInput={githubRepoInput} setGithubRepoInput={setGithubRepoInput} activities={activities} importPhase={importPhase} isBusy={isBusy} onGitHubImport={onGitHubImport} onDetect={onDetect} />}
       {sourceTab === "notes" && <ManualNotesPanel activityText={activityText} setActivityText={setActivityText} activities={activities} isBusy={isBusy} onImport={onImport} />}
-      {sourceTab === "assets" && <AssetsPanel />}
       <SectionCard title="Structured activity records" description="Every imported item becomes source material for launch detection.">
         <ActivityList activities={activities} />
       </SectionCard>
@@ -844,12 +846,10 @@ function StoryStudio({ cluster, sourceItems, draft, setDraft, onSaveDraft, onCre
         <SectionCard title="Story foundation" description="The source-backed brief for this draft." compact>
           <FoundationList cluster={cluster} sourceItems={sourceItems} />
         </SectionCard>
-        <SectionCard title="Editor" description="Autosave-ready draft workspace with source-grounded sections." compact>
+        <SectionCard title="Editor" description="Editable draft workspace with source-grounded sections." compact>
           <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-[var(--lr-text-2)]">
-            <Badge tone="green">Autosave ready</Badge>
-            <Badge tone="blue">{draft?.status || "draft"}</Badge>
+            <span className="font-medium capitalize text-[var(--lr-text)]">{draft?.status || "draft"}</span>
             <span>{wordCount(draft?.body)} words</span>
-            <span>Version 1</span>
           </div>
           {draft ? (
             <div className="space-y-3">
@@ -883,7 +883,7 @@ function Opportunities({ opportunities, cluster, onCreateOpportunities, onSaveOp
 }
 
 function LibraryScreen({ libraryTab, setLibraryTab, draftRows, opportunities, clusters, activities, cluster, onMarkDraftReady, librarySearch, setLibrarySearch }) {
-  const tabs = ["Drafts", "Ready", "Published", "Opportunities", "Moments", "Assets"];
+  const tabs = ["Drafts", "Ready", "Published", "Opportunities", "Moments"];
   const draftTableRows = draftRows.map((item) => [
     item.title,
     item.draft_type || "Launch story",
@@ -899,7 +899,6 @@ function LibraryScreen({ libraryTab, setLibraryTab, draftRows, opportunities, cl
     Published: [],
     Opportunities: opportunities.map((item) => [item.title, item.format || "Education", cluster?.title || "Launch moment", item.status || "open", nowLabel]),
     Moments: clusters.map((item) => [item.title, "Launch moment", `${item.activity_item_ids?.length || 0} sources`, item.status || "candidate", nowLabel]),
-    Assets: [],
   };
   const columnsByTab = {
     Drafts: ["Title", "Type", "Linked moment", "Status", "Updated", "Action"],
@@ -907,20 +906,19 @@ function LibraryScreen({ libraryTab, setLibraryTab, draftRows, opportunities, cl
     Published: ["Title", "Type", "Linked moment", "Status", "Updated"],
     Opportunities: ["Title", "Type", "Linked moment", "Status", "Updated"],
     Moments: ["Title", "Type", "Sources", "Status", "Updated"],
-    Assets: ["Title", "Type", "Linked moment", "Status", "Updated"],
   };
   const query = librarySearch.trim().toLowerCase();
   const activeRows = (rowsByTab[libraryTab] || []).filter((row) => !query || row.some((cell) => String(cell?.props?.children || cell || "").toLowerCase().includes(query)));
   return (
-    <Page title="Library" eyebrow="Durable archive" description="Find drafts, opportunities, moments, and assets with their source references intact.">
+    <Page title="Library" eyebrow="Durable archive" description="Find drafts, opportunities, and moments with their source references intact.">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-2">{tabs.map((tab) => <TabButton key={tab} active={libraryTab === tab} onClick={() => setLibraryTab(tab)}>{tab}</TabButton>)}</div>
+        <div className="flex flex-wrap rounded-2xl border border-[var(--lr-border)] bg-white p-1 shadow-sm">{tabs.map((tab) => <LibraryTabButton key={tab} active={libraryTab === tab} onClick={() => setLibraryTab(tab)}>{tab}</LibraryTabButton>)}</div>
         <label className="flex items-center gap-2 rounded-xl border border-[var(--lr-border)] bg-white px-3 py-2 text-sm text-[var(--lr-muted)]">
           <Search className="h-4 w-4" />
           <input aria-label="Search library" value={librarySearch} onChange={(event) => setLibrarySearch(event.target.value)} placeholder="Search library" className="min-w-[160px] bg-transparent text-[var(--lr-text)] outline-none placeholder:text-[var(--lr-muted)]" />
         </label>
       </div>
-      <SectionCard title={`${libraryTab} view`} description={`${activities.length} source activities → ${cluster ? 1 : 0} accepted moment → ${draftRows.length} draft → ${opportunities.filter((item) => item.status === "saved" || item.status === "promoted_to_draft").length} saved opportunities.`}>
+      <SectionCard title={`${libraryTab} view`} description={librarySummary({ activities, cluster, draftRows, opportunities })}>
         <DataTable columns={columnsByTab[libraryTab] || columnsByTab.Drafts} rows={activeRows} empty={query ? `No ${libraryTab.toLowerCase()} match “${librarySearch}”.` : `No ${libraryTab.toLowerCase()} saved yet.`} />
       </SectionCard>
     </Page>
@@ -1042,7 +1040,7 @@ function ProductContextForm({ workspace, setWorkspace, onSave, isBusy, settingsM
     ["primary_channels", "Channels"],
   ];
   return (
-    <SectionCard title={settingsMode ? "General workspace details" : "Product context"} description="This intelligence guides detection, draft tone, terminology, and opportunity expansion.">
+    <SectionCard title={settingsMode ? "General workspace details" : "Product context"} description="These details shape launch detection, draft tone, terminology, and follow-up ideas.">
       <div className="grid gap-4 md:grid-cols-2">{fields.map(([key, label]) => <Field key={key} label={label} value={workspace[key]} onChange={(value) => setWorkspace({ ...workspace, [key]: value })} />)}</div>
       <TextArea label="Positioning" value={workspace.positioning_notes} onChange={(value) => setWorkspace({ ...workspace, positioning_notes: value })} />
       <div className="grid gap-4 md:grid-cols-2">
@@ -1085,10 +1083,6 @@ function ManualNotesPanel({ activityText, setActivityText, activities, isBusy, o
       </div>
     </SectionCard>
   );
-}
-
-function AssetsPanel() {
-  return <SectionCard title="Assets" description="Screenshots, docs links, videos, and release artifacts will support source previews here."><EmptyState icon={Boxes} title="No assets attached yet" body="Attach screenshots or release materials later. For now, PRs, commits, releases, and notes power the workflow." /></SectionCard>;
 }
 
 function ActivityList({ activities }) {
@@ -1162,10 +1156,10 @@ function AssistantPanel({ cluster, sourceItems, onCreateOpportunities, isBusy })
       <div className="rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4">
         <div className="flex items-center gap-2 text-sm font-semibold"><ShieldCheck className="h-4 w-4 text-[var(--lr-green)]" />Grounding checks</div>
         <ul className="mt-3 space-y-2 text-sm text-[var(--lr-text-2)]">
-          <li>✓ Human-reviewed moment</li>
-          <li>✓ {sourceItems.length} source references</li>
-          <li>✓ Guardrail harness ready</li>
-          <li>⚑ Inferences should be reviewed before publishing</li>
+          <li>Human-reviewed moment: {cluster?.status === "accepted" || cluster?.status === "edited" ? "accepted" : "pending"}</li>
+          <li>Source references: {sourceItems.length}</li>
+          <li>Guardrail checks: available</li>
+          <li>Inferences: review before publishing</li>
         </ul>
       </div>
       <div className="mt-4 grid gap-2">
@@ -1302,6 +1296,17 @@ function TextArea({ label, value, onChange, rows = 4 }) {
   return <label htmlFor={id} className="mt-4 block"><span className="mb-2 block text-sm font-medium text-[var(--lr-text)]">{label}</span><textarea id={id} rows={rows} value={value || ""} onChange={(event) => onChange(event.target.value)} className="w-full rounded-xl border border-[var(--lr-border)] bg-white p-3 text-sm leading-6 text-[var(--lr-text)] shadow-sm outline-none focus:ring-2 focus:ring-[var(--lr-orange)]" /></label>;
 }
 
+function LibraryTabButton({ active, onClick, children }) {
+  return <button onClick={onClick} className={`rounded-xl px-3 py-2 text-sm font-medium transition ${active ? "bg-[var(--lr-text)] text-white" : "text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)] hover:text-[var(--lr-text)]"}`}>{children}</button>;
+}
+
+function librarySummary({ activities, cluster, draftRows, opportunities }) {
+  if (!activities.length) return "Import source activity to start building the Library.";
+  if (!cluster) return `${activities.length} source records imported. Accept a launch moment to connect drafts and opportunities.`;
+  const savedCount = opportunities.filter((item) => item.status === "saved" || item.status === "promoted_to_draft").length;
+  return `${activities.length} source records → 1 accepted moment → ${draftRows.length} draft${draftRows.length === 1 ? "" : "s"} → ${savedCount} saved opportunities.`;
+}
+
 function TabButton({ active, onClick, children }) {
   return <button onClick={onClick} className={`rounded-xl px-3 py-2 text-sm font-medium ${active ? "bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "border border-[var(--lr-border)] bg-white text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]"}`}>{children}</button>;
 }
@@ -1335,10 +1340,6 @@ function StatusRow({ label, value }) {
 
 function InfoLine({ label, value }) {
   return <div><dt className="text-xs uppercase tracking-[0.08em] text-[var(--lr-muted)]">{label}</dt><dd className="mt-1 text-sm leading-6 text-[var(--lr-text-2)]">{value || "Not set"}</dd></div>;
-}
-
-function HealthCard({ title, items }) {
-  return <SectionCard title={title} compact>{items.map((item) => <div key={item} className="mb-2 flex items-center gap-2 text-sm text-[var(--lr-text-2)] last:mb-0"><Check className="h-4 w-4 text-[var(--lr-green)]" />{item}</div>)}</SectionCard>;
 }
 
 function MiniTimeline({ items }) {
@@ -1381,8 +1382,10 @@ function wordCount(text = "") {
   return text.trim() ? text.trim().split(/\s+/).length : 0;
 }
 
-function importHealthLabel(activities) {
-  return activities.length ? "Source trail active" : "No source records yet";
+function sourceModeLabel(activities) {
+  if (!activities.length) return "No source records yet";
+  const sourceTypes = new Set(activities.map((item) => sourceTypeLabel(item.source_type)));
+  return `${Array.from(sourceTypes).join(" + ")} source records`;
 }
 
 function sameOpportunity(left, right) {
