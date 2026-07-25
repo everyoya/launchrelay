@@ -834,6 +834,7 @@ function Topbar({ view, goApp, currentUser, onLogout, globalSearch, setGlobalSea
           />
           <button type="button" onClick={() => onSearch(globalSearch)} className="rounded-md bg-[var(--lr-surface-2)] px-1.5 py-0.5 text-[11px]">Enter</button>
         </label>
+        <Button onClick={() => goApp("sources")} className="hidden rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e] sm:inline-flex"><Plus className="mr-2 h-4 w-4" />Import activity</Button>
         {currentUser && (
           <div className="hidden items-center gap-2 rounded-xl border border-[var(--lr-border)] bg-white px-3 py-2 text-sm text-[var(--lr-text-2)] lg:flex">
             <UserCircle className="h-4 w-4" />
@@ -841,7 +842,6 @@ function Topbar({ view, goApp, currentUser, onLogout, globalSearch, setGlobalSea
             <button onClick={onLogout} className="ml-1 text-xs font-medium underline-offset-4 hover:text-[var(--lr-text)] hover:underline">Sign out</button>
           </div>
         )}
-        <Button onClick={() => goApp("sources")} className="hidden rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e] sm:inline-flex"><Plus className="mr-2 h-4 w-4" />Import activity</Button>
       </div>
     </header>
   );
