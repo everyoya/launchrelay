@@ -53,6 +53,8 @@ const appNav = [
   { id: "library", label: "Library", icon: Library },
 ];
 
+const appRouteIds = [...appNav.map((item) => item.id), "settings", "help"];
+const publicRouteIds = ["public-home", "sign-in"];
 const publicNav = ["Product", "How it works", "Use cases"];
 
 const sampleActivity = `PR: Added onboarding checklist for first workspace setup
@@ -75,7 +77,10 @@ const initialWorkspace = {
 const nowLabel = "Today";
 
 export default function App() {
-  const [view, setView] = useState("public-home");
+  const [view, setView] = useState(() => initialViewFromLocation());
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [demoMode, setDemoMode] = useState(false);
   const [workspace, setWorkspace] = useState(initialWorkspace);
   const [workspaceRecord, setWorkspaceRecord] = useState(null);
   const [activityText, setActivityText] = useState(sampleActivity);
@@ -96,7 +101,51 @@ export default function App() {
   const [importPhase, setImportPhase] = useState("idle");
   const [status, setStatus] = useState(null);
 
-  const isPublic = view.startsWith("public") || view === "sign-in";
+  const lockedAppRoute = !currentUser && !demoMode && isAppRoute(view);
+  const renderedView = lockedAppRoute ? "sign-in" : view;
+  const isPublic = renderedView.startsWith("public") || renderedView === "sign-in";
+
+  useEffect(() => {
+    const syncRoute = () => {
+      const nextView = initialViewFromLocation();
+      setView((currentView) => (currentView === nextView ? currentView : nextView));
+    };
+    window.addEventListener("hashchange", syncRoute);
+    return () => window.removeEventListener("hashchange", syncRoute);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function restoreSession() {
+      try {
+        const user = normalizeResponse(await base44.auth.me());
+        if (!isValidUserSession(user)) throw new Error("No active Base44 user session");
+        if (cancelled) return;
+        setCurrentUser(user);
+        await loadUserWorkspaceData({ setWorkspace, setWorkspaceRecord, setActivities, setClusters, setSelectedCluster, setDraft, setOpportunities });
+        if (cancelled) return;
+        const routeView = initialViewFromLocation();
+        if (!isAppRoute(routeView)) {
+          goApp("overview", { replace: true });
+        }
+      } catch (error) {
+        if (cancelled) return;
+        clearLocalAuthToken();
+        setCurrentUser(null);
+        if (isAppRoute(initialViewFromLocation())) {
+          setStatus({ tone: "warning", message: "Sign in to continue to your workspace." });
+          goPublic("sign-in", { replace: true });
+        }
+      } finally {
+        if (!cancelled) setAuthChecked(true);
+      }
+    }
+    restoreSession();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     if (!status || status.tone === "loading") return undefined;
     const timer = window.setTimeout(() => setStatus(null), 3600);
@@ -118,14 +167,28 @@ export default function App() {
   const visibleOpportunities = opportunities.filter((item) => item.status !== "ignored");
   const draftRows = draft ? [draft] : [];
 
-  function goApp(nextView) {
+  function goApp(nextView, options = {}) {
     setView(nextView);
     setSidebarOpen(false);
+    writeViewToUrl(nextView, options);
   }
 
-  function goPublic(nextView = "public-home") {
+  function goPublic(nextView = "public-home", options = {}) {
     setView(nextView);
     setSidebarOpen(false);
+    writeViewToUrl(nextView, options);
+  }
+
+  async function logout() {
+    setDemoMode(false);
+    setCurrentUser(null);
+    setWorkspaceRecord(null);
+    setActivities([]);
+    setClusters([]);
+    setSelectedCluster(null);
+    setDraft(null);
+    setOpportunities([]);
+    base44.auth.logout(`${window.location.origin}${window.location.pathname}`);
   }
 
   function runGlobalSearch(query) {
@@ -185,6 +248,7 @@ export default function App() {
       manualContext: workspace.positioning_notes,
     }).map((cluster, index) => ({ ...cluster, id: `local_cluster_${index + 1}` }));
 
+    setDemoMode(true);
     setWorkspaceRecord(workspaceRecordSeed);
     setActivityText(sampleActivity);
     setActivities(seededActivities);
@@ -518,11 +582,11 @@ export default function App() {
   if (isPublic) {
     return (
       <PublicSite
-        view={view}
+        view={renderedView}
         goPublic={goPublic}
         goApp={goApp}
         onSample={startOnboardingWorkflow}
-        onAuthProvider={(provider) => base44.auth.loginWithProvider(provider, window.location.href)}
+        onAuthProvider={(provider) => base44.auth.loginWithProvider(provider, `${window.location.origin}${window.location.pathname}#/overview`)}
       />
     );
   }
@@ -530,19 +594,19 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[var(--lr-canvas)] text-[var(--lr-text)]">
       <div className="flex min-h-screen">
-        <Sidebar view={view} goApp={goApp} goPublic={goPublic} workspace={workspace} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+        <Sidebar view={renderedView} goApp={goApp} goPublic={goPublic} workspace={workspace} currentUser={currentUser} onLogout={logout} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
         <div className="flex min-w-0 flex-1 flex-col lg:pl-72">
-          <Topbar view={view} goApp={goApp} globalSearch={globalSearch} setGlobalSearch={setGlobalSearch} onSearch={runGlobalSearch} setSidebarOpen={setSidebarOpen} />
+          <Topbar view={renderedView} goApp={goApp} globalSearch={globalSearch} setGlobalSearch={setGlobalSearch} onSearch={runGlobalSearch} setSidebarOpen={setSidebarOpen} />
           <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8">
             <StatusNotice status={status} isBusy={isBusy} />
-            {view === "overview" && <Overview workspace={workspace} activities={activities} clusters={clusters} selectedCluster={selectedCluster} draftRows={draftRows} opportunities={opportunities} onReview={() => goApp("launch-moments")} onImport={() => goApp("sources")} onDetect={detectLaunchMoments} />}
-            {view === "sources" && <Sources workspace={workspace} setWorkspace={setWorkspace} onSave={saveWorkspace} sourceTab={sourceTab} setSourceTab={setSourceTab} activityText={activityText} setActivityText={setActivityText} githubRepoInput={githubRepoInput} setGithubRepoInput={setGithubRepoInput} activities={activities} importPhase={importPhase} isBusy={isBusy} onImport={importManualActivity} onGitHubImport={importGitHubActivity} onDetect={detectLaunchMoments} />}
-            {view === "launch-moments" && <LaunchMoments clusters={clusters} activities={activities} selectedCluster={selectedCluster} selectedSources={selectedSources} setSelectedCluster={setSelectedCluster} onAccept={acceptCluster} onDetect={detectLaunchMoments} isBusy={isBusy} launchFilter={launchFilter} setLaunchFilter={setLaunchFilter} />}
-            {view === "story-studio" && <StoryStudio cluster={acceptedCluster} sourceItems={acceptedSources} draft={draft} setDraft={setDraft} onSaveDraft={saveDraft} onCreateDraft={createDraft} onCreateOpportunities={createOpportunities} isBusy={isBusy} onBack={() => goApp("launch-moments")} />}
-            {view === "opportunities" && <Opportunities opportunities={visibleOpportunities} cluster={acceptedCluster} onCreateOpportunities={createOpportunities} onSaveOpportunity={saveOpportunity} onPromote={promoteOpportunity} onIgnore={ignoreOpportunity} isBusy={isBusy} />}
-            {view === "library" && <LibraryScreen libraryTab={libraryTab} setLibraryTab={setLibraryTab} draftRows={draftRows} opportunities={opportunities} clusters={clusters} activities={activities} cluster={acceptedCluster} onMarkDraftReady={markDraftReady} librarySearch={librarySearch} setLibrarySearch={setLibrarySearch} />}
-            {view === "settings" && <SettingsScreen workspace={workspace} setWorkspace={setWorkspace} onSave={saveWorkspace} isBusy={isBusy} settingsTab={settingsTab} setSettingsTab={setSettingsTab} githubRepoInput={githubRepoInput} activities={activities} importPhase={importPhase} />}
-            {view === "help" && <HelpDocsScreen goApp={goApp} />}
+            {renderedView === "overview" && <Overview workspace={workspace} activities={activities} clusters={clusters} selectedCluster={selectedCluster} draftRows={draftRows} opportunities={opportunities} onReview={() => goApp("launch-moments")} onImport={() => goApp("sources")} onDetect={detectLaunchMoments} />}
+            {renderedView === "sources" && <Sources workspace={workspace} setWorkspace={setWorkspace} onSave={saveWorkspace} sourceTab={sourceTab} setSourceTab={setSourceTab} activityText={activityText} setActivityText={setActivityText} githubRepoInput={githubRepoInput} setGithubRepoInput={setGithubRepoInput} activities={activities} importPhase={importPhase} isBusy={isBusy} onImport={importManualActivity} onGitHubImport={importGitHubActivity} onDetect={detectLaunchMoments} />}
+            {renderedView === "launch-moments" && <LaunchMoments clusters={clusters} activities={activities} selectedCluster={selectedCluster} selectedSources={selectedSources} setSelectedCluster={setSelectedCluster} onAccept={acceptCluster} onDetect={detectLaunchMoments} isBusy={isBusy} launchFilter={launchFilter} setLaunchFilter={setLaunchFilter} />}
+            {renderedView === "story-studio" && <StoryStudio cluster={acceptedCluster} sourceItems={acceptedSources} draft={draft} setDraft={setDraft} onSaveDraft={saveDraft} onCreateDraft={createDraft} onCreateOpportunities={createOpportunities} isBusy={isBusy} onBack={() => goApp("launch-moments")} />}
+            {renderedView === "opportunities" && <Opportunities opportunities={visibleOpportunities} cluster={acceptedCluster} onCreateOpportunities={createOpportunities} onSaveOpportunity={saveOpportunity} onPromote={promoteOpportunity} onIgnore={ignoreOpportunity} isBusy={isBusy} />}
+            {renderedView === "library" && <LibraryScreen libraryTab={libraryTab} setLibraryTab={setLibraryTab} draftRows={draftRows} opportunities={opportunities} clusters={clusters} activities={activities} cluster={acceptedCluster} onMarkDraftReady={markDraftReady} librarySearch={librarySearch} setLibrarySearch={setLibrarySearch} />}
+            {renderedView === "settings" && <SettingsScreen workspace={workspace} setWorkspace={setWorkspace} onSave={saveWorkspace} isBusy={isBusy} settingsTab={settingsTab} setSettingsTab={setSettingsTab} githubRepoInput={githubRepoInput} activities={activities} importPhase={importPhase} />}
+            {renderedView === "help" && <HelpDocsScreen goApp={goApp} />}
           </main>
         </div>
       </div>
@@ -642,7 +706,7 @@ function SignIn({ onSample, goPublic, goApp, onAuthProvider }) {
   );
 }
 
-function Sidebar({ view, goApp, goPublic, workspace, sidebarOpen, setSidebarOpen }) {
+function Sidebar({ view, goApp, goPublic, workspace, currentUser, onLogout, sidebarOpen, setSidebarOpen }) {
   return (
     <>
       <div className={`fixed inset-0 z-40 bg-slate-950/20 backdrop-blur-sm lg:hidden ${sidebarOpen ? "block" : "hidden"}`} onClick={() => setSidebarOpen(false)} />
@@ -677,12 +741,15 @@ function Sidebar({ view, goApp, goPublic, workspace, sidebarOpen, setSidebarOpen
         <div className="border-t border-[var(--lr-border)] p-3">
           <button onClick={() => goApp("settings")} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium ${view === "settings" ? "bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]"}`}><Settings className="h-4 w-4" />Workspace settings</button>
           <button onClick={() => goApp("help")} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium ${view === "help" ? "bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]"}`}><HelpCircle className="h-4 w-4" />Help & docs</button>
-          <div className="mt-3 flex items-center gap-3 rounded-2xl bg-[var(--lr-canvas)] p-3">
-            <UserCircle className="h-8 w-8 text-[var(--lr-muted)]" />
-            <div className="min-w-0">
-              <div className="truncate text-sm font-medium">LaunchRelay workspace</div>
-              <div className="text-xs text-[var(--lr-muted)]">Sample product education workspace</div>
+          <div className="mt-3 rounded-2xl bg-[var(--lr-canvas)] p-3">
+            <div className="flex items-center gap-3">
+              <UserCircle className="h-8 w-8 text-[var(--lr-muted)]" />
+              <div className="min-w-0">
+                <div className="truncate text-sm font-medium">{currentUser ? displayUserName(currentUser) : "LaunchRelay workspace"}</div>
+                <div className="truncate text-xs text-[var(--lr-muted)]">{currentUser?.email || "Sample product education workspace"}</div>
+              </div>
             </div>
+            {currentUser && <button onClick={onLogout} className="mt-3 text-xs font-medium text-[var(--lr-text-2)] underline-offset-4 hover:text-[var(--lr-text)] hover:underline">Sign out</button>}
           </div>
         </div>
       </aside>
@@ -1391,6 +1458,88 @@ function sourceModeLabel(activities) {
 function sameOpportunity(left, right) {
   if (left.id && right.id) return left.id === right.id;
   return left.title === right.title && left.format === right.format;
+}
+
+
+function initialViewFromLocation() {
+  if (typeof window === "undefined") return "public-home";
+  const hash = window.location.hash.replace(/^#\/?/, "");
+  if (appRouteIds.includes(hash) || publicRouteIds.includes(hash)) return hash;
+  return "public-home";
+}
+
+function isAppRoute(view) {
+  return appRouteIds.includes(view);
+}
+
+function writeViewToUrl(view, { replace = false } = {}) {
+  if (typeof window === "undefined") return;
+  const nextHash = view === "public-home" ? "" : `#/${view}`;
+  const nextUrl = `${window.location.pathname}${window.location.search}${nextHash}`;
+  if (replace) {
+    window.history.replaceState({}, document.title, nextUrl);
+  } else if (`${window.location.pathname}${window.location.search}${window.location.hash}` !== nextUrl) {
+    window.history.pushState({}, document.title, nextUrl);
+  }
+}
+
+function normalizeResponse(response) {
+  return response?.data ?? response;
+}
+
+function normalizeListResponse(response) {
+  const data = normalizeResponse(response);
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.items)) return data.items;
+  if (Array.isArray(data?.data)) return data.data;
+  return [];
+}
+
+async function loadUserWorkspaceData(setters) {
+  const { setWorkspace, setWorkspaceRecord, setActivities, setClusters, setSelectedCluster, setDraft, setOpportunities } = setters;
+  try {
+    const workspaces = normalizeListResponse(await ProductWorkspace.list("-updated_date", 1));
+    const workspaceRecord = workspaces[0] || null;
+    if (!workspaceRecord) return;
+
+    setWorkspace({ ...initialWorkspace, ...workspaceRecord });
+    setWorkspaceRecord(workspaceRecord);
+    const workspaceQuery = { workspace_id: workspaceRecord.id };
+    const [activityRecords, clusterRecords, draftRecords, opportunityRecords] = await Promise.all([
+      ActivityItem.filter(workspaceQuery, "-occurred_at", 100),
+      LaunchCluster.filter(workspaceQuery, "-updated_date", 50),
+      Draft.filter(workspaceQuery, "-updated_date", 20),
+      Opportunity.filter(workspaceQuery, "-updated_date", 50),
+    ]);
+    const loadedActivities = normalizeListResponse(activityRecords);
+    const loadedClusters = normalizeListResponse(clusterRecords);
+    const loadedDrafts = normalizeListResponse(draftRecords);
+    const loadedOpportunities = normalizeListResponse(opportunityRecords);
+    setActivities(loadedActivities);
+    setClusters(loadedClusters);
+    setSelectedCluster(loadedClusters.find((cluster) => cluster.status === "accepted" || cluster.status === "edited") || loadedClusters[0] || null);
+    setDraft(loadedDrafts[0] || null);
+    setOpportunities(loadedOpportunities);
+  } catch (error) {
+    console.warn("Could not restore workspace records yet:", error);
+  }
+}
+
+function displayUserName(user) {
+  return user?.full_name || user?.name || user?.email || "Signed-in user";
+}
+
+function isValidUserSession(user) {
+  return Boolean(user && (user.id || user.email || user.created_by_id));
+}
+
+function clearLocalAuthToken() {
+  try {
+    window.localStorage.removeItem("base44_access_token");
+    window.localStorage.removeItem("token");
+  } catch (error) {
+    console.warn("Could not clear local auth token:", error);
+  }
 }
 
 async function fetchPublicGitHubPayloads(owner, repo) {
