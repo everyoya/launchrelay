@@ -125,7 +125,10 @@ export default function App() {
         await loadUserWorkspaceData({ setWorkspace, setWorkspaceRecord, setActivities, setClusters, setSelectedCluster, setDraft, setOpportunities });
         if (cancelled) return;
         const routeView = initialViewFromLocation();
-        if (!isAppRoute(routeView)) {
+        const postLoginView = consumePostLoginView();
+        if (isAppRoute(postLoginView)) {
+          goApp(postLoginView, { replace: true });
+        } else if (routeView === "sign-in") {
           goApp("overview", { replace: true });
         }
       } catch (error) {
@@ -177,6 +180,15 @@ export default function App() {
     setView(nextView);
     setSidebarOpen(false);
     writeViewToUrl(nextView, options);
+  }
+
+  function enterSystem(nextView = "overview") {
+    goApp(nextView);
+  }
+
+  function startAuthProviderLogin(provider) {
+    rememberPostLoginView("overview");
+    base44.auth.loginWithProvider(provider, `${window.location.origin}${window.location.pathname}#/overview`);
   }
 
   async function logout() {
@@ -579,14 +591,20 @@ export default function App() {
     }
   }
 
+  if (!authChecked && hasLocalAuthToken()) {
+    return <AuthLoadingScreen />;
+  }
+
   if (isPublic) {
     return (
       <PublicSite
         view={renderedView}
+        currentUser={currentUser}
         goPublic={goPublic}
-        goApp={goApp}
+        goApp={enterSystem}
+        onLogout={logout}
         onSample={startOnboardingWorkflow}
-        onAuthProvider={(provider) => base44.auth.loginWithProvider(provider, `${window.location.origin}${window.location.pathname}#/overview`)}
+        onAuthProvider={startAuthProviderLogin}
       />
     );
   }
@@ -596,7 +614,7 @@ export default function App() {
       <div className="flex min-h-screen">
         <Sidebar view={renderedView} goApp={goApp} goPublic={goPublic} workspace={workspace} currentUser={currentUser} onLogout={logout} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
         <div className="flex min-w-0 flex-1 flex-col lg:pl-72">
-          <Topbar view={renderedView} goApp={goApp} globalSearch={globalSearch} setGlobalSearch={setGlobalSearch} onSearch={runGlobalSearch} setSidebarOpen={setSidebarOpen} />
+          <Topbar view={renderedView} goApp={goApp} currentUser={currentUser} onLogout={logout} globalSearch={globalSearch} setGlobalSearch={setGlobalSearch} onSearch={runGlobalSearch} setSidebarOpen={setSidebarOpen} />
           <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8">
             <StatusNotice status={status} isBusy={isBusy} />
             {renderedView === "overview" && <Overview workspace={workspace} activities={activities} clusters={clusters} selectedCluster={selectedCluster} draftRows={draftRows} opportunities={opportunities} onReview={() => goApp("launch-moments")} onImport={() => goApp("sources")} onDetect={detectLaunchMoments} />}
@@ -614,7 +632,20 @@ export default function App() {
   );
 }
 
-function PublicSite({ view, goPublic, goApp, onSample, onAuthProvider }) {
+
+function AuthLoadingScreen() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[var(--lr-canvas)] px-5 text-[var(--lr-text)]">
+      <div className="rounded-[24px] border border-[var(--lr-border)] bg-white p-6 text-center shadow-[var(--lr-shadow)]">
+        <Loader2 className="mx-auto h-6 w-6 animate-spin text-[var(--lr-orange)]" />
+        <h1 className="mt-4 text-xl font-semibold">Opening your workspace...</h1>
+        <p className="mt-2 text-sm text-[var(--lr-text-2)]">Checking your LaunchRelay session.</p>
+      </div>
+    </div>
+  );
+}
+
+function PublicSite({ view, currentUser, goPublic, goApp, onLogout, onSample, onAuthProvider }) {
   const isAuth = view === "sign-in";
   return (
     <div className="min-h-screen bg-[var(--lr-canvas)] text-[var(--lr-text)]">
@@ -631,17 +662,26 @@ function PublicSite({ view, goPublic, goApp, onSample, onAuthProvider }) {
             {publicNav.map((item) => <a key={item} href={`#${item.toLowerCase().replaceAll(" ", "-")}`} className="hover:text-[var(--lr-text)]">{item}</a>)}
           </nav>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={() => goPublic("sign-in")} className="rounded-xl text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]">Sign in</Button>
-            <Button onClick={() => goPublic("sign-in")} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Start free</Button>
+            {currentUser ? (
+              <>
+                <Button variant="ghost" onClick={onLogout} className="rounded-xl text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]">Sign out</Button>
+                <Button onClick={() => goApp("overview")} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Enter system</Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" onClick={() => goPublic("sign-in")} className="rounded-xl text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]">Sign in</Button>
+                <Button onClick={() => goPublic("sign-in")} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Start free</Button>
+              </>
+            )}
           </div>
         </div>
       </header>
-      {isAuth ? <SignIn onSample={onSample} goPublic={goPublic} goApp={goApp} onAuthProvider={onAuthProvider} /> : <MarketingHome onSample={onSample} goPublic={goPublic} />}
+      {isAuth ? <SignIn currentUser={currentUser} onSample={onSample} goPublic={goPublic} goApp={goApp} onAuthProvider={onAuthProvider} /> : <MarketingHome currentUser={currentUser} onSample={onSample} goPublic={goPublic} goApp={goApp} />}
     </div>
   );
 }
 
-function MarketingHome({ onSample, goPublic }) {
+function MarketingHome({ currentUser, onSample, goPublic, goApp }) {
   return (
     <main>
       <section className="mx-auto grid max-w-7xl gap-10 px-5 py-16 lg:grid-cols-[0.95fr_1.05fr] lg:py-24">
@@ -653,7 +693,7 @@ function MarketingHome({ onSample, goPublic }) {
             LaunchRelay finds launch-worthy moments in shipped work, connects them to real source activity, and helps product education teams turn them into trusted content.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Button onClick={() => goPublic("sign-in")} className="h-12 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">Start with your repository <ArrowRight className="ml-2 h-4 w-4" /></Button>
+            <Button onClick={() => currentUser ? goApp("overview") : goPublic("sign-in")} className="h-12 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">{currentUser ? "Enter the system" : "Start with your repository"} <ArrowRight className="ml-2 h-4 w-4" /></Button>
             <Button onClick={onSample} variant="ghost" className="h-12 rounded-xl border border-[var(--lr-border)] bg-white px-5 text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Explore a sample workspace</Button>
           </div>
         </div>
@@ -682,7 +722,19 @@ function MarketingHome({ onSample, goPublic }) {
   );
 }
 
-function SignIn({ onSample, goPublic, goApp, onAuthProvider }) {
+function SignIn({ currentUser, onSample, goPublic, goApp, onAuthProvider }) {
+  if (currentUser) {
+    return (
+      <main className="mx-auto grid min-h-[calc(100vh-73px)] max-w-4xl items-center px-5 py-12">
+        <section className="rounded-[24px] border border-[var(--lr-border)] bg-white p-8 text-center shadow-[var(--lr-shadow)]">
+          <Badge tone="green">Signed in</Badge>
+          <h1 className="mt-5 text-4xl font-semibold tracking-[-0.035em]">Welcome back to LaunchRelay.</h1>
+          <p className="mx-auto mt-4 max-w-xl leading-7 text-[var(--lr-text-2)]">Your account session is active. Continue into the product workspace.</p>
+          <Button onClick={() => goApp("overview")} className="mt-6 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">Enter the system</Button>
+        </section>
+      </main>
+    );
+  }
   return (
     <main className="mx-auto grid min-h-[calc(100vh-73px)] max-w-6xl items-center gap-10 px-5 py-12 lg:grid-cols-[0.95fr_1.05fr]">
       <div>
@@ -757,7 +809,7 @@ function Sidebar({ view, goApp, goPublic, workspace, currentUser, onLogout, side
   );
 }
 
-function Topbar({ view, goApp, globalSearch, setGlobalSearch, onSearch, setSidebarOpen }) {
+function Topbar({ view, goApp, currentUser, onLogout, globalSearch, setGlobalSearch, onSearch, setSidebarOpen }) {
   const current = viewLabel(view);
   return (
     <header className="sticky top-0 z-20 border-b border-[var(--lr-border)] bg-[var(--lr-canvas)]/92 px-4 py-3 backdrop-blur sm:px-6 lg:px-8">
@@ -781,6 +833,13 @@ function Topbar({ view, goApp, globalSearch, setGlobalSearch, onSearch, setSideb
           />
           <button type="button" onClick={() => onSearch(globalSearch)} className="rounded-md bg-[var(--lr-surface-2)] px-1.5 py-0.5 text-[11px]">Enter</button>
         </label>
+        {currentUser && (
+          <div className="hidden items-center gap-2 rounded-xl border border-[var(--lr-border)] bg-white px-3 py-2 text-sm text-[var(--lr-text-2)] lg:flex">
+            <UserCircle className="h-4 w-4" />
+            <span className="max-w-[160px] truncate">{displayUserName(currentUser)}</span>
+            <button onClick={onLogout} className="ml-1 text-xs font-medium underline-offset-4 hover:text-[var(--lr-text)] hover:underline">Sign out</button>
+          </div>
+        )}
         <Button onClick={() => goApp("sources")} className="hidden rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e] sm:inline-flex"><Plus className="mr-2 h-4 w-4" />Import activity</Button>
       </div>
     </header>
@@ -1531,6 +1590,32 @@ function displayUserName(user) {
 
 function isValidUserSession(user) {
   return Boolean(user && (user.id || user.email || user.created_by_id));
+}
+
+function hasLocalAuthToken() {
+  try {
+    return Boolean(window.localStorage.getItem("base44_access_token") || window.localStorage.getItem("token"));
+  } catch (error) {
+    return false;
+  }
+}
+
+function rememberPostLoginView(view) {
+  try {
+    window.localStorage.setItem("launchrelay_post_login_view", view);
+  } catch (error) {
+    console.warn("Could not remember post-login view:", error);
+  }
+}
+
+function consumePostLoginView() {
+  try {
+    const view = window.localStorage.getItem("launchrelay_post_login_view");
+    window.localStorage.removeItem("launchrelay_post_login_view");
+    return view;
+  } catch (error) {
+    return null;
+  }
 }
 
 function clearLocalAuthToken() {
