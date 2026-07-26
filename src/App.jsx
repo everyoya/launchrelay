@@ -857,9 +857,9 @@ function Sidebar({ view, goApp, goPublic, workspace, currentUser, demoMode, onLo
           {appNav.map(({ id, label, icon: Icon }) => {
             const active = view === id;
             return (
-              <button key={id} onClick={() => goApp(id)} className={`group flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition ${active ? "bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)] hover:text-[var(--lr-text)]"}`}>
-                <span className="flex items-center gap-3"><Icon className="h-4 w-4" aria-hidden="true" />{label}</span>
-                {active && <span className="h-1.5 w-1.5 rounded-full bg-[var(--lr-orange)]" aria-hidden="true" />}
+              <button key={id} onClick={() => goApp(id)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${active ? "bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)] hover:text-[var(--lr-text)]"}`}>
+                <Icon className="h-4 w-4" aria-hidden="true" />
+                {label}
               </button>
             );
           })}
