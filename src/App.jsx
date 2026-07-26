@@ -99,6 +99,7 @@ export default function App() {
   const [launchFilter, setLaunchFilter] = useState("all");
   const [librarySearch, setLibrarySearch] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
   const [importPhase, setImportPhase] = useState("idle");
@@ -636,8 +637,8 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[var(--lr-canvas)] text-[var(--lr-text)]">
       <div className="flex min-h-screen">
-        <Sidebar view={renderedView} goApp={goApp} goPublic={goPublic} workspace={workspace} currentUser={currentUser} demoMode={demoMode} onLogout={logout} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-        <div className="flex min-w-0 flex-1 flex-col lg:pl-72">
+        <Sidebar view={renderedView} goApp={goApp} goPublic={goPublic} workspace={workspace} currentUser={currentUser} demoMode={demoMode} onLogout={logout} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} sidebarCollapsed={sidebarCollapsed} setSidebarCollapsed={setSidebarCollapsed} />
+        <div className={`flex min-w-0 flex-1 flex-col transition-[padding] duration-200 ${sidebarCollapsed ? "lg:pl-20" : "lg:pl-72"}`}>
           <Topbar view={renderedView} goApp={goApp} workspace={workspace} currentUser={currentUser} demoMode={demoMode} onLogout={logout} userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen} setSidebarOpen={setSidebarOpen} />
           <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8">
             <StatusNotice status={status} isBusy={isBusy} />
@@ -819,35 +820,36 @@ function SignIn({ currentUser, goPublic, goApp, onAuthProvider, onEmailAuthentic
   );
 }
 
-function Sidebar({ view, goApp, goPublic, workspace, currentUser, demoMode, onLogout, sidebarOpen, setSidebarOpen }) {
+function Sidebar({ view, goApp, goPublic, workspace, currentUser, demoMode, onLogout, sidebarOpen, setSidebarOpen, sidebarCollapsed, setSidebarCollapsed }) {
   return (
     <>
       <div className={`fixed inset-0 z-40 bg-slate-950/20 backdrop-blur-sm lg:hidden ${sidebarOpen ? "block" : "hidden"}`} onClick={() => setSidebarOpen(false)} />
-      <aside className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-[var(--lr-border)] bg-white transition-transform lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
-        <div className="flex items-center justify-between border-b border-[var(--lr-border)] px-5 py-4">
-          <button onClick={() => goPublic("public-home")} className="flex items-center gap-3 text-left" aria-label="Open public home">
+      <aside className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-[var(--lr-border)] bg-white transition-[transform,width] duration-200 lg:translate-x-0 ${sidebarCollapsed ? "lg:w-20" : "lg:w-72"} ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className={`flex items-center border-b border-[var(--lr-border)] px-5 py-4 ${sidebarCollapsed ? "lg:justify-center lg:px-3" : "justify-between"}`}>
+          <button onClick={() => goPublic("public-home")} className={`flex items-center gap-3 text-left ${sidebarCollapsed ? "lg:justify-center" : ""}`} aria-label="Open public home">
             <BrandMark />
-            <div>
+            <div className={sidebarCollapsed ? "lg:sr-only" : ""}>
               <div className="font-semibold">LaunchRelay</div>
               <div className="text-xs text-[var(--lr-muted)]">Workspace</div>
             </div>
           </button>
+          <button className="hidden rounded-lg p-2 text-[var(--lr-muted)] hover:bg-[var(--lr-surface-2)] lg:block" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"} title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}><Menu className="h-4 w-4" /></button>
           <button className="rounded-lg p-2 text-[var(--lr-muted)] hover:bg-[var(--lr-surface-2)] lg:hidden" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar"><X className="h-4 w-4" /></button>
         </div>
-        <nav className="flex-1 space-y-1 px-3" aria-label="App navigation">
+        <nav className="flex-1 space-y-1 px-3 pt-6" aria-label="App navigation">
           {appNav.map(({ id, label, icon: Icon }) => {
             const active = view === id;
             return (
-              <button key={id} onClick={() => goApp(id)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${active ? "bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)] hover:text-[var(--lr-text)]"}`}>
+              <button key={id} onClick={() => goApp(id)} title={sidebarCollapsed ? label : undefined} className={`flex w-full items-center rounded-xl py-2.5 text-sm font-medium transition ${sidebarCollapsed ? "justify-center px-2" : "gap-3 px-3"} ${active ? "bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)] hover:text-[var(--lr-text)]"}`}>
                 <Icon className="h-4 w-4" aria-hidden="true" />
-                {label}
+                <span className={sidebarCollapsed ? "sr-only" : ""}>{label}</span>
               </button>
             );
           })}
         </nav>
-        <div className="border-t border-[var(--lr-border)] p-3">
-          <button onClick={() => goApp("settings")} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium ${view === "settings" ? "bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]"}`}><Settings className="h-4 w-4" />Workspace settings</button>
-          <button onClick={() => goApp("help")} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium ${view === "help" ? "bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]"}`}><HelpCircle className="h-4 w-4" />Help & docs</button>
+        <div className="space-y-1 border-t border-[var(--lr-border)] p-3">
+          <button onClick={() => goApp("settings")} title={sidebarCollapsed ? "Workspace settings" : undefined} className={`flex w-full items-center rounded-xl py-2.5 text-sm font-medium ${sidebarCollapsed ? "justify-center px-2" : "gap-3 px-3"} ${view === "settings" ? "bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]"}`}><Settings className="h-4 w-4" /><span className={sidebarCollapsed ? "sr-only" : ""}>Workspace settings</span></button>
+          <button onClick={() => goApp("help")} title={sidebarCollapsed ? "Help & docs" : undefined} className={`flex w-full items-center rounded-xl py-2.5 text-sm font-medium ${sidebarCollapsed ? "justify-center px-2" : "gap-3 px-3"} ${view === "help" ? "bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]"}`}><HelpCircle className="h-4 w-4" /><span className={sidebarCollapsed ? "sr-only" : ""}>Help & docs</span></button>
         </div>
       </aside>
     </>
