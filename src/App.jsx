@@ -1013,75 +1013,47 @@ function Sources({ workspace, setWorkspace, onSave, sourceTab, setSourceTab, act
 
 function LaunchMoments({ clusters, activities, selectedCluster, selectedSources, setSelectedCluster, onAccept, onDetect, isBusy, launchFilter, setLaunchFilter }) {
   const filters = [
-    ["all", "All"],
     ["needs-review", "Needs review"],
     ["accepted", "Accepted"],
-    ["high-confidence", "High confidence"],
+    ["all", "All"],
   ];
   const filteredClusters = clusters.filter((cluster) => {
     if (launchFilter === "needs-review") return cluster.status !== "accepted" && cluster.status !== "edited";
     if (launchFilter === "accepted") return cluster.status === "accepted" || cluster.status === "edited";
-    if (launchFilter === "high-confidence") return /high/i.test(cluster.confidence_label || "") || Number(cluster.confidence_score || 0) >= 0.8;
     return true;
   });
+  const activeCluster = selectedCluster || filteredClusters[0] || null;
+  const activeSources = activities.filter((item) => activeCluster?.activity_item_ids?.includes(item.id));
   return (
-    <Page title="Launch Moments" eyebrow="Launch Detection" description="Review source-backed story candidates and accept the ones worth drafting." action={<Button onClick={onDetect} disabled={isBusy || !activities.length} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Detect new moments</Button>}>
+    <Page title="Launch Moments" eyebrow="Review inbox" description="Decide whether one detected launch moment is worth turning into a draft." action={<Button onClick={onDetect} disabled={isBusy || !activities.length} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Detect new moments</Button>}>
       <div className="mb-5 flex flex-wrap gap-2" role="tablist" aria-label="Launch moment filters">
-        {filters.map(([id, label]) => <TabButton key={id} active={launchFilter === id} onClick={() => setLaunchFilter(id)}>{label}</TabButton>)}
+        {filters.map(([id, label]) => <TabButton key={id} active={launchFilter === id} onClick={() => setLaunchFilter(id)}>{label} ({countLaunchFilter(clusters, id)})</TabButton>)}
       </div>
       {clusters.length === 0 ? (
-        <EmptyState icon={CircleDot} eyebrow="Launch detection" title="No launch moments detected yet" body="This screen stays empty until source activity exists. Import GitHub activity or paste shipped-work notes, then run detection to create source-backed candidates for human review." actionLabel="Detect moments" onAction={onDetect} disabled={!activities.length || isBusy} />
+        <EmptyState icon={CircleDot} eyebrow="Launch detection" title="No launch moments detected yet" body="This screen stays empty until source activity exists. Add source activity, then run detection to create source-backed candidates for human review." actionLabel="Detect moments" onAction={onDetect} disabled={!activities.length || isBusy} />
       ) : filteredClusters.length === 0 ? (
         <EmptyState icon={CircleDot} title="No moments match this filter" body="Switch filters or run detection again after importing more source activity." />
       ) : (
-        <div className="grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)_360px]">
-          <SectionCard title="Source timeline" description={`${activities.length} receipts available`} compact>
-            <div className="max-h-[680px] space-y-3 overflow-auto pr-1">
-              {activities.map((item) => <SourceReceipt key={item.id || item.title} item={item} compact />)}
-            </div>
-          </SectionCard>
-          <SectionCard title="Detected candidates" description="Prioritized by source count, confidence, and product value." compact>
+        <div className="grid gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
+          <SectionCard title="Candidate queue" description="Pick one candidate to review." compact>
             <div className="space-y-3">
-              {filteredClusters.map((cluster) => <MomentCandidate key={cluster.id || cluster.title} cluster={cluster} active={selectedCluster?.id === cluster.id} onClick={() => setSelectedCluster(cluster)} />)}
+              {filteredClusters.map((cluster) => <MomentCandidate key={cluster.id || cluster.title} cluster={cluster} active={activeCluster?.id === cluster.id} onClick={() => setSelectedCluster(cluster)} />)}
             </div>
           </SectionCard>
-          <EvidencePanel cluster={selectedCluster} sources={selectedSources} onAccept={onAccept} />
+          <LaunchMomentReviewDesk cluster={activeCluster} sources={activeSources.length ? activeSources : selectedSources} onAccept={onAccept} />
         </div>
       )}
     </Page>
   );
 }
 
-function StoryStudio({ cluster, sourceItems, draft, setDraft, onSaveDraft, onCreateDraft, onCreateOpportunities, isBusy, onBack, onLibrary }) {
+function StoryStudio({ cluster, sourceItems, draft, setDraft, onSaveDraft, onCreateDraft, isBusy, onBack, onLibrary }) {
   if (!cluster) {
-    return <Page title="Story Studio" eyebrow="Story Coproduction" description="Edit a draft created from an accepted source moment."><EmptyState icon={PenLine} eyebrow="Human review required" title="No accepted launch moment" body="Story Studio only opens meaningful drafting after a person accepts a source-backed launch moment. This keeps drafts grounded in evidence instead of starting from a blank prompt." actionLabel="Review launch moments" onAction={onBack} /></Page>;
+    return <Page title="Story Studio" eyebrow="Story Coproduction" description="Edit a draft created from an accepted source moment."><EmptyState icon={PenLine} eyebrow="Human review required" title="No accepted launch moment" body="Story Studio opens after a person accepts a source-backed launch moment." actionLabel="Review launch moments" onAction={onBack} /></Page>;
   }
   return (
-    <Page title="Story Studio" eyebrow="Story Coproduction" description="Edit a draft created from the accepted source moment." action={<Button onClick={onCreateDraft} disabled={isBusy} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">{draft ? "Regenerate draft" : "Generate draft"}</Button>}>
-      <div className="grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)_340px]">
-        <SectionCard title="Story foundation" description="The source-backed brief for this draft." compact>
-          <FoundationList cluster={cluster} sourceItems={sourceItems} />
-        </SectionCard>
-        <SectionCard title="Editor" description="Editable draft workspace with source-grounded sections." compact>
-          <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-[var(--lr-text-2)]">
-            <span className="font-medium capitalize text-[var(--lr-text)]">{draft?.status || "draft"}</span>
-            <span>{wordCount(draft?.body)} words</span>
-          </div>
-          {draft ? (
-            <div className="space-y-3">
-              <Input aria-label="Draft title" value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} className="h-12 rounded-xl border-[var(--lr-border)] bg-white text-lg font-semibold text-[var(--lr-text)]" />
-              <textarea aria-label="Draft body" value={draft.body} onChange={(event) => setDraft({ ...draft, body: event.target.value })} className="min-h-[520px] w-full rounded-2xl border border-[var(--lr-border)] bg-white p-5 text-sm leading-7 text-[var(--lr-text)] shadow-sm outline-none focus:ring-2 focus:ring-[var(--lr-orange)]" />
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={onSaveDraft} className="rounded-xl bg-[var(--lr-text)] text-white shadow-none hover:bg-black">Save draft</Button>
-                <span className="inline-flex items-center rounded-xl border border-[var(--lr-border)] bg-[var(--lr-surface-2)] px-3 py-2 text-sm text-[var(--lr-text-2)]">Mark ready from Library</span>
-              </div>
-            </div>
-          ) : (
-            <EmptyState icon={FileText} eyebrow="Draft from accepted evidence" title="No draft yet" body="Generate a first draft from this accepted launch moment. The draft will include guardrail metadata and source references so you can review it like product education, not generic AI copy." actionLabel="Generate source-grounded draft" onAction={onCreateDraft} disabled={isBusy} secondaryLabel="Review Library after saving" onSecondary={onLibrary} />
-          )}
-        </SectionCard>
-        <AssistantPanel cluster={cluster} sourceItems={sourceItems} onCreateOpportunities={onCreateOpportunities} isBusy={isBusy} />
-      </div>
+    <Page title="Story Studio" eyebrow="Focused editor" description="Edit and save one source-grounded draft." action={<Button onClick={draft ? onSaveDraft : onCreateDraft} disabled={isBusy} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">{draft ? "Save draft" : "Generate draft"}</Button>}>
+      <StoryEditorWorkspace cluster={cluster} sourceItems={sourceItems} draft={draft} setDraft={setDraft} onSaveDraft={onSaveDraft} onCreateDraft={onCreateDraft} isBusy={isBusy} onLibrary={onLibrary} />
     </Page>
   );
 }
@@ -1519,45 +1491,85 @@ function SourceReceipt({ item, compact = false }) {
 function MomentCandidate({ cluster, active, onClick }) {
   return (
     <button onClick={onClick} className={`w-full rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 ${active ? "border-[var(--lr-orange)] bg-[var(--lr-orange-tint)]" : "border-[var(--lr-border)] bg-white hover:border-slate-300"}`}>
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <h3 className="font-semibold text-[var(--lr-text)]">{cluster.title}</h3>
-        <Badge tone="green">{cluster.confidence_label || "medium"}</Badge>
-      </div>
-      <p className="text-sm leading-6 text-[var(--lr-text-2)]">{cluster.user_value || cluster.why_it_matters}</p>
-      <div className="mt-3 flex flex-wrap gap-2 text-xs text-[var(--lr-muted)]">
-        <span>{cluster.activity_item_ids?.length || 0} sources</span>
-        <span>•</span>
-        <span>{cluster.status || "candidate"}</span>
-      </div>
+      <h3 className="font-semibold text-[var(--lr-text)]">{cluster.title}</h3>
+      <p className="mt-2 text-sm leading-6 text-[var(--lr-text-2)]">{cluster.user_value || cluster.why_it_matters}</p>
+      <div className="mt-3 text-xs text-[var(--lr-muted)]">{cluster.activity_item_ids?.length || 0} sources · {cluster.status || "candidate"}</div>
     </button>
   );
 }
 
-function EvidencePanel({ cluster, sources, onAccept }) {
-  if (!cluster) return <SectionCard title="Moment detail" description="Select a candidate to inspect reasoning and evidence." compact><EmptyState icon={CircleDot} title="No selected moment" body="Choose a candidate from the center column." /></SectionCard>;
+function countLaunchFilter(clusters, filter) {
+  if (filter === "needs-review") return clusters.filter((cluster) => cluster.status !== "accepted" && cluster.status !== "edited").length;
+  if (filter === "accepted") return clusters.filter((cluster) => cluster.status === "accepted" || cluster.status === "edited").length;
+  return clusters.length;
+}
+
+function LaunchMomentReviewDesk({ cluster, sources, onAccept }) {
+  if (!cluster) return <SectionCard title="Review selected candidate" description="Pick a candidate from the queue." compact><EmptyState icon={CircleDot} title="No selected moment" body="Choose a candidate to review its summary, evidence, and acceptance decision." /></SectionCard>;
   return (
-    <SectionCard title="Evidence panel" description="Every claim starts from shipped work." compact>
-      <Badge tone="orange">Human review required</Badge>
-      <h2 className="mt-4 text-2xl font-semibold tracking-[-0.025em]">{cluster.title}</h2>
-      <p className="mt-3 text-sm leading-6 text-[var(--lr-text-2)]">{cluster.summary}</p>
-      <div className="mt-4 rounded-2xl bg-[var(--lr-orange-tint)] p-4">
-        <div className="text-sm font-semibold text-[var(--lr-text)]">Why LaunchRelay noticed it</div>
-        <p className="mt-1 text-sm leading-6 text-[var(--lr-text-2)]">{cluster.detection_reason || cluster.why_it_matters}</p>
-      </div>
-      <div className="mt-3 rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4 text-sm leading-6 text-[var(--lr-text-2)]">
-        <strong className="text-[var(--lr-text)]">Confidence explanation:</strong> based on {sources.length || cluster.activity_item_ids?.length || 0} source receipts, clarity of user value, repeated theme across shipped work, and whether the evidence is direct rather than inferred.
-      </div>
-      <div className="mt-5 space-y-3">
-        <div className="text-sm font-semibold">Evidence list</div>
-        {sources.length ? sources.map((item) => <SourceReceipt key={item.id || item.title} item={item} compact />) : <p className="text-sm text-[var(--lr-muted)]">No source records matched this moment yet.</p>}
-      </div>
-      <div className="mt-5 grid gap-2">
-        <Button onClick={() => onAccept(cluster)} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Accept and open Story Studio</Button>
-        <div className="rounded-2xl border border-dashed border-[var(--lr-border)] bg-[var(--lr-canvas)] p-3 text-sm text-[var(--lr-text-2)]">
-          Refinement tools coming soon: edit, dismiss, merge, and split moments after the core review path is stable.
+    <SectionCard title="Review selected candidate" description="One decision: accept this moment or leave it in the queue." compact>
+      <div className="rounded-2xl border border-[var(--lr-border)] bg-white p-5">
+        <div className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--lr-muted)]">Accepted moment candidate</div>
+        <h2 className="mt-3 text-2xl font-semibold tracking-[-0.025em] text-[var(--lr-text)]">{cluster.title}</h2>
+        <p className="mt-3 text-sm leading-6 text-[var(--lr-text-2)]">{cluster.summary}</p>
+        <div className="mt-4 rounded-2xl bg-[var(--lr-orange-tint)] p-4">
+          <div className="text-sm font-semibold text-[var(--lr-text)]">Why it matters</div>
+          <p className="mt-1 text-sm leading-6 text-[var(--lr-text-2)]">{cluster.user_value || cluster.why_it_matters}</p>
         </div>
+        <div className="mt-5">
+          <div className="text-sm font-semibold text-[var(--lr-text)]">Evidence used</div>
+          <div className="mt-3 space-y-3">
+            {sources.length ? sources.map((item) => <SourceReceipt key={item.id || item.title} item={item} compact />) : <p className="text-sm text-[var(--lr-muted)]">No source records matched this moment yet.</p>}
+          </div>
+        </div>
+        <details className="mt-5 rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-[var(--lr-text)]">Confidence and reasoning</summary>
+          <p className="mt-2 text-sm leading-6 text-[var(--lr-text-2)]">{cluster.detection_reason || cluster.why_it_matters} Confidence is based on {sources.length || cluster.activity_item_ids?.length || 0} linked source records and clarity of user value.</p>
+        </details>
+        <Button onClick={() => onAccept(cluster)} className="mt-5 rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Accept moment</Button>
       </div>
     </SectionCard>
+  );
+}
+
+function StoryEditorWorkspace({ cluster, sourceItems, draft, setDraft, onSaveDraft, onCreateDraft, isBusy, onLibrary }) {
+  return (
+    <div className="mx-auto max-w-5xl space-y-5">
+      <div className="rounded-2xl border border-[var(--lr-border)] bg-white p-4 shadow-[var(--lr-shadow-tight)]">
+        <div className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--lr-muted)]">Accepted moment</div>
+        <div className="mt-2 font-semibold text-[var(--lr-text)]">{cluster.title}</div>
+        <p className="mt-1 text-sm leading-6 text-[var(--lr-text-2)]">{cluster.summary}</p>
+      </div>
+      <SectionCard title="Large editor surface" description="Edit the draft; proof stays available below when needed.">
+        <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-[var(--lr-text-2)]">
+          <span className="font-medium capitalize text-[var(--lr-text)]">{draft?.status || "draft"}</span>
+          <span>{wordCount(draft?.body)} words</span>
+          <span>source-grounded</span>
+        </div>
+        {draft ? (
+          <div className="space-y-3">
+            <Input aria-label="Draft title" value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} className="h-12 rounded-xl border-[var(--lr-border)] bg-white text-lg font-semibold text-[var(--lr-text)]" />
+            <textarea aria-label="Draft body" value={draft.body} onChange={(event) => setDraft({ ...draft, body: event.target.value })} className="min-h-[560px] w-full rounded-2xl border border-[var(--lr-border)] bg-white p-5 text-sm leading-7 text-[var(--lr-text)] shadow-sm outline-none focus:ring-2 focus:ring-[var(--lr-orange)]" />
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={onSaveDraft} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Save draft</Button>
+              <Button onClick={onLibrary} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Open Library</Button>
+            </div>
+          </div>
+        ) : (
+          <EmptyState icon={FileText} eyebrow="Draft from accepted evidence" title="No draft yet" body="Generate a first draft from this accepted launch moment, then edit it here." actionLabel="Generate draft" onAction={onCreateDraft} disabled={isBusy} />
+        )}
+      </SectionCard>
+      <details className="rounded-2xl border border-[var(--lr-border)] bg-white p-4">
+        <summary className="cursor-pointer text-sm font-semibold text-[var(--lr-text)]">View source brief</summary>
+        <div className="mt-4"><FoundationList cluster={cluster} sourceItems={sourceItems} /></div>
+      </details>
+      <details className="rounded-2xl border border-[var(--lr-border)] bg-white p-4">
+        <summary className="cursor-pointer text-sm font-semibold text-[var(--lr-text)]">View sources and checks</summary>
+        <div className="mt-4 space-y-3">
+          {sourceItems.length ? sourceItems.map((item) => <SourceReceipt key={item.id || item.title} item={item} compact />) : <p className="text-sm text-[var(--lr-muted)]">No source records linked.</p>}
+        </div>
+      </details>
+    </div>
   );
 }
 
