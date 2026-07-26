@@ -19,7 +19,6 @@ import {
   Loader2,
   Menu,
   PenLine,
-  Plus,
   Search,
   Settings,
   ShieldCheck,
@@ -794,20 +793,10 @@ function SignIn({ currentUser, goPublic, goApp, onAuthProvider, onEmailAuthentic
   }
 
   return (
-    <main className="mx-auto grid min-h-[calc(100vh-73px)] max-w-6xl items-center gap-10 px-5 py-12 lg:grid-cols-[0.92fr_1.08fr]">
-      <div>
-        <Badge tone="orange">Real workspace sign in</Badge>
-        <h1 className="mt-5 max-w-xl text-4xl font-semibold tracking-[-0.04em] md:text-5xl">Sign in and keep your source trail saved.</h1>
-        <p className="mt-4 max-w-xl leading-7 text-[var(--lr-text-2)]">LaunchRelay is a normal product workspace: sign in, import shipped work, and return later to the same saved activity, launch moments, drafts, and opportunities.</p>
-        <div className="mt-6 grid max-w-xl gap-3 sm:grid-cols-3">
-          <SignInProof label="Persistent" value="Saved per account" />
-          <SignInProof label="Grounded" value="Source trail first" />
-          <SignInProof label="Private" value="No sample state" />
-        </div>
-      </div>
+    <main className="mx-auto grid min-h-[calc(100vh-73px)] max-w-md items-center px-5 py-12">
       <section className="lr-work-surface p-6 md:p-7">
-        <h2 className="text-2xl font-semibold tracking-[-0.03em]">Sign in to LaunchRelay</h2>
-        <p className="mt-2 text-sm leading-6 text-[var(--lr-text-2)]">Use Google, GitHub, or email to open your real workspace.</p>
+        <h1 className="text-3xl font-semibold tracking-[-0.035em]">Sign in to LaunchRelay</h1>
+        <p className="mt-2 text-sm leading-6 text-[var(--lr-text-2)]">Use Google, GitHub, or email.</p>
         <div className="mt-6 grid gap-3">
           <AuthButton icon={GoogleLogo} label="Continue with Google" onClick={() => onAuthProvider("google")} />
           <AuthButton icon={GitBranch} label="Continue with GitHub" onClick={() => onAuthProvider("github")} />
@@ -845,13 +834,6 @@ function Sidebar({ view, goApp, goPublic, workspace, currentUser, demoMode, onLo
           </button>
           <button className="rounded-lg p-2 text-[var(--lr-muted)] hover:bg-[var(--lr-surface-2)] lg:hidden" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar"><X className="h-4 w-4" /></button>
         </div>
-        <div className="px-4 py-3">
-          <div className="rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] px-3 py-3">
-            <div className="text-xs font-medium uppercase tracking-[0.08em] text-[var(--lr-muted)]">Active workspace</div>
-            <div className="mt-1 truncate text-sm font-semibold">{workspace.name}</div>
-            <div className="mt-2 text-xs leading-5 text-[var(--lr-text-2)]">{currentUser ? "Saved to your account" : demoMode ? "Sample walkthrough" : "Local workspace"}</div>
-          </div>
-        </div>
         <nav className="flex-1 space-y-1 px-3" aria-label="App navigation">
           {appNav.map(({ id, label, icon: Icon }) => {
             const active = view === id;
@@ -885,7 +867,6 @@ function Topbar({ view, goApp, workspace, currentUser, demoMode, onLogout, userM
             <span>LaunchRelay / {current}</span>
           </div>
         </div>
-        <Button onClick={() => goApp("sources")} className="hidden rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e] sm:inline-flex"><Plus className="mr-2 h-4 w-4" />Import activity</Button>
         {currentUser ? (
           <div className="relative hidden lg:block">
             <button onClick={() => setUserMenuOpen(!userMenuOpen)} className="flex items-center gap-2 rounded-xl border border-[var(--lr-border)] bg-white px-2.5 py-2 text-sm text-[var(--lr-text-2)] shadow-sm hover:bg-[var(--lr-surface-2)]" aria-expanded={userMenuOpen} aria-label="Open account menu">
@@ -916,23 +897,6 @@ function Topbar({ view, goApp, workspace, currentUser, demoMode, onLogout, userM
   );
 }
 
-function ExpertOnboardingPanel({ onHelp }) {
-  return (
-    <div className="rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <Badge tone="orange">New-user guidance</Badge>
-          <h3 className="mt-3 text-lg font-semibold tracking-[-0.02em] text-[var(--lr-text)]">Start with shipped work, not a blank prompt.</h3>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--lr-text-2)]">
-            Define the product truth, import source activity, review launch-worthy moments, then draft only from accepted evidence.
-          </p>
-        </div>
-        <Button onClick={onHelp} variant="ghost" className="shrink-0 rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Open workflow guide</Button>
-      </div>
-    </div>
-  );
-}
-
 function SampleWorkspacePanel({ onImport, onHelp }) {
   return (
     <section className="rounded-[22px] border border-[var(--lr-border)] bg-white p-5 shadow-sm">
@@ -951,36 +915,26 @@ function SampleWorkspacePanel({ onImport, onHelp }) {
   );
 }
 
-function CurrentWorkCommand({ nextAction, steps, showGuidance, onHelp }) {
-  const currentStep = steps.find((step) => step.state === "Current") || steps[steps.length - 1];
+function ContinueWhereLeftOff({ nextAction, steps }) {
   return (
-    <SectionCard title="Current work" description="One command surface for what matters next in this workspace." level="work">
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge tone="orange">Recommended next move</Badge>
-            <span className="text-xs font-medium text-[var(--lr-muted)]">Overview review pass later</span>
-          </div>
-          <h2 className="mt-4 max-w-2xl text-2xl font-semibold tracking-[-0.035em] text-[var(--lr-text)] md:text-3xl">{nextAction.title}</h2>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--lr-text-2)]">{nextAction.body}</p>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <InfoCallout label="Why this is next" value={nextAction.reason} />
-            <InfoCallout label="Expected result" value={nextAction.result} />
-          </div>
-          <div className="mt-5 flex flex-wrap gap-2">
-            <Button onClick={nextAction.onAction} disabled={nextAction.disabled} className="min-w-[190px] whitespace-nowrap rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">{nextAction.label}</Button>
-            <Button onClick={onHelp} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Workflow guide</Button>
-          </div>
-        </div>
-        <div className="rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4">
-          <div className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--lr-muted)]">Workflow checklist</div>
-          <div className="mt-3 space-y-3">
-            {steps.map((step) => <ChecklistStep key={step.label} step={step} active={step.label === currentStep?.label} />)}
-          </div>
-        </div>
+    <section className="rounded-[28px] border border-[var(--lr-border)] bg-white p-6 shadow-[var(--lr-shadow-tight)] md:p-8">
+      <div className="text-sm font-medium text-[var(--lr-muted)]">You are here in the workflow</div>
+      <h2 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-[var(--lr-text)]">Continue where you left off</h2>
+      <p className="mt-3 max-w-2xl leading-7 text-[var(--lr-text-2)]">{nextAction.body}</p>
+      <Button onClick={nextAction.onAction} disabled={nextAction.disabled} className="mt-6 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">{nextAction.label}</Button>
+      <WorkflowStrip steps={steps} />
+    </section>
+  );
+}
+
+function WorkflowStrip({ steps }) {
+  return (
+    <div className="mt-8 border-t border-[var(--lr-border)] pt-4">
+      <div className="mb-3 text-xs font-medium uppercase tracking-[0.1em] text-[var(--lr-muted)]">Profile → Sources → Moments → Draft → Library</div>
+      <div className="grid gap-2 sm:grid-cols-5">
+        {steps.map((step) => <div key={step.label} className={`rounded-xl px-3 py-2 text-sm ${step.state === "Current" ? "bg-[var(--lr-orange-tint)] font-semibold text-[var(--lr-orange)]" : "bg-[var(--lr-canvas)] text-[var(--lr-text-2)]"}`}>{step.label}</div>)}
       </div>
-      {showGuidance && <div className="mt-5"><ExpertOnboardingPanel onHelp={onHelp} /></div>}
-    </SectionCard>
+    </div>
   );
 }
 
@@ -1020,22 +974,13 @@ function StatusNotice({ status, isBusy }) {
   );
 }
 
-function Overview({ workspace, demoMode, currentUser, activities, clusters, draftRows, opportunities, onReview, onImport, onSources, onDraft, onLibrary, onHelp, onDetect }) {
-  const momentsNeedingReview = clusters.filter((cluster) => cluster.status !== "accepted" && cluster.status !== "edited");
+function Overview({ workspace, activities, clusters, draftRows, opportunities, onReview, onImport, onSources, onDraft, onLibrary, onDetect }) {
   const acceptedMoment = clusters.find((cluster) => cluster.status === "accepted" || cluster.status === "edited") || null;
   const workflow = buildWorkflowProgress({ workspace, activities, clusters, acceptedMoment, draftRows });
   const nextAction = buildNextAction({ activities, clusters, acceptedMoment, draftRows, onSources, onImport, onDetect, onReview, onDraft, onLibrary });
-  const showExpertOnboarding = !demoMode && currentUser && (!activities.length || !clusters.length || !draftRows.length);
   return (
-    <Page title="Overview" eyebrow="Workspace command center" description="See the current workflow state and the next recommended action.">
-      <div className="space-y-5">
-        <CurrentWorkCommand nextAction={nextAction} steps={workflow} showGuidance={showExpertOnboarding} onHelp={onHelp} />
-        <div className="grid gap-4 md:grid-cols-3">
-          <MetricCard label="Source receipts" value={activities.length} help="Imported evidence records available for launch detection" />
-          <MetricCard label="Moments awaiting review" value={momentsNeedingReview.length} help="Candidates that still need human approval" />
-          <MetricCard label="Library items" value={draftRows.length + opportunities.length} help="Drafts and saved follow-up opportunities" />
-        </div>
-      </div>
+    <Page title="Overview" eyebrow="Next step" description="Here is where you are and the next thing to do.">
+      <ContinueWhereLeftOff nextAction={nextAction} steps={workflow} />
     </Page>
   );
 }
@@ -1651,14 +1596,6 @@ function SectionCard({ title, description, children, compact = false, level = "s
   return <section className={`${surfaceClass} ${compact ? "p-4" : "p-5"}`}><div className="mb-4"><h2 className="text-[17px] font-semibold tracking-[-0.018em] text-[var(--lr-text)]">{title}</h2>{description && <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--lr-text-2)]">{description}</p>}</div>{children}</section>;
 }
 
-function MetricCard({ label, value, help }) {
-  return <div className="lr-supporting-panel p-4"><div className="text-xs font-medium uppercase tracking-[0.08em] text-[var(--lr-muted)]">{label}</div><div className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--lr-text)]">{value}</div><div className="mt-1 text-xs leading-5 text-[var(--lr-text-2)]">{help}</div></div>;
-}
-
-function InfoCallout({ label, value }) {
-  return <div className="rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4"><div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--lr-muted)]">{label}</div><div className="mt-2 text-sm leading-6 text-[var(--lr-text-2)]">{value}</div></div>;
-}
-
 function ChecklistStep({ step, active }) {
   const stateClass = step.state === "Done" ? "bg-[var(--lr-green)]" : active ? "bg-[var(--lr-orange)]" : "bg-[var(--lr-muted)]";
   return <div className="flex items-start gap-3"><span className={`mt-1 flex h-2.5 w-2.5 rounded-full ${stateClass}`} /><div><div className="text-sm font-medium text-[var(--lr-text)]">{step.label}</div><div className="text-xs text-[var(--lr-muted)]">{step.state}</div></div></div>;
@@ -1696,10 +1633,6 @@ function FoundationList({ cluster, sourceItems }) {
     ["Output", "Feature launch story"],
   ];
   return <dl className="space-y-3">{rows.map(([label, value]) => <InfoLine key={label} label={label} value={value} />)}</dl>;
-}
-
-function SignInProof({ label, value }) {
-  return <div className="lr-supporting-panel p-3"><div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--lr-muted)]">{label}</div><div className="mt-1 text-sm font-medium text-[var(--lr-text)]">{value}</div></div>;
 }
 
 function GoogleLogo({ className = "h-4 w-4" }) {
