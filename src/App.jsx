@@ -874,7 +874,7 @@ function Topbar({ view, goApp, workspace, currentUser, demoMode, onLogout, userM
               <span className="max-w-[150px] truncate">{displayUserName(currentUser)}</span>
             </button>
             {userMenuOpen && (
-              <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-[var(--lr-border)] bg-white p-3 shadow-[var(--lr-shadow)]">
+              <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-[var(--lr-border)] bg-white p-3 shadow-[var(--lr-shadow)] lr-soft-enter">
                 <div className="rounded-xl bg-[var(--lr-canvas)] p-3">
                   <div className="truncate text-sm font-semibold text-[var(--lr-text)]">{displayUserName(currentUser)}</div>
                   <div className="truncate text-xs text-[var(--lr-muted)]">{currentUser.email || "Signed-in workspace user"}</div>
@@ -928,7 +928,7 @@ function SampleWorkspacePanel({ onImport, onHelp }) {
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--lr-text-2)]">Use this to understand the full flow, then import your own repository or notes to start a real source trail.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={onImport} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Import your source activity</Button>
+          <Button onClick={onImport} className="min-w-[170px] whitespace-nowrap rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Import your source activity</Button>
           <Button onClick={onHelp} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">See guide</Button>
         </div>
       </div>
@@ -944,7 +944,7 @@ function NextActionPanel({ nextAction }) {
           <h3 className="text-lg font-semibold tracking-[-0.015em] text-[var(--lr-text)]">{nextAction.title}</h3>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--lr-text-2)]">{nextAction.body}</p>
         </div>
-        <Button onClick={nextAction.onAction} disabled={nextAction.disabled} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">{nextAction.label}</Button>
+        <Button onClick={nextAction.onAction} disabled={nextAction.disabled} className="min-w-[170px] whitespace-nowrap rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">{nextAction.label}</Button>
       </div>
     </SectionCard>
   );
@@ -1395,7 +1395,7 @@ function ActivityList({ activities }) {
 function SourceReceipt({ item, compact = false }) {
   const sourceLabel = sourceTypeLabel(item.source_type);
   return (
-    <article className={`rounded-2xl border border-[var(--lr-border)] bg-white p-4 shadow-sm ${compact ? "p-3" : ""}`}>
+    <article className={`lr-object-card ${compact ? "p-3 pl-5" : "p-4 pl-6"}`}>
       <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
         <Badge tone="blue">{sourceLabel}</Badge>
         {item.product_area && <Badge tone="orange">{item.product_area}</Badge>}
@@ -1521,30 +1521,33 @@ function PreviewColumn({ title, items, tone }) {
 
 function Page({ eyebrow, title, description, action, children }) {
   return (
-    <div className="mx-auto max-w-[1500px]">
-      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          {eyebrow && <div className="text-sm font-medium text-[var(--lr-orange)]">{eyebrow}</div>}
-          <h1 className="mt-1 text-3xl font-semibold tracking-[-0.035em] text-[var(--lr-text)] md:text-4xl">{title}</h1>
-          {description && <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--lr-text-2)] md:text-base">{description}</p>}
+    <div className="mx-auto max-w-[1500px] lr-soft-enter">
+      <div className="mb-6 lr-work-surface overflow-hidden bg-[linear-gradient(135deg,#fff_0%,#fff_58%,var(--lr-orange-tint)_145%)] p-5 md:p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            {eyebrow && <div className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--lr-orange)]">{eyebrow}</div>}
+            <h1 className="mt-2 max-w-4xl text-3xl font-semibold tracking-[-0.04em] text-[var(--lr-text)] md:text-[2.45rem] md:leading-[1.05]">{title}</h1>
+            {description && <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--lr-text-2)] md:text-[15px]">{description}</p>}
+          </div>
+          {action && <div className="flex shrink-0 gap-2">{action}</div>}
         </div>
-        {action && <div className="flex shrink-0 gap-2">{action}</div>}
       </div>
       {children}
     </div>
   );
 }
 
-function SectionCard({ title, description, children, compact = false }) {
-  return <section className={`rounded-[22px] border border-[var(--lr-border)] bg-white shadow-sm ${compact ? "p-4" : "p-5"}`}><div className="mb-4"><h2 className="text-lg font-semibold tracking-[-0.015em] text-[var(--lr-text)]">{title}</h2>{description && <p className="mt-1 text-sm leading-6 text-[var(--lr-text-2)]">{description}</p>}</div>{children}</section>;
+function SectionCard({ title, description, children, compact = false, level = "supporting" }) {
+  const surfaceClass = level === "work" ? "lr-work-surface" : "lr-supporting-panel";
+  return <section className={`${surfaceClass} ${compact ? "p-4" : "p-5"}`}><div className="mb-4"><h2 className="text-[17px] font-semibold tracking-[-0.018em] text-[var(--lr-text)]">{title}</h2>{description && <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--lr-text-2)]">{description}</p>}</div>{children}</section>;
 }
 
 function MetricCard({ label, value, help }) {
-  return <div className="rounded-2xl border border-[var(--lr-border)] bg-white p-5 shadow-sm"><div className="text-sm text-[var(--lr-text-2)]">{label}</div><div className="mt-2 text-3xl font-semibold tracking-[-0.035em]">{value}</div><div className="mt-1 text-xs text-[var(--lr-muted)]">{help}</div></div>;
+  return <div className="lr-supporting-panel p-5"><div className="text-xs font-medium uppercase tracking-[0.08em] text-[var(--lr-muted)]">{label}</div><div className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-[var(--lr-text)]">{value}</div><div className="mt-1 text-xs leading-5 text-[var(--lr-text-2)]">{help}</div></div>;
 }
 
 function MomentQueueRow({ cluster, onClick }) {
-  return <button onClick={onClick} className="flex w-full flex-col gap-3 rounded-2xl border border-[var(--lr-border)] bg-white p-4 text-left hover:border-slate-300 md:flex-row md:items-center md:justify-between"><div><h3 className="font-semibold">{cluster.title}</h3><p className="mt-1 text-sm text-[var(--lr-text-2)]">{cluster.user_value || cluster.why_it_matters}</p></div><div className="flex flex-wrap gap-2"><Badge tone="blue">{cluster.activity_item_ids?.length || 0} sources</Badge><Badge tone="green">{cluster.confidence_label || "medium"}</Badge><Badge tone="orange">Review</Badge></div></button>;
+  return <button onClick={onClick} className="lr-object-card flex w-full flex-col gap-3 p-4 pl-5 text-left transition hover:-translate-y-0.5 hover:border-slate-300 md:flex-row md:items-center md:justify-between"><div><h3 className="font-semibold tracking-[-0.01em] text-[var(--lr-text)]">{cluster.title}</h3><p className="mt-1 text-sm leading-6 text-[var(--lr-text-2)]">{cluster.user_value || cluster.why_it_matters}</p></div><div className="flex flex-wrap gap-2 text-xs text-[var(--lr-muted)]"><span>{cluster.activity_item_ids?.length || 0} sources</span><span>•</span><span>{cluster.confidence_label || "medium"}</span><span>•</span><span>Review</span></div></button>;
 }
 
 function DataTable({ columns, rows, empty }) {
@@ -1635,11 +1638,11 @@ function TabButton({ active, onClick, children }) {
 
 function Badge({ children, tone = "orange" }) {
   const classes = {
-    orange: "bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]",
-    blue: "bg-[#EEF2FF] text-[var(--lr-blue)]",
-    green: "bg-[#EAF8F1] text-[var(--lr-green)]",
+    orange: "border-[rgba(216,93,51,0.22)] bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]",
+    blue: "border-[rgba(54,95,232,0.18)] bg-[#EEF2FF] text-[var(--lr-blue)]",
+    green: "border-[rgba(31,157,104,0.18)] bg-[#EAF8F1] text-[var(--lr-green)]",
   };
-  return <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${classes[tone] || classes.orange}`}>{children}</span>;
+  return <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${classes[tone] || classes.orange}`}>{children}</span>;
 }
 
 function StatusIcon({ tone }) {
