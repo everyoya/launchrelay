@@ -196,6 +196,17 @@ export default function App() {
     base44.auth.loginWithProvider(provider, `${window.location.origin}${window.location.pathname}#/overview`);
   }
 
+  async function completeAuthenticatedEntry(user) {
+    if (!isValidUserSession(user)) throw new Error("No active Base44 user session");
+    setDemoMode(false);
+    resetWorkspaceState({ setWorkspace, setWorkspaceRecord, setActivities, setClusters, setSelectedCluster, setDraft, setOpportunities });
+    setCurrentUser(user);
+    setStatus({ tone: "loading", message: "Opening your workspace..." });
+    await loadUserWorkspaceData({ setWorkspace, setWorkspaceRecord, setActivities, setClusters, setSelectedCluster, setDraft, setOpportunities }, user);
+    setStatus({ tone: "success", message: "Workspace opened." });
+    goApp("overview", { replace: true });
+  }
+
   async function logout() {
     setDemoMode(false);
     setCurrentUser(null);
@@ -634,6 +645,7 @@ export default function App() {
         onLogout={logout}
         onSample={startOnboardingWorkflow}
         onAuthProvider={startAuthProviderLogin}
+        onEmailAuthenticated={completeAuthenticatedEntry}
       />
     );
   }
@@ -668,13 +680,12 @@ function AuthLoadingScreen() {
       <div className="rounded-[24px] border border-[var(--lr-border)] bg-white p-6 text-center shadow-[var(--lr-shadow)]">
         <Loader2 className="mx-auto h-6 w-6 animate-spin text-[var(--lr-orange)]" />
         <h1 className="mt-4 text-xl font-semibold">Opening your workspace...</h1>
-        <p className="mt-2 text-sm text-[var(--lr-text-2)]">Checking your LaunchRelay session.</p>
       </div>
     </div>
   );
 }
 
-function PublicSite({ view, currentUser, goPublic, goApp, onLogout, onSample, onAuthProvider }) {
+function PublicSite({ view, currentUser, goPublic, goApp, onLogout, onSample, onAuthProvider, onEmailAuthenticated }) {
   const isAuth = view === "sign-in";
   return (
     <div className="min-h-screen bg-[var(--lr-canvas)] text-[var(--lr-text)]">
@@ -705,7 +716,7 @@ function PublicSite({ view, currentUser, goPublic, goApp, onLogout, onSample, on
           </div>
         </div>
       </header>
-      {isAuth ? <SignIn currentUser={currentUser} onSample={onSample} goPublic={goPublic} goApp={goApp} onAuthProvider={onAuthProvider} /> : <MarketingHome currentUser={currentUser} onSample={onSample} goPublic={goPublic} goApp={goApp} />}
+      {isAuth ? <SignIn currentUser={currentUser} goPublic={goPublic} goApp={goApp} onAuthProvider={onAuthProvider} onEmailAuthenticated={onEmailAuthenticated} /> : <MarketingHome currentUser={currentUser} onSample={onSample} goPublic={goPublic} goApp={goApp} />}
     </div>
   );
 }
@@ -751,11 +762,52 @@ function MarketingHome({ currentUser, onSample, goPublic, goApp }) {
   );
 }
 
-function SignIn({ currentUser, onSample, goPublic, goApp, onAuthProvider }) {
+function SignIn({ currentUser, goPublic, goApp, onAuthProvider, onEmailAuthenticated }) {
+  const [emailMode, setEmailMode] = useState("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [emailStatus, setEmailStatus] = useState(null);
+  const [emailBusy, setEmailBusy] = useState(false);
+
+  async function submitEmailAuth(event) {
+    event.preventDefault();
+    setEmailBusy(true);
+    setEmailStatus(null);
+    try {
+      const normalizedEmail = email.trim().toLowerCase();
+      if (!normalizedEmail || !password.trim()) throw new Error("Enter an email and password.");
+
+      if (emailMode === "signup") {
+        await base44.auth.register({ email: normalizedEmail, password });
+        setEmailMode("verify");
+        setEmailStatus({ tone: "success", message: "Check your email for the verification code." });
+        return;
+      }
+
+      if (emailMode === "verify") {
+        if (!otpCode.trim()) throw new Error("Enter the verification code from your email.");
+        const response = await base44.auth.verifyOtp({ email: normalizedEmail, otpCode: otpCode.trim() });
+        if (response?.access_token) base44.auth.setToken(response.access_token);
+        const user = response?.user || await base44.auth.me();
+        await onEmailAuthenticated(user);
+        return;
+      }
+
+      const response = await base44.auth.loginViaEmailPassword(normalizedEmail, password);
+      await onEmailAuthenticated(response.user);
+    } catch (error) {
+      console.error(error);
+      setEmailStatus({ tone: "error", message: readableAuthError(error) });
+    } finally {
+      setEmailBusy(false);
+    }
+  }
+
   if (currentUser) {
     return (
       <main className="mx-auto grid min-h-[calc(100vh-73px)] max-w-4xl items-center px-5 py-12">
-        <section className="rounded-[24px] border border-[var(--lr-border)] bg-white p-8 text-center shadow-[var(--lr-shadow)]">
+        <section className="lr-work-surface p-8 text-center">
           <Badge tone="green">Signed in</Badge>
           <h1 className="mt-5 text-4xl font-semibold tracking-[-0.035em]">Welcome back to LaunchRelay.</h1>
           <p className="mx-auto mt-4 max-w-xl leading-7 text-[var(--lr-text-2)]">Your account session is active. Continue into the product workspace.</p>
@@ -764,24 +816,39 @@ function SignIn({ currentUser, onSample, goPublic, goApp, onAuthProvider }) {
       </main>
     );
   }
+
   return (
-    <main className="mx-auto grid min-h-[calc(100vh-73px)] max-w-6xl items-center gap-10 px-5 py-12 lg:grid-cols-[0.95fr_1.05fr]">
+    <main className="mx-auto grid min-h-[calc(100vh-73px)] max-w-6xl items-center gap-10 px-5 py-12 lg:grid-cols-[0.92fr_1.08fr]">
       <div>
-        <Badge tone="blue">Sample workspace or product context</Badge>
-        <h1 className="mt-5 text-4xl font-semibold tracking-[-0.035em]">Turn shipped work into trusted product education.</h1>
-        <p className="mt-4 max-w-xl leading-7 text-[var(--lr-text-2)]">Sign in with Base44 authentication, explore the sample workspace, or start by adding product context.</p>
-      </div>
-      <section className="rounded-[24px] border border-[var(--lr-border)] bg-white p-6 shadow-[var(--lr-shadow)]">
-        <h2 className="text-xl font-semibold">Sign in to LaunchRelay</h2>
-        <p className="mt-2 text-sm text-[var(--lr-text-2)]">Choose a workspace entry path.</p>
-        <div className="mt-6 grid gap-3">
-          <AuthButton icon={GitBranch} label="Continue with GitHub" onClick={() => onAuthProvider("github")} />
-          <AuthButton icon={UserCircle} label="Continue with Google" onClick={() => onAuthProvider("google")} />
+        <Badge tone="orange">Real workspace sign in</Badge>
+        <h1 className="mt-5 max-w-xl text-4xl font-semibold tracking-[-0.04em] md:text-5xl">Sign in and keep your source trail saved.</h1>
+        <p className="mt-4 max-w-xl leading-7 text-[var(--lr-text-2)]">LaunchRelay is a normal product workspace: sign in, import shipped work, and return later to the same saved activity, launch moments, drafts, and opportunities.</p>
+        <div className="mt-6 grid max-w-xl gap-3 sm:grid-cols-3">
+          <SignInProof label="Persistent" value="Saved per account" />
+          <SignInProof label="Grounded" value="Source trail first" />
+          <SignInProof label="Private" value="No sample state" />
         </div>
-        <div className="my-6 h-px bg-[var(--lr-border)]" />
-        <Button onClick={onSample} className="h-11 w-full rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Explore sample workspace</Button>
-        <Button onClick={() => goApp("sources")} variant="ghost" className="mt-3 h-11 w-full rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Start with product context</Button>
-        <button onClick={() => goPublic("public-home")} className="mt-5 text-sm text-[var(--lr-text-2)] underline-offset-4 hover:text-[var(--lr-text)] hover:underline">Back to website</button>
+      </div>
+      <section className="lr-work-surface p-6 md:p-7">
+        <h2 className="text-2xl font-semibold tracking-[-0.03em]">Sign in to LaunchRelay</h2>
+        <p className="mt-2 text-sm leading-6 text-[var(--lr-text-2)]">Use Google, GitHub, or email to open your real workspace.</p>
+        <div className="mt-6 grid gap-3">
+          <AuthButton icon={GoogleLogo} label="Continue with Google" onClick={() => onAuthProvider("google")} />
+          <AuthButton icon={GitBranch} label="Continue with GitHub" onClick={() => onAuthProvider("github")} />
+        </div>
+        <div className="my-6 flex items-center gap-3 text-xs font-medium uppercase tracking-[0.08em] text-[var(--lr-muted)]"><span className="h-px flex-1 bg-[var(--lr-border)]" />Email<span className="h-px flex-1 bg-[var(--lr-border)]" /></div>
+        <form onSubmit={submitEmailAuth} className="space-y-3">
+          <Field label="Email" value={email} onChange={setEmail} />
+          <label htmlFor="sign-in-password" className="block"><span className="mb-2 block text-sm font-medium text-[var(--lr-text)]">Password</span><Input id="sign-in-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="h-11 rounded-xl border-[var(--lr-border)] bg-white text-[var(--lr-text)] shadow-sm" /></label>
+          {emailMode === "verify" && <Field label="Verification code" value={otpCode} onChange={setOtpCode} help="Enter the code Base44 sent to your email." />}
+          {emailStatus && <div className={`rounded-xl border px-3 py-2 text-sm ${emailStatus.tone === "error" ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}>{emailStatus.message}</div>}
+          <Button type="submit" disabled={emailBusy} className="h-11 w-full rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e] disabled:opacity-70">{emailBusy ? "Working..." : emailMode === "signup" ? "Create account" : emailMode === "verify" ? "Verify and open workspace" : "Sign in with email"}</Button>
+        </form>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm">
+          <button type="button" onClick={() => { setEmailMode(emailMode === "signup" ? "login" : "signup"); setEmailStatus(null); }} className="font-medium text-[var(--lr-blue)] underline-offset-4 hover:underline">{emailMode === "signup" ? "Already have an account? Sign in" : "Create an email account"}</button>
+          {emailMode === "verify" && <button type="button" onClick={() => setEmailMode("login")} className="text-[var(--lr-text-2)] underline-offset-4 hover:text-[var(--lr-text)] hover:underline">Back to sign in</button>}
+          <button type="button" onClick={() => goPublic("public-home")} className="text-[var(--lr-text-2)] underline-offset-4 hover:text-[var(--lr-text)] hover:underline">Back to website</button>
+        </div>
       </section>
     </main>
   );
@@ -1580,8 +1647,31 @@ function FoundationList({ cluster, sourceItems }) {
   return <dl className="space-y-3">{rows.map(([label, value]) => <InfoLine key={label} label={label} value={value} />)}</dl>;
 }
 
+function SignInProof({ label, value }) {
+  return <div className="lr-supporting-panel p-3"><div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--lr-muted)]">{label}</div><div className="mt-1 text-sm font-medium text-[var(--lr-text)]">{value}</div></div>;
+}
+
+function GoogleLogo({ className = "h-4 w-4" }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+      <path fill="#FBBC05" d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.84z" />
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06L5.84 9.9C6.71 7.31 9.14 5.38 12 5.38z" />
+    </svg>
+  );
+}
+
+function readableAuthError(error) {
+  const raw = error?.response?.data?.message || error?.message || "Authentication failed.";
+  if (/network|fetch/i.test(raw)) return "Could not reach Base44 auth. Try again in a moment.";
+  if (/invalid|incorrect|unauthorized|not registered/i.test(raw)) return "The email or password did not match an account.";
+  if (/otp|code|verify/i.test(raw)) return "The verification code was not accepted. Check the email and try again.";
+  return raw;
+}
+
 function AuthButton({ icon: Icon, label, onClick, disabled = false }) {
-  return <button type="button" onClick={onClick} disabled={disabled} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--lr-border)] bg-white text-sm font-medium text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)] disabled:cursor-not-allowed disabled:opacity-60"><Icon className="h-4 w-4" />{label}</button>;
+  return <button type="button" onClick={onClick} disabled={disabled} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--lr-border)] bg-white text-sm font-medium text-[var(--lr-text)] shadow-sm transition hover:-translate-y-0.5 hover:bg-[var(--lr-surface-2)] disabled:cursor-not-allowed disabled:opacity-60"><Icon className="h-4 w-4" />{label}</button>;
 }
 
 function PillarCard({ icon: Icon, title, body }) {
