@@ -1249,9 +1249,9 @@ function AccountBillingPanel() {
 }
 
 function SourceSetupFlow({ workspace, setWorkspace, onSave, sourceTab, setSourceTab, activityText, setActivityText, manualNotes, setManualNotes, githubRepoInput, setGithubRepoInput, activities, importPhase, isBusy, onImport, onGitHubImport, onDetect }) {
-  const currentStep = activities.length > 0 && sourceTab === "context" ? "continue" : sourceTab === "context" ? "profile" : "activity";
+  const currentStep = sourceTab === "profile" ? "profile" : sourceTab === "continue" ? "continue" : activities.length > 0 && sourceTab === "context" ? "continue" : sourceTab === "context" ? "profile" : "activity";
   return (
-    <div className="mx-auto max-w-4xl space-y-5">
+    <div className="mx-auto w-full max-w-7xl space-y-5">
       <SourceStepIndicator currentStep={currentStep} setSourceTab={setSourceTab} activities={activities} />
       {currentStep === "profile" && <ProductProfileStep workspace={workspace} setWorkspace={setWorkspace} onSave={onSave} isBusy={isBusy} onNext={() => setSourceTab("connections")} />}
       {currentStep === "activity" && <SourceActivityStep githubRepoInput={githubRepoInput} setGithubRepoInput={setGithubRepoInput} importPhase={importPhase} isBusy={isBusy} onGitHubImport={onGitHubImport} activityText={activityText} setActivityText={setActivityText} manualNotes={manualNotes} setManualNotes={setManualNotes} activities={activities} onImport={onImport} />}
@@ -1262,9 +1262,9 @@ function SourceSetupFlow({ workspace, setWorkspace, onSave, sourceTab, setSource
 
 function SourceStepIndicator({ currentStep, setSourceTab, activities }) {
   const steps = [
-    ["profile", "Step 1: Product Profile", () => setSourceTab("context")],
+    ["profile", "Step 1: Product Profile", () => setSourceTab("profile")],
     ["activity", "Step 2: Add Source Activity", () => setSourceTab("connections")],
-    ["continue", "Step 3: Continue to Launch Moments", () => activities.length > 0 && setSourceTab("context")],
+    ["continue", "Step 3: Continue to Launch Moments", () => activities.length > 0 && setSourceTab("continue")],
   ];
   return (
     <div className="grid gap-2 sm:grid-cols-3">
