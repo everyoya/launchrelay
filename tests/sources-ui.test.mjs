@@ -4,36 +4,30 @@ import { readFileSync } from 'node:fs';
 
 const appSource = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8');
 
-test('sources page is reframed as a source setup workspace with a summary rail', () => {
-  assert.match(appSource, /function SourceSetupPath/);
-  assert.match(appSource, /function SourceSummaryRail/);
-  assert.match(appSource, /Source setup/);
-  assert.match(appSource, /Sources review pass later/);
-  assert.doesNotMatch(appSource, /title="Structured activity records"/);
+test('sources is a guided setup flow with one active job, not tabs and rails', () => {
+  assert.match(appSource, /function SourceSetupFlow/);
+  assert.match(appSource, /Step 1: Product Profile/);
+  assert.match(appSource, /Step 2: Add Source Activity/);
+  assert.match(appSource, /Step 3: Continue to Launch Moments/);
+  assert.doesNotMatch(appSource, /SourceSummaryRail/);
+  assert.doesNotMatch(appSource, /role="tablist" aria-label="Sources sections"/);
+  assert.doesNotMatch(appSource, /xl:grid-cols-\[minmax\(0,1fr\)_340px\]/);
 });
 
-test('product context form uses essential and voice zones with a why-this-matters panel', () => {
-  assert.match(appSource, /Essential context/);
-  assert.match(appSource, /Voice and positioning/);
-  assert.match(appSource, /Why this matters/);
+test('sources combines GitHub and manual notes as source input choices', () => {
+  assert.match(appSource, /function SourceActivityStep/);
+  assert.match(appSource, /Choose one way to add activity/);
+  assert.match(appSource, /GitHub repository/);
+  assert.match(appSource, /Manual notes/);
+  assert.match(appSource, /Import GitHub activity/);
+  assert.match(appSource, /Normalize notes/);
 });
 
-test('connections keeps import primary and only shows detect after source records exist', () => {
-  assert.match(appSource, /Source connection card/);
-  assert.match(appSource, /Import timeline/);
-  assert.match(appSource, /activities\.length > 0 &&/);
-  assert.doesNotMatch(appSource, /\$0/);
-});
-
-test('manual notes support separate note blocks instead of one pasted blob', () => {
-  assert.match(appSource, /manualNotes/);
-  assert.match(appSource, /Add another note/);
-  assert.match(appSource, /NoteBlock/);
-  assert.match(appSource, /compileManualNotes/);
-});
-
-test('source receipts are available as compact tooltip-style objects', () => {
-  assert.match(appSource, /SourceReceiptTooltip/);
-  assert.match(appSource, /View receipt/);
-  assert.match(appSource, /group-hover:visible/);
+test('source receipts are hidden until requested and detection is gated', () => {
+  assert.match(appSource, /View imported activity/);
+  assert.match(appSource, /<details/);
+  assert.match(appSource, /activities\.length > 0 && currentStep === "continue" && <ContinueToMomentsStep/);
+  assert.doesNotMatch(appSource, /Recent receipts/);
+  assert.doesNotMatch(appSource, /Source setup/);
+  assert.doesNotMatch(appSource, /Sources review pass later/);
 });
