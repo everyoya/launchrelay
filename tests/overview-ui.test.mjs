@@ -12,7 +12,7 @@ test('overview is a next-step screen instead of a command center dashboard', () 
   assert.doesNotMatch(appSource, /Workspace command center/);
   assert.doesNotMatch(appSource, /Recommended next move/);
   assert.doesNotMatch(appSource, /New-user guidance/);
-  assert.doesNotMatch(appSource, /Workflow guide/);
+  assert.doesNotMatch(appSource, /ExpertOnboardingPanel/);
 });
 
 test('overview removes dashboard metrics for the radical reset', () => {
