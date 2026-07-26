@@ -917,27 +917,20 @@ function Topbar({ view, goApp, workspace, currentUser, demoMode, onLogout, userM
   );
 }
 
-function ExpertOnboardingPanel({ nextAction, onHelp }) {
+function ExpertOnboardingPanel({ onHelp }) {
   return (
-    <section className="overflow-hidden rounded-[26px] border border-[var(--lr-border)] bg-white shadow-[var(--lr-shadow)]">
-      <div className="grid gap-5 p-5 lg:grid-cols-[1fr_320px]">
+    <div className="rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <Badge tone="orange">Expert onboarding</Badge>
-          <h2 className="mt-4 text-2xl font-semibold tracking-[-0.03em] text-[var(--lr-text)]">Start with shipped work, not a blank prompt.</h2>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--lr-text-2)]">
-            LaunchRelay works like a product education operator: define the product truth, import source activity, review launch-worthy moments, then turn approved moments into drafts and opportunities.
+          <Badge tone="orange">New-user guidance</Badge>
+          <h3 className="mt-3 text-lg font-semibold tracking-[-0.02em] text-[var(--lr-text)]">Start with shipped work, not a blank prompt.</h3>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--lr-text-2)]">
+            Define the product truth, import source activity, review launch-worthy moments, then draft only from accepted evidence.
           </p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            <Button onClick={nextAction.onAction} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">{nextAction.label}</Button>
-            <Button onClick={onHelp} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Open workflow guide</Button>
-          </div>
         </div>
-        <div className="rounded-2xl bg-[var(--lr-canvas)] p-4">
-          <div className="text-sm font-semibold text-[var(--lr-text)]">How to read the workspace</div>
-          <MiniTimeline items={["Sources: product context and source receipts", "Launch Moments: candidates requiring human review", "Story Studio: draft only after evidence is accepted", "Library: durable archive with source trail preserved"]} />
-        </div>
+        <Button onClick={onHelp} variant="ghost" className="shrink-0 rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Open workflow guide</Button>
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -959,16 +952,35 @@ function SampleWorkspacePanel({ onImport, onHelp }) {
   );
 }
 
-function NextActionPanel({ nextAction }) {
+function CurrentWorkCommand({ nextAction, steps, showGuidance, onHelp }) {
+  const currentStep = steps.find((step) => step.state === "Current") || steps[steps.length - 1];
   return (
-    <SectionCard title="Next best action" description="A deterministic recommendation based on the current workspace state.">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <SectionCard title="Current work" description="One command surface for what matters next in this workspace." level="work">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
         <div>
-          <h3 className="text-lg font-semibold tracking-[-0.015em] text-[var(--lr-text)]">{nextAction.title}</h3>
-          <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--lr-text-2)]">{nextAction.body}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge tone="orange">Recommended next move</Badge>
+            <span className="text-xs font-medium text-[var(--lr-muted)]">Overview review pass later</span>
+          </div>
+          <h2 className="mt-4 max-w-2xl text-2xl font-semibold tracking-[-0.035em] text-[var(--lr-text)] md:text-3xl">{nextAction.title}</h2>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--lr-text-2)]">{nextAction.body}</p>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <InfoCallout label="Why this is next" value={nextAction.reason} />
+            <InfoCallout label="Expected result" value={nextAction.result} />
+          </div>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Button onClick={nextAction.onAction} disabled={nextAction.disabled} className="min-w-[190px] whitespace-nowrap rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">{nextAction.label}</Button>
+            <Button onClick={onHelp} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Workflow guide</Button>
+          </div>
         </div>
-        <Button onClick={nextAction.onAction} disabled={nextAction.disabled} className="min-w-[170px] whitespace-nowrap rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">{nextAction.label}</Button>
+        <div className="rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4">
+          <div className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--lr-muted)]">Workflow checklist</div>
+          <div className="mt-3 space-y-3">
+            {steps.map((step) => <ChecklistStep key={step.label} step={step} active={step.label === currentStep?.label} />)}
+          </div>
+        </div>
       </div>
+      {showGuidance && <div className="mt-5"><ExpertOnboardingPanel onHelp={onHelp} /></div>}
     </SectionCard>
   );
 }
@@ -1009,7 +1021,7 @@ function StatusNotice({ status, isBusy }) {
   );
 }
 
-function Overview({ workspace, demoMode, currentUser, activities, clusters, selectedCluster, draftRows, opportunities, onReview, onImport, onSources, onDraft, onLibrary, onHelp, onDetect }) {
+function Overview({ workspace, demoMode, currentUser, activities, clusters, draftRows, opportunities, onReview, onImport, onSources, onDraft, onLibrary, onHelp, onDetect }) {
   const momentsNeedingReview = clusters.filter((cluster) => cluster.status !== "accepted" && cluster.status !== "edited");
   const acceptedMoment = clusters.find((cluster) => cluster.status === "accepted" || cluster.status === "edited") || null;
   const workflow = buildWorkflowProgress({ workspace, activities, clusters, acceptedMoment, draftRows });
@@ -1017,47 +1029,13 @@ function Overview({ workspace, demoMode, currentUser, activities, clusters, sele
   const showExpertOnboarding = !demoMode && currentUser && (!activities.length || !clusters.length || !draftRows.length);
   return (
     <Page title="Overview" eyebrow="Workspace command center" description="See the current workflow state and the next recommended action.">
-      <div className="grid gap-5 xl:grid-cols-[1fr_340px]">
-        <div className="space-y-5">
-          {showExpertOnboarding && <ExpertOnboardingPanel nextAction={nextAction} onHelp={onHelp} onSample={onImport} />}
-          {demoMode && <SampleWorkspacePanel onImport={onImport} onHelp={onHelp} />}
-          <NextActionPanel nextAction={nextAction} />
-          <WorkflowProgress steps={workflow} />
-          <div className="grid gap-4 md:grid-cols-3">
-            <MetricCard label="Source activities" value={activities.length} help="PRs, commits, releases, and notes" />
-            <MetricCard label="Detected moments" value={clusters.length} help="Source-backed candidates" />
-            <MetricCard label="Drafts + opportunities" value={draftRows.length + opportunities.length} help="Saved or in progress" />
-          </div>
-          <SectionCard title="Moments needing review" description="Human approval stays central before anything becomes a draft.">
-            {clusters.length ? (
-              <div className="space-y-3">
-                {clusters.map((cluster) => <MomentQueueRow key={cluster.id || cluster.title} cluster={cluster} active={selectedCluster?.id === cluster.id} onClick={onReview} />)}
-              </div>
-            ) : (
-              <EmptyState icon={CircleDot} eyebrow="Launch detection queue" title="No launch moments yet" body="Launch moments are created only after source activity exists. Import a repo or paste shipped-work notes, then run detection to see candidates with evidence." actionLabel="Import activity" onAction={onImport} secondaryLabel={activities.length ? "Detect now" : null} onSecondary={onDetect} />
-            )}
-          </SectionCard>
-          <SectionCard title="Recent drafts" description="Durable product education assets stay linked back to their source moment.">
-            <DataTable columns={["Title", "Type", "Linked moment", "Status", "Updated"]} rows={draftRows.map((item) => [item.title, item.draft_type || "Launch story", selectedCluster?.title || "Accepted moment", item.status || "draft", nowLabel])} empty="No drafts yet. Accept a launch moment, then create a source-grounded draft in Story Studio." />
-          </SectionCard>
+      <div className="space-y-5">
+        <CurrentWorkCommand nextAction={nextAction} steps={workflow} showGuidance={showExpertOnboarding} onHelp={onHelp} />
+        <div className="grid gap-4 md:grid-cols-3">
+          <MetricCard label="Source receipts" value={activities.length} help="Imported evidence records available for launch detection" />
+          <MetricCard label="Moments awaiting review" value={momentsNeedingReview.length} help="Candidates that still need human approval" />
+          <MetricCard label="Library items" value={draftRows.length + opportunities.length} help="Drafts and saved follow-up opportunities" />
         </div>
-        <aside className="space-y-5">
-          <SectionCard title="Source health" description="Concrete source state for this workspace." compact>
-            <StatusRow label="Workspace mode" value={demoMode ? "Sample workspace" : currentUser ? "Signed-in workspace" : "Local workspace"} />
-            <StatusRow label="Source records" value={`${activities.length} imported`} />
-            <StatusRow label="Source mode" value={activities.length ? sourceModeLabel(activities) : "No source records yet"} />
-            <StatusRow label="Next action" value={nextAction.label} />
-          </SectionCard>
-          <SectionCard title="Product context" description="Active positioning inputs." compact>
-            <StatusRow label="Product" value={workspace.name} />
-            <StatusRow label="Audience" value={workspace.target_audience} />
-            <StatusRow label="Channels" value={workspace.primary_channels} />
-          </SectionCard>
-          <MicroHelp title="What does the workflow mean?" items={["Sources are product context plus shipped-work evidence.", "Launch Moments are candidates that still need human review.", "Story Studio only drafts from an accepted moment.", "Library is the durable archive of reviewed work."]} />
-          <SectionCard title="Recent activity" description="Latest workflow signals.">
-            <MiniTimeline items={[activities.length ? `${activities.length} source receipts imported` : "Waiting for source import", clusters.length ? `${clusters.length} launch moments detected` : "Detection not run yet", draftRows.length ? "Draft created" : "No draft yet"]} />
-          </SectionCard>
-        </aside>
       </div>
     </Page>
   );
@@ -1566,7 +1544,16 @@ function SectionCard({ title, description, children, compact = false, level = "s
 }
 
 function MetricCard({ label, value, help }) {
-  return <div className="lr-supporting-panel p-5"><div className="text-xs font-medium uppercase tracking-[0.08em] text-[var(--lr-muted)]">{label}</div><div className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-[var(--lr-text)]">{value}</div><div className="mt-1 text-xs leading-5 text-[var(--lr-text-2)]">{help}</div></div>;
+  return <div className="lr-supporting-panel p-4"><div className="text-xs font-medium uppercase tracking-[0.08em] text-[var(--lr-muted)]">{label}</div><div className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--lr-text)]">{value}</div><div className="mt-1 text-xs leading-5 text-[var(--lr-text-2)]">{help}</div></div>;
+}
+
+function InfoCallout({ label, value }) {
+  return <div className="rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4"><div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--lr-muted)]">{label}</div><div className="mt-2 text-sm leading-6 text-[var(--lr-text-2)]">{value}</div></div>;
+}
+
+function ChecklistStep({ step, active }) {
+  const stateClass = step.state === "Done" ? "bg-[var(--lr-green)]" : active ? "bg-[var(--lr-orange)]" : "bg-[var(--lr-muted)]";
+  return <div className="flex items-start gap-3"><span className={`mt-1 flex h-2.5 w-2.5 rounded-full ${stateClass}`} /><div><div className="text-sm font-medium text-[var(--lr-text)]">{step.label}</div><div className="text-xs text-[var(--lr-muted)]">{step.state}</div></div></div>;
 }
 
 function MomentQueueRow({ cluster, onClick }) {
@@ -1774,6 +1761,8 @@ function buildNextAction({ activities, clusters, acceptedMoment, draftRows, onSo
     return {
       title: "Import the first source trail",
       body: "LaunchRelay needs source activity before it can detect launch-worthy product stories. Start with GitHub activity or pasted shipped-work notes.",
+      reason: "No source receipts exist yet, so the product has nothing reliable to detect or draft from.",
+      result: "A structured source trail appears in Sources and unlocks launch moment detection.",
       label: "Import source activity",
       onAction: onImport || onSources,
     };
@@ -1782,6 +1771,8 @@ function buildNextAction({ activities, clusters, acceptedMoment, draftRows, onSo
     return {
       title: "Detect launch moments",
       body: "Source receipts are available. Run detection to group related changes into reviewable story candidates.",
+      reason: `${activities.length} source receipt${activities.length === 1 ? " is" : "s are"} ready for deterministic grouping.`,
+      result: "Launch Moments gets a review queue with evidence-linked candidates.",
       label: "Detect launch moments",
       onAction: onDetect,
     };
@@ -1790,6 +1781,8 @@ function buildNextAction({ activities, clusters, acceptedMoment, draftRows, onSo
     return {
       title: "Review the strongest candidate",
       body: "Launch moments should not become content automatically. Inspect the evidence, then accept the moment worth drafting.",
+      reason: `${clusters.length} candidate${clusters.length === 1 ? " needs" : "s need"} human approval before Story Studio can draft from it.`,
+      result: "An accepted launch moment unlocks a source-grounded draft workspace.",
       label: "Review launch moments",
       onAction: onReview,
     };
@@ -1798,6 +1791,8 @@ function buildNextAction({ activities, clusters, acceptedMoment, draftRows, onSo
     return {
       title: "Create the first source-grounded draft",
       body: "A human-reviewed launch moment is ready. Open Story Studio to create an editable draft from the accepted evidence.",
+      reason: "The evidence decision is complete, so drafting can start without inventing unsupported claims.",
+      result: "Story Studio creates an editable draft tied back to the accepted source moment.",
       label: "Open Story Studio",
       onAction: onDraft,
     };
@@ -1805,6 +1800,8 @@ function buildNextAction({ activities, clusters, acceptedMoment, draftRows, onSo
   return {
     title: "Review durable work in Library",
     body: "A draft exists. Check the Library to mark ready, search saved work, or continue expanding follow-up opportunities.",
+    reason: "The workflow has produced durable assets; Library is where reviewed work should be managed.",
+    result: "Saved drafts and opportunities stay organized for later product education work.",
     label: "Open Library",
     onAction: onLibrary,
   };
