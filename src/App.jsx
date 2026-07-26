@@ -93,7 +93,6 @@ export default function App() {
   const [libraryTab, setLibraryTab] = useState("Drafts");
   const [settingsTab, setSettingsTab] = useState("general");
   const [launchFilter, setLaunchFilter] = useState("all");
-  const [globalSearch, setGlobalSearch] = useState("");
   const [librarySearch, setLibrarySearch] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -216,28 +215,6 @@ export default function App() {
     base44.auth.logout(`${window.location.origin}${window.location.pathname}`);
   }
 
-  function runGlobalSearch(query) {
-    const normalized = query.trim().toLowerCase();
-    if (!normalized) return;
-    const destinations = [
-      { id: "overview", label: "overview home dashboard source health" },
-      { id: "sources", label: "sources import github repository connections notes activity" },
-      { id: "launch-moments", label: "launch moments detection review evidence confidence status" },
-      { id: "story-studio", label: "story studio draft editor assistant sources" },
-      { id: "opportunities", label: "opportunities angles follow up education save promote ignore" },
-      { id: "library", label: "library drafts ready published moments search" },
-      { id: "settings", label: "settings workspace account billing model ai base44 connections" },
-      { id: "help", label: "help docs documentation workflow guide readme submission" },
-    ];
-    const match = destinations.find((item) => item.label.includes(normalized)) || destinations.find((item) => normalized.includes(item.id.replace("-", " ")));
-    if (match) {
-      goApp(match.id);
-      setStatus({ tone: "success", message: `Opened ${viewLabel(match.id)} from search.` });
-      setGlobalSearch("");
-    } else {
-      setStatus({ tone: "warning", message: "No matching workspace section found. Try Sources, Library, Settings, or Help." });
-    }
-  }
 
   async function saveWorkspace() {
     setIsBusy(true);
@@ -655,7 +632,7 @@ export default function App() {
       <div className="flex min-h-screen">
         <Sidebar view={renderedView} goApp={goApp} goPublic={goPublic} workspace={workspace} currentUser={currentUser} demoMode={demoMode} onLogout={logout} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
         <div className="flex min-w-0 flex-1 flex-col lg:pl-72">
-          <Topbar view={renderedView} goApp={goApp} workspace={workspace} currentUser={currentUser} demoMode={demoMode} onLogout={logout} userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen} globalSearch={globalSearch} setGlobalSearch={setGlobalSearch} onSearch={runGlobalSearch} setSidebarOpen={setSidebarOpen} />
+          <Topbar view={renderedView} goApp={goApp} workspace={workspace} currentUser={currentUser} demoMode={demoMode} onLogout={logout} userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen} setSidebarOpen={setSidebarOpen} />
           <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8">
             <StatusNotice status={status} isBusy={isBusy} />
             {renderedView === "overview" && <Overview workspace={workspace} demoMode={demoMode} currentUser={currentUser} activities={activities} clusters={clusters} selectedCluster={selectedCluster} draftRows={draftRows} opportunities={opportunities} onReview={() => goApp("launch-moments")} onImport={() => goApp("sources")} onSources={() => goApp("sources")} onDraft={() => goApp("story-studio")} onLibrary={() => goApp("library")} onHelp={() => goApp("help")} onDetect={detectLaunchMoments} />}
@@ -870,19 +847,19 @@ function Sidebar({ view, goApp, goPublic, workspace, currentUser, demoMode, onLo
           <button className="rounded-lg p-2 text-[var(--lr-muted)] hover:bg-[var(--lr-surface-2)] lg:hidden" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar"><X className="h-4 w-4" /></button>
         </div>
         <div className="px-4 py-3">
-          <div className="rounded-2xl bg-[var(--lr-canvas)] px-3 py-3">
+          <div className="rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] px-3 py-3">
             <div className="text-xs font-medium uppercase tracking-[0.08em] text-[var(--lr-muted)]">Active workspace</div>
-            <div className="mt-1 text-sm font-semibold">{workspace.name}</div>
-            {demoMode && <div className="mt-2 text-xs font-medium text-[var(--lr-blue)]">Sample workspace · local walkthrough</div>}
+            <div className="mt-1 truncate text-sm font-semibold">{workspace.name}</div>
+            <div className="mt-2 text-xs leading-5 text-[var(--lr-text-2)]">{currentUser ? "Saved to your account" : demoMode ? "Sample walkthrough" : "Local workspace"}</div>
           </div>
         </div>
         <nav className="flex-1 space-y-1 px-3" aria-label="App navigation">
           {appNav.map(({ id, label, icon: Icon }) => {
             const active = view === id;
             return (
-              <button key={id} onClick={() => goApp(id)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${active ? "bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)] hover:text-[var(--lr-text)]"}`}>
-                <Icon className="h-4 w-4" aria-hidden="true" />
-                {label}
+              <button key={id} onClick={() => goApp(id)} className={`group flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition ${active ? "bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)] hover:text-[var(--lr-text)]"}`}>
+                <span className="flex items-center gap-3"><Icon className="h-4 w-4" aria-hidden="true" />{label}</span>
+                {active && <span className="h-1.5 w-1.5 rounded-full bg-[var(--lr-orange)]" aria-hidden="true" />}
               </button>
             );
           })}
@@ -890,24 +867,16 @@ function Sidebar({ view, goApp, goPublic, workspace, currentUser, demoMode, onLo
         <div className="border-t border-[var(--lr-border)] p-3">
           <button onClick={() => goApp("settings")} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium ${view === "settings" ? "bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]"}`}><Settings className="h-4 w-4" />Workspace settings</button>
           <button onClick={() => goApp("help")} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium ${view === "help" ? "bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]"}`}><HelpCircle className="h-4 w-4" />Help & docs</button>
-          <div className="mt-3 rounded-2xl bg-[var(--lr-canvas)] p-3">
-            <div className="flex items-center gap-3">
-              <UserCircle className="h-8 w-8 text-[var(--lr-muted)]" />
-              <div className="min-w-0">
-                <div className="truncate text-sm font-medium">{currentUser ? displayUserName(currentUser) : "LaunchRelay workspace"}</div>
-                <div className="truncate text-xs text-[var(--lr-muted)]">{currentUser?.email || (demoMode ? "Sample walkthrough, not your real workspace" : "Product education workspace")}</div>
-              </div>
-            </div>
-            {currentUser && <button onClick={onLogout} className="mt-3 text-xs font-medium text-[var(--lr-text-2)] underline-offset-4 hover:text-[var(--lr-text)] hover:underline">Sign out</button>}
-          </div>
         </div>
       </aside>
     </>
   );
 }
 
-function Topbar({ view, goApp, workspace, currentUser, demoMode, onLogout, userMenuOpen, setUserMenuOpen, globalSearch, setGlobalSearch, onSearch, setSidebarOpen }) {
+function Topbar({ view, goApp, workspace, currentUser, demoMode, onLogout, userMenuOpen, setUserMenuOpen, setSidebarOpen }) {
   const current = viewLabel(view);
+  const userName = currentUser ? displayUserName(currentUser) : "LaunchRelay";
+  const initials = avatarInitials(userName, currentUser?.email);
   return (
     <header className="sticky top-0 z-20 border-b border-[var(--lr-border)] bg-[var(--lr-canvas)]/92 px-4 py-3 backdrop-blur sm:px-6 lg:px-8">
       <div className="flex items-center gap-3">
@@ -915,37 +884,24 @@ function Topbar({ view, goApp, workspace, currentUser, demoMode, onLogout, userM
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 text-xs text-[var(--lr-muted)]">
             <span>LaunchRelay / {current}</span>
-            {demoMode && <Badge tone="blue">Sample workspace</Badge>}
           </div>
-          <div className="truncate text-sm font-semibold text-[var(--lr-text)]">{current}</div>
         </div>
-        <label className="hidden min-w-[260px] items-center gap-2 rounded-xl border border-[var(--lr-border)] bg-white px-3 py-2 text-sm text-[var(--lr-muted)] md:flex">
-          <Search className="h-4 w-4" />
-          <input
-            aria-label="Search workspace sections"
-            value={globalSearch}
-            onChange={(event) => setGlobalSearch(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") onSearch(globalSearch);
-            }}
-            placeholder="Search sections, drafts, moments"
-            className="min-w-0 flex-1 bg-transparent text-[var(--lr-text)] outline-none placeholder:text-[var(--lr-muted)]"
-          />
-          <button type="button" onClick={() => onSearch(globalSearch)} className="rounded-md bg-[var(--lr-surface-2)] px-1.5 py-0.5 text-[11px]">Enter</button>
-        </label>
         <Button onClick={() => goApp("sources")} className="hidden rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e] sm:inline-flex"><Plus className="mr-2 h-4 w-4" />Import activity</Button>
         {currentUser ? (
           <div className="relative hidden lg:block">
-            <button onClick={() => setUserMenuOpen(!userMenuOpen)} className="flex items-center gap-2 rounded-xl border border-[var(--lr-border)] bg-white px-3 py-2 text-sm text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]" aria-expanded={userMenuOpen} aria-label="Open account menu">
-              <UserCircle className="h-4 w-4" />
-              <span className="max-w-[150px] truncate">{displayUserName(currentUser)}</span>
+            <button onClick={() => setUserMenuOpen(!userMenuOpen)} className="flex items-center gap-2 rounded-xl border border-[var(--lr-border)] bg-white px-2.5 py-2 text-sm text-[var(--lr-text-2)] shadow-sm hover:bg-[var(--lr-surface-2)]" aria-expanded={userMenuOpen} aria-label="Open account menu">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--lr-text)] text-xs font-semibold text-white">{initials}</span>
+              <span className="max-w-[150px] truncate">{userName}</span>
             </button>
             {userMenuOpen && (
               <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-[var(--lr-border)] bg-white p-3 shadow-[var(--lr-shadow)] lr-soft-enter">
-                <div className="rounded-xl bg-[var(--lr-canvas)] p-3">
-                  <div className="truncate text-sm font-semibold text-[var(--lr-text)]">{displayUserName(currentUser)}</div>
-                  <div className="truncate text-xs text-[var(--lr-muted)]">{currentUser.email || "Signed-in workspace user"}</div>
-                  <div className="mt-2 text-xs text-[var(--lr-text-2)]">Workspace: {workspace.name}</div>
+                <div className="flex items-center gap-3 rounded-xl bg-[var(--lr-canvas)] p-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--lr-text)] text-sm font-semibold text-white">{initials}</span>
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold text-[var(--lr-text)]">{userName}</div>
+                    <div className="truncate text-xs text-[var(--lr-muted)]">{currentUser.email || "Account user"}</div>
+                    <div className="mt-1 truncate text-xs text-[var(--lr-text-2)]">{workspace.name}</div>
+                  </div>
                 </div>
                 <button onClick={() => goApp("settings")} className="mt-2 flex w-full rounded-xl px-3 py-2 text-left text-sm text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]">Workspace settings</button>
                 <button onClick={() => goApp("help")} className="flex w-full rounded-xl px-3 py-2 text-left text-sm text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]">Help & docs</button>
@@ -1992,6 +1948,12 @@ function isRecordOwnedByUser(record, user) {
   const recordIds = [record.created_by_id, record.user_id, record.owner_id].filter(Boolean).map((value) => String(value).toLowerCase());
   const recordEmails = [record.created_by, record.owner_email, record.email].filter(Boolean).map((value) => String(value).toLowerCase());
   return recordIds.some((value) => userIds.includes(value)) || recordEmails.some((value) => userEmails.includes(value));
+}
+
+function avatarInitials(name, email) {
+  const source = (name && name !== "LaunchRelay" ? name : email || "LR").trim();
+  const parts = source.includes("@") ? source.split("@")[0].split(/[._-]+/) : source.split(/\s+/);
+  return parts.filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "LR";
 }
 
 function displayUserName(user) {
