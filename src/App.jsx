@@ -54,7 +54,6 @@ const appNav = [
 
 const appRouteIds = [...appNav.map((item) => item.id), "settings", "help"];
 const publicRouteIds = ["public-home", "sign-in"];
-const publicNav = ["Product", "How it works", "Use cases"];
 
 const sampleActivity = `PR: Added onboarding checklist for first workspace setup
 Commit: fixed signup redirect after account creation
@@ -683,9 +682,6 @@ function PublicSite({ view, currentUser, goPublic, goApp, onLogout, onSample, on
               <div className="text-xs text-[var(--lr-muted)]">Product education from shipped work</div>
             </div>
           </button>
-          <nav className="hidden items-center gap-7 text-sm text-[var(--lr-text-2)] md:flex" aria-label="Public navigation">
-            {publicNav.map((item) => <a key={item} href={`#${item.toLowerCase().replaceAll(" ", "-")}`} className="hover:text-[var(--lr-text)]">{item}</a>)}
-          </nav>
           <div className="flex items-center gap-2">
             {currentUser ? (
               <>
@@ -695,7 +691,6 @@ function PublicSite({ view, currentUser, goPublic, goApp, onLogout, onSample, on
             ) : (
               <>
                 <Button variant="ghost" onClick={() => goPublic("sign-in")} className="rounded-xl text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]">Sign in</Button>
-                <Button onClick={() => goPublic("sign-in")} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Start free</Button>
               </>
             )}
           </div>
@@ -709,41 +704,37 @@ function PublicSite({ view, currentUser, goPublic, goApp, onLogout, onSample, on
 function MarketingHome({ currentUser, onSample, goPublic, goApp }) {
   return (
     <main>
-      <section className="mx-auto grid max-w-7xl gap-10 px-5 py-16 lg:grid-cols-[0.95fr_1.05fr] lg:py-24">
-        <div className="flex flex-col justify-center">
-          <h1 className="mt-5 max-w-3xl text-5xl font-semibold tracking-[-0.045em] text-[var(--lr-text)] md:text-6xl">
-            Your product already contains its next great story.
-          </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-8 text-[var(--lr-text-2)]">
-            LaunchRelay finds launch-worthy moments in shipped work, connects them to real source activity, and helps product education teams turn them into trusted content.
-          </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Button onClick={() => currentUser ? goApp("overview") : goPublic("sign-in")} className="h-12 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">{currentUser ? "Enter the system" : "Start with your repository"} <ArrowRight className="ml-2 h-4 w-4" /></Button>
-            <Button onClick={onSample} variant="ghost" className="h-12 rounded-xl border border-[var(--lr-border)] bg-white px-5 text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Explore a sample workspace</Button>
-          </div>
+      <section className="mx-auto flex min-h-[calc(100vh-73px)] max-w-5xl flex-col items-center justify-center px-5 py-16 text-center lg:py-24">
+        <h1 className="max-w-4xl text-5xl font-semibold tracking-[-0.05em] text-[var(--lr-text)] md:text-7xl">
+          LaunchRelay turns shipped product work into source-grounded product education.
+        </h1>
+        <p className="mt-6 max-w-2xl text-lg leading-8 text-[var(--lr-text-2)]">
+          Tell LaunchRelay what product this is, add source activity, review the strongest launch moment, then draft from evidence you accepted.
+        </p>
+        <div className="mt-8">
+          <Button onClick={() => currentUser ? goApp("overview") : goPublic("sign-in")} className="h-12 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">{currentUser ? "Open workspace" : "Start with your product"} <ArrowRight className="ml-2 h-4 w-4" /></Button>
+          <p className="mt-3 text-sm text-[var(--lr-muted)]">You’ll tell LaunchRelay what product this is, then add source activity.</p>
         </div>
-        <SourceToStoryPreview />
-      </section>
-      <section id="product" className="border-y border-[var(--lr-border)] bg-white">
-        <div className="mx-auto grid max-w-7xl gap-5 px-5 py-10 md:grid-cols-3">
-          <PillarCard title="Launch Detection" body="Find launch moments worth explaining from PRs, commits, releases, and notes." icon={CircleDot} />
-          <PillarCard title="Story Coproduction" body="Let humans curate the moment, then shape it into an editable, source-grounded draft." icon={PenLine} />
-          <PillarCard title="Opportunity Expansion" body="Turn one shipped moment into docs, tutorials, FAQs, posts, and enablement angles." icon={Lightbulb} />
-        </div>
-      </section>
-      <section id="how-it-works" className="mx-auto grid max-w-7xl gap-4 px-5 py-12 md:grid-cols-3">
-        <PillarCard title="1. Normalize source activity" body="GitHub activity and product notes become structured source receipts." icon={GitBranch} />
-        <PillarCard title="2. Review launch moments" body="LaunchRelay explains why a change cluster matters and asks for human approval." icon={ShieldCheck} />
-        <PillarCard title="3. Create trusted education" body="Accepted moments become editable drafts and follow-up opportunities." icon={FileText} />
-      </section>
-      <section id="use-cases" className="bg-white">
-        <div className="mx-auto grid max-w-7xl gap-4 px-5 py-12 md:grid-cols-3">
-          <PillarCard title="Devrel" body="Turn shipped improvements into tutorials, docs updates, and launch posts." icon={BookOpen} />
-          <PillarCard title="Product marketing" body="Find credible story angles without inventing unsupported claims." icon={Sparkles} />
-          <PillarCard title="Founder-led teams" body="Keep product education flowing from the work already happening." icon={Layers3} />
-        </div>
+        <TransformationPlaceholder />
       </section>
     </main>
+  );
+}
+
+function TransformationPlaceholder() {
+  return (
+    <div className="mt-12 w-full max-w-3xl rounded-[28px] border border-[var(--lr-border)] bg-white p-5 text-left shadow-[var(--lr-shadow-tight)]">
+      <div className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--lr-muted)]">Future visual</div>
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        {["Source activity", "Reviewed moment", "Draft"].map((label, index) => (
+          <div key={label} className="rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4">
+            <div className="text-xs text-[var(--lr-muted)]">0{index + 1}</div>
+            <div className="mt-2 text-sm font-semibold text-[var(--lr-text)]">{label}</div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 text-sm font-medium text-[var(--lr-text-2)]">Source activity → reviewed moment → draft</div>
+    </div>
   );
 }
 
