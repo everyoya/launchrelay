@@ -1062,7 +1062,7 @@ function Opportunities({ opportunities, cluster, onCreateOpportunities, onSaveOp
   return (
     <Page title="Opportunities" eyebrow="Simple expansion" description="Selected accepted moment → generate ideas → save useful ideas." action={<Button onClick={onCreateOpportunities} disabled={isBusy || !cluster} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Generate ideas</Button>}>
       {!cluster ? <EmptyState icon={Lightbulb} eyebrow="Accepted moment required" title="No accepted moment yet" body="Accept a launch moment first. Opportunities expand one reviewed story into useful follow-up ideas." /> : (
-        <div className="mx-auto max-w-5xl space-y-5">
+        <div className="w-full space-y-5">
           <SectionCard title="Selected accepted moment" description="The source-backed story these ideas will expand.">
             <div className="rounded-2xl border border-[var(--lr-border)] bg-white p-4">
               <h3 className="font-semibold text-[var(--lr-text)]">{cluster.title}</h3>
@@ -1120,7 +1120,7 @@ function HelpDocsScreen({ goApp }) {
   ];
   return (
     <Page title="Help & docs" eyebrow="Workflow guide" description="A small safety net for the core LaunchRelay workflow.">
-      <div className="mx-auto max-w-5xl space-y-5">
+      <div className="w-full space-y-5">
         <SectionCard title="Workflow in 5 steps" description="Use this when you need to recover the next step.">
           <DataTable columns={["Step", "What it is for"]} rows={guideRows} empty="Guide unavailable." />
         </SectionCard>
@@ -1211,7 +1211,7 @@ function AccountBillingPanel() {
 function SourceSetupFlow({ workspace, setWorkspace, onSave, sourceTab, setSourceTab, activityText, setActivityText, manualNotes, setManualNotes, githubRepoInput, setGithubRepoInput, activities, importPhase, isBusy, onImport, onGitHubImport, onDetect }) {
   const currentStep = sourceTab === "profile" ? "profile" : sourceTab === "continue" ? "continue" : activities.length > 0 && sourceTab === "context" ? "continue" : sourceTab === "context" ? "profile" : "activity";
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-5">
+    <div className="w-full space-y-5">
       <SourceStepIndicator currentStep={currentStep} setSourceTab={setSourceTab} activities={activities} />
       {currentStep === "profile" && <ProductProfileStep workspace={workspace} setWorkspace={setWorkspace} onSave={onSave} isBusy={isBusy} onNext={() => setSourceTab("connections")} />}
       {currentStep === "activity" && <SourceActivityStep githubRepoInput={githubRepoInput} setGithubRepoInput={setGithubRepoInput} importPhase={importPhase} isBusy={isBusy} onGitHubImport={onGitHubImport} activityText={activityText} setActivityText={setActivityText} manualNotes={manualNotes} setManualNotes={setManualNotes} activities={activities} onImport={onImport} />}
@@ -1494,7 +1494,7 @@ function LaunchMomentReviewDesk({ cluster, sources, onAccept }) {
 
 function StoryEditorWorkspace({ cluster, sourceItems, draft, setDraft, onSaveDraft, onCreateDraft, isBusy, onLibrary }) {
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
+    <div className="w-full space-y-5">
       <div className="rounded-2xl border border-[var(--lr-border)] bg-white p-4 shadow-[var(--lr-shadow-tight)]">
         <div className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--lr-muted)]">Accepted moment</div>
         <div className="mt-2 font-semibold text-[var(--lr-text)]">{cluster.title}</div>

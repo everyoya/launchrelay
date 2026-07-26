@@ -9,7 +9,8 @@ test('sources is a guided setup flow with one active job, not tabs and rails', (
   assert.match(appSource, /Step 1: Product Profile/);
   assert.match(appSource, /Step 2: Add Source Activity/);
   assert.match(appSource, /Step 3: Continue to Launch Moments/);
-  assert.match(appSource, /mx-auto w-full max-w-7xl space-y-5/);
+  assert.match(appSource, /<div className="w-full space-y-5">/);
+  assert.doesNotMatch(appSource, /mx-auto w-full max-w-7xl space-y-5/);
   assert.doesNotMatch(appSource, /SourceSummaryRail/);
   assert.doesNotMatch(appSource, /role="tablist" aria-label="Sources sections"/);
   assert.doesNotMatch(appSource, /xl:grid-cols-\[minmax\(0,1fr\)_340px\]/);
