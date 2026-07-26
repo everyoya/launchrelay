@@ -61,6 +61,11 @@ Commit: fixed signup redirect after account creation
 Note: users were confused after account creation, so we added clearer first-run guidance
 Feature: added welcome screen copy that explains the next best action`;
 
+const sampleManualNotes = sampleActivity.split("\n").map((body, index) => ({
+  id: `note_${index + 1}`,
+  body,
+}));
+
 const initialWorkspace = {
   name: "LaunchRelay",
   description: "A GitHub-first product education workflow system for shipped software changes.",
@@ -83,6 +88,7 @@ export default function App() {
   const [workspace, setWorkspace] = useState(initialWorkspace);
   const [workspaceRecord, setWorkspaceRecord] = useState(null);
   const [activityText, setActivityText] = useState(sampleActivity);
+  const [manualNotes, setManualNotes] = useState(sampleManualNotes);
   const [githubRepoInput, setGithubRepoInput] = useState(initialWorkspace.primary_repo_url);
   const [activities, setActivities] = useState([]);
   const [clusters, setClusters] = useState([]);
@@ -274,6 +280,7 @@ export default function App() {
     setDemoMode(true);
     setWorkspaceRecord(workspaceRecordSeed);
     setActivityText(sampleActivity);
+    setManualNotes(sampleManualNotes);
     setActivities(seededActivities);
     setClusters(seededClusters);
     setSelectedCluster(seededClusters[0] || null);
@@ -291,10 +298,11 @@ export default function App() {
     const activeWorkspace = await ensureWorkspaceRecord();
     const workspaceId = activeWorkspace.id;
     const importedAt = new Date().toISOString();
+    const noteText = compileManualNotes(manualNotes, activityText);
 
     try {
       const response = await base44.functions.invoke("normalizeActivity", {
-        activityText,
+        activityText: noteText,
         workspaceId,
         importedAt,
         idPrefix: "backend_activity",
@@ -310,7 +318,7 @@ export default function App() {
       setStatus({ tone: "success", message: `Imported ${saved.length} activity items and kept their source trail.` });
     } catch (error) {
       console.error(error);
-      const normalized = createManualActivityItemsFromText(activityText, {
+      const normalized = createManualActivityItemsFromText(noteText, {
         workspaceId,
         importedAt,
         idPrefix: "local_activity",
@@ -636,7 +644,7 @@ export default function App() {
           <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8">
             <StatusNotice status={status} isBusy={isBusy} />
             {renderedView === "overview" && <Overview workspace={workspace} demoMode={demoMode} currentUser={currentUser} activities={activities} clusters={clusters} selectedCluster={selectedCluster} draftRows={draftRows} opportunities={opportunities} onReview={() => goApp("launch-moments")} onImport={() => goApp("sources")} onSources={() => goApp("sources")} onDraft={() => goApp("story-studio")} onLibrary={() => goApp("library")} onHelp={() => goApp("help")} onDetect={detectLaunchMoments} />}
-            {renderedView === "sources" && <Sources workspace={workspace} setWorkspace={setWorkspace} onSave={saveWorkspace} sourceTab={sourceTab} setSourceTab={setSourceTab} activityText={activityText} setActivityText={setActivityText} githubRepoInput={githubRepoInput} setGithubRepoInput={setGithubRepoInput} activities={activities} importPhase={importPhase} isBusy={isBusy} onImport={importManualActivity} onGitHubImport={importGitHubActivity} onDetect={detectLaunchMoments} />}
+            {renderedView === "sources" && <Sources workspace={workspace} setWorkspace={setWorkspace} onSave={saveWorkspace} sourceTab={sourceTab} setSourceTab={setSourceTab} activityText={activityText} setActivityText={setActivityText} manualNotes={manualNotes} setManualNotes={setManualNotes} githubRepoInput={githubRepoInput} setGithubRepoInput={setGithubRepoInput} activities={activities} importPhase={importPhase} isBusy={isBusy} onImport={importManualActivity} onGitHubImport={importGitHubActivity} onDetect={detectLaunchMoments} />}
             {renderedView === "launch-moments" && <LaunchMoments clusters={clusters} activities={activities} selectedCluster={selectedCluster} selectedSources={selectedSources} setSelectedCluster={setSelectedCluster} onAccept={acceptCluster} onDetect={detectLaunchMoments} isBusy={isBusy} launchFilter={launchFilter} setLaunchFilter={setLaunchFilter} />}
             {renderedView === "story-studio" && <StoryStudio cluster={acceptedCluster} sourceItems={acceptedSources} draft={draft} setDraft={setDraft} onSaveDraft={saveDraft} onCreateDraft={createDraft} onCreateOpportunities={createOpportunities} isBusy={isBusy} onBack={() => goApp("launch-moments")} onLibrary={() => goApp("library")} />}
             {renderedView === "opportunities" && <Opportunities opportunities={visibleOpportunities} cluster={acceptedCluster} onCreateOpportunities={createOpportunities} onSaveOpportunity={saveOpportunity} onPromote={promoteOpportunity} onIgnore={ignoreOpportunity} isBusy={isBusy} />}
@@ -1041,23 +1049,26 @@ function Overview({ workspace, demoMode, currentUser, activities, clusters, draf
   );
 }
 
-function Sources({ workspace, setWorkspace, onSave, sourceTab, setSourceTab, activityText, setActivityText, githubRepoInput, setGithubRepoInput, activities, importPhase, isBusy, onImport, onGitHubImport, onDetect }) {
+function Sources({ workspace, setWorkspace, onSave, sourceTab, setSourceTab, activityText, setActivityText, manualNotes, setManualNotes, githubRepoInput, setGithubRepoInput, activities, importPhase, isBusy, onImport, onGitHubImport, onDetect }) {
   const tabs = [
-    ["context", "Product context"],
-    ["connections", "Connections"],
-    ["notes", "Notes"],
+    ["context", "1. Product truth"],
+    ["connections", "2. GitHub import"],
+    ["notes", "3. Manual notes"],
   ];
   return (
-    <Page title="Sources" eyebrow="Source trail" description="Add product context and source activity before detecting launch moments." action={<Button onClick={activities.length ? onDetect : onGitHubImport} disabled={isBusy} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">{activities.length ? "Detect new moments" : "Import GitHub activity"}</Button>}>
-      <div className="mb-5 flex flex-wrap gap-2" role="tablist" aria-label="Sources sections">
-        {tabs.map(([id, label]) => <TabButton key={id} active={sourceTab === id} onClick={() => setSourceTab(id)}>{label}</TabButton>)}
+    <Page title="Sources" eyebrow="Source trail" description="Set up product context, import shipped-work evidence, and keep source receipts easy to inspect." action={<Button onClick={activities.length ? onDetect : onGitHubImport} disabled={isBusy} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">{activities.length ? "Detect new moments" : "Import GitHub activity"}</Button>}>
+      <SourceSetupPath activeTab={sourceTab} activities={activities} workspace={workspace} />
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="space-y-5">
+          <div className="flex flex-wrap gap-2" role="tablist" aria-label="Sources sections">
+            {tabs.map(([id, label]) => <TabButton key={id} active={sourceTab === id} onClick={() => setSourceTab(id)}>{label}</TabButton>)}
+          </div>
+          {sourceTab === "context" && <ProductContextForm workspace={workspace} setWorkspace={setWorkspace} onSave={onSave} isBusy={isBusy} />}
+          {sourceTab === "connections" && <ConnectionsPanel githubRepoInput={githubRepoInput} setGithubRepoInput={setGithubRepoInput} activities={activities} importPhase={importPhase} isBusy={isBusy} onGitHubImport={onGitHubImport} onDetect={onDetect} />}
+          {sourceTab === "notes" && <ManualNotesPanel activityText={activityText} setActivityText={setActivityText} manualNotes={manualNotes} setManualNotes={setManualNotes} activities={activities} isBusy={isBusy} onImport={onImport} />}
+        </div>
+        <SourceSummaryRail workspace={workspace} activities={activities} importPhase={importPhase} onDetect={onDetect} isBusy={isBusy} />
       </div>
-      {sourceTab === "context" && <ProductContextForm workspace={workspace} setWorkspace={setWorkspace} onSave={onSave} isBusy={isBusy} />}
-      {sourceTab === "connections" && <ConnectionsPanel githubRepoInput={githubRepoInput} setGithubRepoInput={setGithubRepoInput} activities={activities} importPhase={importPhase} isBusy={isBusy} onGitHubImport={onGitHubImport} onDetect={onDetect} />}
-      {sourceTab === "notes" && <ManualNotesPanel activityText={activityText} setActivityText={setActivityText} activities={activities} isBusy={isBusy} onImport={onImport} />}
-      <SectionCard title="Structured activity records" description="Every imported item becomes source material for launch detection.">
-        <ActivityList activities={activities} />
-      </SectionCard>
     </Page>
   );
 }
@@ -1327,25 +1338,79 @@ function AccountBillingPanel() {
   );
 }
 
+function SourceSetupPath({ activeTab, activities, workspace }) {
+  const hasContext = Boolean(workspace?.name && workspace?.target_audience && workspace?.primary_repo_url);
+  const steps = [
+    ["context", "Product truth", hasContext ? "Done" : "Current"],
+    ["connections", "Import evidence", activities.length ? "Done" : activeTab === "connections" ? "Current" : "Next"],
+    ["notes", "Manual notes", activities.length ? "Optional" : activeTab === "notes" ? "Current" : "Fallback"],
+  ];
+  return (
+    <section className="mb-5 rounded-[24px] border border-[var(--lr-border)] bg-white p-4 shadow-[var(--lr-shadow-tight)]">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <Badge tone="blue">Source setup</Badge>
+          <span className="ml-2 text-xs font-medium text-[var(--lr-muted)]">Sources review pass later</span>
+          <h2 className="mt-3 text-xl font-semibold tracking-[-0.025em] text-[var(--lr-text)]">Build the source trail before detection.</h2>
+        </div>
+        <div className="text-sm text-[var(--lr-text-2)]">{activities.length ? `${activities.length} receipts ready` : "No receipts yet"}</div>
+      </div>
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        {steps.map(([id, label, state]) => <div key={id} className={`rounded-2xl border p-3 ${activeTab === id ? "border-[var(--lr-orange)] bg-[var(--lr-orange-tint)]" : "border-[var(--lr-border)] bg-[var(--lr-canvas)]"}`}><div className="text-sm font-semibold text-[var(--lr-text)]">{label}</div><div className="mt-1 text-xs text-[var(--lr-muted)]">{state}</div></div>)}
+      </div>
+    </section>
+  );
+}
+
+function SourceSummaryRail({ workspace, activities, importPhase, onDetect, isBusy }) {
+  return (
+    <aside className="space-y-5">
+      <SectionCard title="Source summary" description="A compact receipt shelf instead of another full record list." compact>
+        <StatusRow label="Product" value={workspace.name} />
+        <StatusRow label="Audience" value={workspace.target_audience} />
+        <StatusRow label="Receipts" value={`${activities.length} source receipts`} />
+        <StatusRow label="Import phase" value={importPhase || "idle"} />
+        {activities.length > 0 && <Button onClick={onDetect} disabled={isBusy} className="mt-4 w-full rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Detect launch moments</Button>}
+      </SectionCard>
+      <SectionCard title="Recent receipts" description="Hover or focus a receipt to inspect details." compact>
+        <ActivityList activities={activities} />
+      </SectionCard>
+    </aside>
+  );
+}
+
 function ProductContextForm({ workspace, setWorkspace, onSave, isBusy, settingsMode = false }) {
-  const fields = [
+  const essentialFields = [
     ["name", "Product name", "The product LaunchRelay should understand and explain."],
     ["description", "Product description", "One clear sentence about what the product helps users do."],
     ["target_audience", "Audience", "Who the launch story should be useful for."],
-    ["product_stage", "Stage", "MVP, beta, mature product, or another operating stage."],
     ["primary_repo_url", "Primary repository", "Public repo or owner/repo used for source activity import."],
     ["primary_channels", "Channels", "Where the final education work will usually appear."],
+    ["product_stage", "Stage", "MVP, beta, mature product, or another operating stage."],
   ];
   return (
     <SectionCard title={settingsMode ? "General workspace details" : "Product context"} description="These inputs shape what LaunchRelay considers launch-worthy, how it explains value, and which terminology it should preserve.">
-      <div className="mb-5 rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4 text-sm leading-6 text-[var(--lr-text-2)]">
-        Start with the product truth. LaunchRelay works best when source activity is connected to a clear audience, positioning, channels, and writing style.
-      </div>
-      <div className="grid gap-4 md:grid-cols-2">{fields.map(([key, label, help]) => <Field key={key} label={label} help={help} value={workspace[key]} onChange={(value) => setWorkspace({ ...workspace, [key]: value })} />)}</div>
-      <TextArea label="Positioning" help="The strategic angle LaunchRelay should protect when turning shipped work into education." value={workspace.positioning_notes} onChange={(value) => setWorkspace({ ...workspace, positioning_notes: value })} />
-      <div className="grid gap-4 md:grid-cols-2">
-        <TextArea label="Terminology" help="Words and concepts the product should consistently use or avoid." value={workspace.terminology_notes} onChange={(value) => setWorkspace({ ...workspace, terminology_notes: value })} />
-        <TextArea label="Style guidance" help="Tone rules for drafts, such as practical, non-hypey, beginner-friendly, or technical." value={workspace.style_guidance} onChange={(value) => setWorkspace({ ...workspace, style_guidance: value })} />
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="space-y-5">
+          <div className="rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4">
+            <h3 className="text-sm font-semibold text-[var(--lr-text)]">Essential context</h3>
+            <p className="mt-1 text-sm leading-6 text-[var(--lr-text-2)]">The minimum product truth needed before importing source activity.</p>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">{essentialFields.map(([key, label, help]) => <Field key={key} label={label} help={help} value={workspace[key]} onChange={(value) => setWorkspace({ ...workspace, [key]: value })} />)}</div>
+          </div>
+          <div className="rounded-2xl border border-[var(--lr-border)] bg-white p-4">
+            <h3 className="text-sm font-semibold text-[var(--lr-text)]">Voice and positioning</h3>
+            <TextArea label="Positioning" help="The strategic angle LaunchRelay should protect when turning shipped work into education." value={workspace.positioning_notes} onChange={(value) => setWorkspace({ ...workspace, positioning_notes: value })} />
+            <div className="grid gap-4 md:grid-cols-2">
+              <TextArea label="Terminology" help="Words and concepts the product should consistently use or avoid." value={workspace.terminology_notes} onChange={(value) => setWorkspace({ ...workspace, terminology_notes: value })} />
+              <TextArea label="Style guidance" help="Tone rules for drafts, such as practical, non-hypey, beginner-friendly, or technical." value={workspace.style_guidance} onChange={(value) => setWorkspace({ ...workspace, style_guidance: value })} />
+            </div>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-orange-tint)] p-4 text-sm leading-6 text-[var(--lr-text-2)]">
+          <div className="text-sm font-semibold text-[var(--lr-text)]">Why this matters</div>
+          <p className="mt-2">Source receipts are only useful when LaunchRelay knows the product, audience, channels, and voice they should serve.</p>
+          <p className="mt-3">Save context first, then import evidence. This keeps launch moments practical instead of generic.</p>
+        </div>
       </div>
       <Button onClick={onSave} disabled={isBusy} className="mt-5 rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Save product context</Button>
     </SectionCard>
@@ -1354,43 +1419,95 @@ function ProductContextForm({ workspace, setWorkspace, onSave, isBusy, settingsM
 
 function ConnectionsPanel({ githubRepoInput, setGithubRepoInput, activities, importPhase, isBusy, onGitHubImport, onDetect }) {
   return (
-    <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
-      <SectionCard title="GitHub connection" description="Best for public repositories and real shipped work.">
-        <div className="mb-4 rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4 text-sm leading-6 text-[var(--lr-text-2)]">
-          Choose GitHub when the source of truth is code activity. Use Notes when you need a fast test path, private work, release notes, or customer context.
+    <SectionCard title="Source connection card" description="Import public GitHub activity first; detection appears only after receipts exist.">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_260px]">
+        <div>
+          <Field label="Repository URL or owner/repo" help="Paste a public GitHub URL or owner/repo. Private repo OAuth can come later." value={githubRepoInput} onChange={setGithubRepoInput} />
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button onClick={onGitHubImport} disabled={isBusy} className="rounded-xl bg-[var(--lr-blue)] text-white shadow-none hover:bg-[#3554d1]">Import activity</Button>
+            {activities.length > 0 && <Button onClick={onDetect} disabled={isBusy} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Detect launch moments</Button>}
+          </div>
+          <ImportProgress phase={importPhase} />
         </div>
-        <Field label="Repository URL or owner/repo" help="Paste a public GitHub URL or owner/repo. Private repo OAuth can come later." value={githubRepoInput} onChange={setGithubRepoInput} />
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button onClick={onGitHubImport} disabled={isBusy} className="rounded-xl bg-[var(--lr-blue)] text-white shadow-none hover:bg-[#3554d1]">Import activity</Button>
-          <Button onClick={onDetect} disabled={isBusy || !activities.length} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Detect launch moments</Button>
+        <div className="rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4 text-sm leading-6 text-[var(--lr-text-2)]">
+          <div className="font-semibold text-[var(--lr-text)]">Import timeline</div>
+          <p className="mt-2">Import creates source receipts. Detection is intentionally secondary so users do not skip evidence setup.</p>
+          <div className="mt-3 rounded-xl bg-white p-3"><strong className="text-[var(--lr-text)]">Fallback:</strong> use Manual notes for private work, release notes, or customer context.</div>
         </div>
-        <ImportProgress phase={importPhase} />
-      </SectionCard>
-      <SectionCard title="Connection status" description="Recovery paths are built into the source workflow." compact>
-        <StatusRow label="Repo" value={githubRepoInput} />
-        <StatusRow label="Last import" value={activities.length ? nowLabel : "Not imported yet"} />
-        <StatusRow label="Records" value={`${activities.length} activity items`} />
-        <div className="mt-4 rounded-2xl bg-[var(--lr-orange-tint)] p-4 text-sm text-[var(--lr-text-2)]"><strong className="text-[var(--lr-text)]">If import fails:</strong> paste shipped-work notes in the Notes tab and continue the same workflow.</div>
-      </SectionCard>
-    </div>
+      </div>
+    </SectionCard>
   );
 }
 
-function ManualNotesPanel({ activityText, setActivityText, activities, isBusy, onImport }) {
+function ManualNotesPanel({ activityText, setActivityText, manualNotes, setManualNotes, activities, isBusy, onImport }) {
+  function updateNote(id, body) {
+    const nextNotes = manualNotes.map((note) => note.id === id ? { ...note, body } : note);
+    setManualNotes(nextNotes);
+    setActivityText(compileManualNotes(nextNotes, activityText));
+  }
+  function addNote() {
+    const nextNotes = [...manualNotes, { id: `note_${Date.now()}`, body: "" }];
+    setManualNotes(nextNotes);
+  }
+  function removeNote(id) {
+    const nextNotes = manualNotes.length > 1 ? manualNotes.filter((note) => note.id !== id) : manualNotes;
+    setManualNotes(nextNotes);
+    setActivityText(compileManualNotes(nextNotes, activityText));
+  }
   return (
-    <SectionCard title="Manual activity paste" description="Best for quick tests, private shipped work, release notes, customer context, or product notes.">
-      <TextArea label="Shipped-work notes" value={activityText} onChange={setActivityText} rows={9} />
+    <SectionCard title="Manual notes" description="Add separate shipped-work notes. LaunchRelay normalizes them together while keeping them written separately.">
+      <div className="mb-4 rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4 text-sm leading-6 text-[var(--lr-text-2)]">
+        Accepted formats: PR notes, commit notes, release notes, customer/product notes, and short shipped-work observations.
+      </div>
+      <div className="space-y-3">
+        {manualNotes.map((note, index) => <NoteBlock key={note.id} note={note} index={index} onChange={updateNote} onRemove={removeNote} canRemove={manualNotes.length > 1} />)}
+      </div>
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <Button onClick={onImport} disabled={isBusy} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Normalize pasted activity</Button>
+        <Button type="button" onClick={addNote} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Add another note</Button>
+        <Button onClick={onImport} disabled={isBusy} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Normalize notes</Button>
         <span className="text-sm text-[var(--lr-text-2)]">{activities.length ? `${activities.length} source records currently available.` : "No records imported yet."}</span>
       </div>
     </SectionCard>
   );
 }
 
+function NoteBlock({ note, index, onChange, onRemove, canRemove }) {
+  return (
+    <div className="rounded-2xl border border-[var(--lr-border)] bg-white p-4">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <div className="text-sm font-semibold text-[var(--lr-text)]">Note {index + 1}</div>
+        {canRemove && <button type="button" onClick={() => onRemove(note.id)} className="text-xs font-medium text-[var(--lr-muted)] hover:text-[var(--lr-text)]">Remove</button>}
+      </div>
+      <textarea aria-label={`Manual note ${index + 1}`} rows={4} value={note.body} onChange={(event) => onChange(note.id, event.target.value)} className="w-full rounded-xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-3 text-sm leading-6 text-[var(--lr-text)] shadow-sm outline-none focus:ring-2 focus:ring-[var(--lr-orange)]" placeholder="PR: added onboarding checklist..." />
+    </div>
+  );
+}
+
 function ActivityList({ activities }) {
-  if (!activities.length) return <EmptyState icon={GitBranch} title="No activity yet" body="Import a repository or paste shipped-work notes to create source receipts." />;
-  return <div className="grid gap-3">{activities.map((item) => <SourceReceipt key={item.id || item.title} item={item} />)}</div>;
+  if (!activities.length) return <EmptyState icon={GitBranch} title="No activity yet" body="Import a repository or add shipped-work notes to create source receipts." />;
+  return <div className="grid gap-2">{activities.slice(0, 8).map((item) => <SourceReceiptTooltip key={item.id || item.title} item={item} />)}</div>;
+}
+
+function SourceReceiptTooltip({ item }) {
+  const sourceLabel = sourceTypeLabel(item.source_type);
+  return (
+    <div className="group relative">
+      <button type="button" className="flex w-full items-center justify-between gap-3 rounded-xl border border-[var(--lr-border)] bg-white px-3 py-2 text-left text-sm transition hover:border-[var(--lr-blue)] focus:border-[var(--lr-blue)]">
+        <span className="min-w-0 truncate font-medium text-[var(--lr-text)]">{item.title}</span>
+        <span className="shrink-0 text-xs text-[var(--lr-blue)]">View receipt</span>
+      </button>
+      <div className="invisible absolute right-0 top-[calc(100%+8px)] z-20 w-80 rounded-2xl border border-[var(--lr-border)] bg-white p-4 opacity-0 shadow-[var(--lr-shadow)] transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+        <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
+          <Badge tone="blue">{sourceLabel}</Badge>
+          {item.product_area && <Badge tone="orange">{item.product_area}</Badge>}
+          {item.occurred_at && <span className="text-[var(--lr-muted)]">{formatDate(item.occurred_at)}</span>}
+        </div>
+        <div className="font-semibold leading-snug text-[var(--lr-text)]">{item.title}</div>
+        <p className="mt-2 text-sm leading-6 text-[var(--lr-text-2)]">{item.impact_hint || item.body}</p>
+        {item.source_url && <a href={item.source_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-[var(--lr-blue)] underline-offset-4 hover:underline">Open source <ExternalLink className="h-3 w-3" /></a>}
+      </div>
+    </div>
+  );
 }
 
 function SourceReceipt({ item, compact = false }) {
@@ -1816,6 +1933,11 @@ function sourceModeLabel(activities) {
 function sameOpportunity(left, right) {
   if (left.id && right.id) return left.id === right.id;
   return left.title === right.title && left.format === right.format;
+}
+
+function compileManualNotes(manualNotes = [], fallbackText = "") {
+  const noteText = manualNotes.map((note) => note.body.trim()).filter(Boolean).join("\n");
+  return noteText || fallbackText;
 }
 
 

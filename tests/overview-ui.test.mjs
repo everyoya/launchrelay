@@ -17,8 +17,8 @@ test('overview metrics are product-specific and right rail is removed for now', 
   assert.match(appSource, /label="Source receipts"/);
   assert.match(appSource, /label="Moments awaiting review"/);
   assert.match(appSource, /label="Library items"/);
-  assert.doesNotMatch(appSource, /xl:grid-cols-\[1fr_340px\]/);
-  assert.doesNotMatch(appSource, /<aside className="space-y-5">/);
+  assert.doesNotMatch(appSource, /title="Source health"/);
+  assert.doesNotMatch(appSource, /title="Product context" description="Active positioning inputs\."/);
   assert.doesNotMatch(appSource, /<MicroHelp title="What does the workflow mean\?"/);
 });
 
