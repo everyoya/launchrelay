@@ -759,26 +759,36 @@ function AuthLoadingScreen() {
 
 function PublicSite({ view, currentUser, goPublic, goApp, onLogout, onSample, onAuthProvider, onEmailAuthenticated }) {
   const isAuth = view === "sign-in";
+  const scrollToLandingSection = (sectionId) => {
+    if (isAuth) goPublic("public-home");
+    window.requestAnimationFrame(() => document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  };
   return (
     <div className="min-h-screen bg-[var(--lr-canvas)] text-[var(--lr-text)]">
       <header className="sticky top-0 z-30 border-b border-[var(--lr-border)] bg-white/86 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-5 px-5 py-4">
           <button onClick={() => goPublic("public-home")} className="flex items-center gap-3 text-left" aria-label="Go to LaunchRelay home">
             <BrandMark />
             <div>
               <div className="font-semibold tracking-tight">LaunchRelay</div>
-              <div className="text-xs text-[var(--lr-muted)]">Product education from shipped work</div>
             </div>
           </button>
-          <div className="flex items-center gap-2">
+          {!isAuth && <nav className="hidden items-center gap-6 text-sm font-medium text-[var(--lr-text-2)] md:flex" aria-label="Landing page navigation">
+            <button onClick={() => scrollToLandingSection("product")} className="hover:text-[var(--lr-text)]">Product</button>
+            <button onClick={() => scrollToLandingSection("how-it-works")} className="hover:text-[var(--lr-text)]">How It Works</button>
+            <button onClick={() => scrollToLandingSection("pricing")} className="hover:text-[var(--lr-text)]">Pricing</button>
+            <button onClick={() => scrollToLandingSection("docs")} className="hover:text-[var(--lr-text)]">Docs</button>
+          </nav>}
+          <div className="flex items-center gap-2 sm:gap-3">
             {currentUser ? (
               <>
                 <Button variant="ghost" onClick={onLogout} className="rounded-xl text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]">Sign out</Button>
-                <Button onClick={() => goApp("workspace")} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Open workspace</Button>
+                <Button onClick={() => goApp("workspace")} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Open Workspace</Button>
               </>
             ) : (
               <>
                 <Button variant="ghost" onClick={() => goPublic("sign-in")} className="rounded-xl text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]">Sign in</Button>
+                {!isAuth && <Button onClick={() => goPublic("sign-in")} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Get Started</Button>}
               </>
             )}
           </div>
@@ -790,40 +800,127 @@ function PublicSite({ view, currentUser, goPublic, goApp, onLogout, onSample, on
 }
 
 function MarketingHome({ currentUser, onSample, goPublic, goApp }) {
+  const startProduct = () => currentUser ? goApp("workspace") : goPublic("sign-in");
   return (
-    <main>
-      <section className="mx-auto flex min-h-[calc(100vh-73px)] max-w-5xl flex-col items-center justify-center px-5 py-16 text-center lg:py-24">
-        <h1 className="max-w-4xl text-5xl font-semibold tracking-[-0.05em] text-[var(--lr-text)] md:text-7xl">
-          LaunchRelay turns shipped product work into source-grounded product education.
-        </h1>
-        <p className="mt-6 max-w-2xl text-lg leading-8 text-[var(--lr-text-2)]">
-          Tell LaunchRelay what product this is, add source activity, review the strongest launch moment, then draft from evidence you accepted.
-        </p>
-        <div className="mt-8">
-          <Button onClick={() => currentUser ? goApp("workspace") : goPublic("sign-in")} className="h-12 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">{currentUser ? "Open workspace" : "Start with your product"} <ArrowRight className="ml-2 h-4 w-4" /></Button>
-          <p className="mt-3 text-sm text-[var(--lr-muted)]">LaunchRelay helps you review meaningful improvements before drafting.</p>
+    <main className="overflow-hidden">
+      <section className="mx-auto grid max-w-7xl items-center gap-12 px-5 py-20 lg:grid-cols-[0.9fr_1.1fr] lg:py-28">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--lr-orange)]">Product communication from shipped work</p>
+          <h1 className="mt-5 max-w-4xl text-5xl font-semibold tracking-[-0.055em] text-[var(--lr-text)] md:text-7xl">
+            Your team ships great work. Make sure people understand it.
+          </h1>
+          <p className="mt-6 max-w-2xl text-lg leading-8 text-[var(--lr-text-2)]">
+            LaunchRelay discovers the Highlights hidden in your shipped work and turns them into clear, source-grounded product stories your users actually care about.
+          </p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Button onClick={startProduct} className="h-12 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">Get Started <ArrowRight className="ml-2 h-4 w-4" /></Button>
+            <button type="button" onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="inline-flex h-12 items-center justify-center rounded-xl border border-[var(--lr-border)] bg-white px-5 text-sm font-medium text-[var(--lr-text)] transition-colors hover:bg-[var(--lr-surface-2)]">See How It Works</button>
+          </div>
         </div>
-        <TransformationPlaceholder />
+        <LandingVisualPlaceholder label="Hero product preview placeholder" />
       </section>
+
+      <section className="border-y border-[var(--lr-border)] bg-white/60" aria-label="Supported integrations">
+        <div className="mx-auto max-w-7xl px-5 py-8">
+          <p className="text-center text-sm font-semibold uppercase tracking-[0.16em] text-[var(--lr-muted)]">Works with the tools your team already uses.</p>
+          <div className="mt-5 flex flex-wrap justify-center gap-3 text-sm font-medium text-[var(--lr-text-2)]">
+            {["GitHub", "Linear", "Notion", "Jira", "Manual Uploads"].map((tool) => <span key={tool} className="rounded-full border border-[var(--lr-border)] bg-white px-4 py-2">{tool}</span>)}
+          </div>
+        </div>
+      </section>
+
+      <section id="product" className="mx-auto grid max-w-7xl gap-10 px-5 py-20 lg:grid-cols-[0.8fr_1.2fr] lg:py-28">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--lr-orange)]">The problem</p>
+          <h2 className="mt-4 text-4xl font-semibold tracking-[-0.045em] text-[var(--lr-text)] md:text-6xl">Shipping is only half the job.</h2>
+        </div>
+        <div className="max-w-3xl space-y-5 text-xl leading-9 text-[var(--lr-text-2)]">
+          <p>Every sprint, your team ships valuable improvements.</p>
+          <p>Bug fixes. Performance gains. Quality-of-life updates. New capabilities.</p>
+          <p>Most of them never become stories.</p>
+          <p>Users miss the value because nobody has time to explain what changed or why it matters.</p>
+          <p className="font-medium text-[var(--lr-text)]">LaunchRelay exists to close that gap.</p>
+        </div>
+      </section>
+
+      <section id="how-it-works" className="bg-white py-20 lg:py-28">
+        <div className="mx-auto max-w-7xl px-5">
+          <div className="max-w-2xl">
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--lr-orange)]">How LaunchRelay works</p>
+            <h2 className="mt-4 text-4xl font-semibold tracking-[-0.045em] text-[var(--lr-text)] md:text-6xl">From shipped work to clear product stories.</h2>
+          </div>
+          <div className="mt-12 grid gap-4 md:grid-cols-3">
+            <LandingStep icon={GitBranch} number="01" title="Connect your work" body="Bring in GitHub, Notion, Linear, documents, or manual updates." />
+            <LandingStep icon={Lightbulb} number="02" title="Discover Highlights" body="LaunchRelay identifies meaningful work worth communicating." />
+            <LandingStep icon={CheckCircle2} number="03" title="Review and publish" body="Review the strongest Highlights and create source-grounded drafts with confidence." />
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-5 py-20 lg:py-28">
+        <div className="mb-10 max-w-2xl">
+          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--lr-orange)]">Product preview</p>
+          <h2 className="mt-4 text-4xl font-semibold tracking-[-0.045em] text-[var(--lr-text)] md:text-6xl">See the workflow, not a fake dashboard.</h2>
+        </div>
+        <LandingVisualPlaceholder label="Large LaunchRelay screenshot placeholder" large />
+      </section>
+
+      <section className="bg-white py-20 lg:py-28">
+        <div className="mx-auto max-w-7xl px-5">
+          <div className="mb-10 max-w-2xl">
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--lr-orange)]">Why LaunchRelay</p>
+            <h2 className="mt-4 text-4xl font-semibold tracking-[-0.045em] text-[var(--lr-text)] md:text-6xl">Designed around the work your users should notice.</h2>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            <PrincipleCard title="Never miss important work" body="Discover launch-worthy Highlights automatically." />
+            <PrincipleCard title="Stay grounded" body="Every draft links back to the work that inspired it." />
+            <PrincipleCard title="Keep your team aligned" body="One place to discover, review, and communicate product updates." />
+          </div>
+        </div>
+      </section>
+
+      <section id="pricing" className="mx-auto max-w-4xl px-5 py-20 text-center lg:py-28">
+        <h2 className="text-4xl font-semibold tracking-[-0.045em] text-[var(--lr-text)] md:text-6xl">Great products deserve great communication.</h2>
+        <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-[var(--lr-text-2)]">Start discovering the stories already hidden inside your product work.</p>
+        <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+          <Button onClick={startProduct} className="h-12 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">Get Started <ArrowRight className="ml-2 h-4 w-4" /></Button>
+          <button type="button" onClick={() => goApp("workspace")} className="inline-flex h-12 items-center justify-center rounded-xl border border-[var(--lr-border)] bg-white px-5 text-sm font-medium text-[var(--lr-text)] transition-colors hover:bg-[var(--lr-surface-2)]">Open Workspace</button>
+        </div>
+      </section>
+
+      <footer id="docs" className="border-t border-[var(--lr-border)] bg-white/70">
+        <div className="mx-auto flex max-w-7xl flex-col gap-5 px-5 py-8 text-sm text-[var(--lr-text-2)] md:flex-row md:items-center md:justify-between">
+          <div className="font-semibold text-[var(--lr-text)]">LaunchRelay</div>
+          <div className="flex flex-wrap gap-4">
+            {["Product", "Docs", "Privacy", "Terms", "Contact"].map((link) => <span key={link}>{link}</span>)}
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }
 
-function TransformationPlaceholder() {
+function LandingVisualPlaceholder({ label, large = false }) {
   return (
-    <div className="mt-12 w-full max-w-3xl rounded-[28px] border border-[var(--lr-border)] bg-white p-5 text-left shadow-[var(--lr-shadow-tight)]">
-      <div className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--lr-muted)]">Future visual</div>
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
-        {["Source activity", "Reviewed moment", "Draft"].map((label, index) => (
-          <div key={label} className="rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4">
-            <div className="text-xs text-[var(--lr-muted)]">0{index + 1}</div>
-            <div className="mt-2 text-sm font-semibold text-[var(--lr-text)]">{label}</div>
-          </div>
-        ))}
+    <div className={`rounded-[32px] border border-[var(--lr-border)] bg-white p-4 shadow-[var(--lr-shadow)] ${large ? "min-h-[520px]" : "min-h-[420px]"}`}>
+      <div className="flex h-full min-h-[inherit] items-center justify-center rounded-[24px] border border-dashed border-[var(--lr-border)] bg-[var(--lr-canvas)] p-8 text-center">
+        <div>
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[var(--lr-orange)] shadow-sm"><Layers3 className="h-5 w-5" /></div>
+          <p className="mt-5 text-sm font-semibold uppercase tracking-[0.14em] text-[var(--lr-muted)]">{label}</p>
+          <p className="mx-auto mt-3 max-w-md text-lg font-medium leading-7 text-[var(--lr-text)]">Real LaunchRelay screenshot coming soon.</p>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--lr-text-2)]">This space is reserved for the actual product preview Yotam will provide.</p>
+        </div>
       </div>
-      <div className="mt-4 text-sm font-medium text-[var(--lr-text-2)]">Source activity → reviewed moment → draft</div>
     </div>
   );
+}
+
+function LandingStep({ icon: Icon, number, title, body }) {
+  return <article className="rounded-[28px] border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-6"><div className="flex items-center justify-between"><div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[var(--lr-orange)] shadow-sm"><Icon className="h-5 w-5" /></div><span className="text-xs font-semibold text-[var(--lr-muted)]">{number}</span></div><h3 className="mt-8 text-xl font-semibold tracking-[-0.025em] text-[var(--lr-text)]">{title}</h3><p className="mt-3 leading-7 text-[var(--lr-text-2)]">{body}</p></article>;
+}
+
+function PrincipleCard({ title, body }) {
+  return <article className="rounded-[28px] border border-[var(--lr-border)] bg-white p-6"><h3 className="text-xl font-semibold tracking-[-0.025em] text-[var(--lr-text)]">{title}</h3><p className="mt-4 leading-7 text-[var(--lr-text-2)]">{body}</p></article>;
 }
 
 function SignIn({ currentUser, goPublic, goApp, onAuthProvider, onEmailAuthenticated }) {
