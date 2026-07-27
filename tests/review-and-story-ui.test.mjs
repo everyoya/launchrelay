@@ -4,22 +4,27 @@ import { readFileSync } from 'node:fs';
 
 const appSource = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8');
 
-test('launch moments is a two-area review inbox without timeline column or high-confidence filter', () => {
-  assert.match(appSource, /function LaunchMomentReviewDesk/);
-  assert.match(appSource, /Candidate queue/);
-  assert.match(appSource, /Review selected candidate/);
-  assert.match(appSource, /Accept moment/);
-  assert.doesNotMatch(appSource, /\["high-confidence", "High confidence"\]/);
-  assert.doesNotMatch(appSource, /title="Source timeline"/);
-  assert.doesNotMatch(appSource, /xl:grid-cols-\[300px_minmax\(0,1fr\)_360px\]/);
+test('review is a single-highlight page without hero filters or queue', () => {
+  assert.match(appSource, /function HighlightReview/);
+  assert.match(appSource, /max-w-\[960px\]/);
+  assert.match(appSource, /eyebrow="Highlight"/);
+  assert.doesNotMatch(appSource, /Page title="Launch Moments"/);
+  assert.doesNotMatch(appSource, /Review inbox/);
+  assert.doesNotMatch(appSource, /Detect new moments/);
+  assert.doesNotMatch(appSource, /role="tablist" aria-label="Launch moment filters"/);
+  assert.doesNotMatch(appSource, /Candidate queue/);
+  assert.doesNotMatch(appSource, /function MomentCandidate/);
 });
 
-test('launch moment evidence is inside the selected review desk and confidence is quiet', () => {
-  assert.match(appSource, /Evidence used/);
-  assert.match(appSource, /Confidence and reasoning/);
-  assert.match(appSource, /<details/);
-  assert.doesNotMatch(appSource, /Evidence panel/);
-  assert.doesNotMatch(appSource, /<Badge tone="green">\{cluster\.confidence_label/);
+test('review uses Highlight terminology and reordered content', () => {
+  assert.match(appSource, /Based on/);
+  assert.match(appSource, /Continue to Draft →/);
+  assert.match(appSource, /visibleEvidence = sources\.slice\(0, 4\)/);
+  assert.match(appSource, /moreEvidenceCount > 0/);
+  assert.doesNotMatch(appSource, /Accepted moment candidate/);
+  assert.doesNotMatch(appSource, /Evidence used/);
+  assert.doesNotMatch(appSource, /Confidence and reasoning/);
+  assert.doesNotMatch(appSource, /Accept moment/);
 });
 
 test('story studio is editor-first with context and proof collapsed', () => {

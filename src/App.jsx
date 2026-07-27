@@ -698,7 +698,7 @@ export default function App() {
           <Topbar view={renderedView} goApp={goApp} workspace={workspace} currentUser={currentUser} demoMode={demoMode} onLogout={logout} userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen} setSidebarOpen={setSidebarOpen} />
           <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8">
             <StatusNotice status={status} isBusy={isBusy} />
-            {renderedView === "workspace" && <WorkspaceScreen activities={activities} clusters={clusters} draftRows={draftRows} onReview={() => goApp("review")} onNewInitiative={() => goApp("sources")} />}
+            {renderedView === "workspace" && <WorkspaceScreen activities={activities} clusters={clusters} draftRows={draftRows} onReview={(cluster) => { setSelectedCluster(cluster); goApp("review"); }} onNewInitiative={() => goApp("sources")} />}
             {renderedView === "sources" && <Sources workspace={workspace} setWorkspace={setWorkspace} onSave={saveWorkspace} sourceTab={sourceTab} setSourceTab={setSourceTab} activityText={activityText} setActivityText={setActivityText} manualNotes={manualNotes} setManualNotes={setManualNotes} githubRepoInput={githubRepoInput} setGithubRepoInput={setGithubRepoInput} activities={activities} importPhase={importPhase} isBusy={isBusy} onImport={importManualActivity} onGitHubImport={importGitHubActivity} onDetect={detectLaunchMoments} />}
             {renderedView === "review" && <LaunchMoments clusters={clusters} activities={activities} selectedCluster={selectedCluster} selectedSources={selectedSources} setSelectedCluster={setSelectedCluster} onAccept={acceptCluster} onDetect={detectLaunchMoments} isBusy={isBusy} launchFilter={launchFilter} setLaunchFilter={setLaunchFilter} />}
             {renderedView === "draft" && <StoryStudio cluster={acceptedCluster} sourceItems={acceptedSources} draft={draft} setDraft={setDraft} onSaveDraft={saveDraft} onCreateDraft={createDraft} onCreateOpportunities={createOpportunities} isBusy={isBusy} onBack={() => goApp("review")} onLibrary={() => goApp("library")} />}
@@ -1065,7 +1065,7 @@ function WorkspaceScreen({ activities, clusters, draftRows, onReview, onNewIniti
           </div>
           {waitingImprovements.length ? (
             <div className="grid gap-4">
-              {waitingImprovements.map((cluster) => <ImprovementCard key={cluster.id || cluster.title} cluster={cluster} activities={activities} onReview={onReview} />)}
+              {waitingImprovements.map((cluster) => <ImprovementCard key={cluster.id || cluster.title} cluster={cluster} activities={activities} onReview={() => onReview(cluster)} />)}
             </div>
           ) : (
             <EmptyState icon={CheckCircle2} title="You're all caught up." body="LaunchRelay hasn't found any new improvements worth reviewing. Check back after your team ships more work." />
@@ -1144,40 +1144,11 @@ function Sources({ workspace, setWorkspace, onSave, sourceTab, setSourceTab, act
   );
 }
 
-function LaunchMoments({ clusters, activities, selectedCluster, selectedSources, setSelectedCluster, onAccept, onDetect, isBusy, launchFilter, setLaunchFilter }) {
-  const filters = [
-    ["needs-review", "Needs review"],
-    ["accepted", "Accepted"],
-    ["all", "All"],
-  ];
-  const filteredClusters = clusters.filter((cluster) => {
-    if (launchFilter === "needs-review") return cluster.status !== "accepted" && cluster.status !== "edited";
-    if (launchFilter === "accepted") return cluster.status === "accepted" || cluster.status === "edited";
-    return true;
-  });
-  const activeCluster = selectedCluster || filteredClusters[0] || null;
+function LaunchMoments({ clusters, activities, selectedCluster, selectedSources, onAccept }) {
+  const activeCluster = selectedCluster || clusters.find((cluster) => cluster.status !== "accepted" && cluster.status !== "edited") || clusters[0] || null;
   const activeSources = activities.filter((item) => activeCluster?.activity_item_ids?.includes(item.id));
-  return (
-    <Page title="Launch Moments" eyebrow="Review inbox" description="Decide whether one detected launch moment is worth turning into a draft." action={<Button onClick={onDetect} disabled={isBusy || !activities.length} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Detect new moments</Button>}>
-      <div className="mb-5 flex flex-wrap gap-2" role="tablist" aria-label="Launch moment filters">
-        {filters.map(([id, label]) => <TabButton key={id} active={launchFilter === id} onClick={() => setLaunchFilter(id)}>{label} ({countLaunchFilter(clusters, id)})</TabButton>)}
-      </div>
-      {clusters.length === 0 ? (
-        <EmptyState icon={CircleDot} eyebrow="Launch detection" title="No launch moments detected yet" body="This screen stays empty until source activity exists. Add source activity, then run detection to create source-backed candidates for human review." actionLabel="Detect moments" onAction={onDetect} disabled={!activities.length || isBusy} />
-      ) : filteredClusters.length === 0 ? (
-        <EmptyState icon={CircleDot} title="No moments match this filter" body="Switch filters or run detection again after importing more source activity." />
-      ) : (
-        <div className="grid gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
-          <SectionCard title="Candidate queue" description="Pick one candidate to review." compact>
-            <div className="space-y-3">
-              {filteredClusters.map((cluster) => <MomentCandidate key={cluster.id || cluster.title} cluster={cluster} active={activeCluster?.id === cluster.id} onClick={() => setSelectedCluster(cluster)} />)}
-            </div>
-          </SectionCard>
-          <LaunchMomentReviewDesk cluster={activeCluster} sources={activeSources.length ? activeSources : selectedSources} onAccept={onAccept} />
-        </div>
-      )}
-    </Page>
-  );
+  const sources = activeSources.length ? activeSources : selectedSources;
+  return <HighlightReview cluster={activeCluster} sources={sources} onContinue={onAccept} />;
 }
 
 function StoryStudio({ cluster, sourceItems, draft, setDraft, onSaveDraft, onCreateDraft, isBusy, onBack, onLibrary }) {
@@ -1581,47 +1552,42 @@ function SourceReceipt({ item, compact = false }) {
   );
 }
 
-function MomentCandidate({ cluster, active, onClick }) {
-  return (
-    <button onClick={onClick} className={`w-full rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 ${active ? "border-[var(--lr-orange)] bg-[var(--lr-orange-tint)]" : "border-[var(--lr-border)] bg-white hover:border-slate-300"}`}>
-      <h3 className="font-semibold text-[var(--lr-text)]">{cluster.title}</h3>
-      <p className="mt-2 text-sm leading-6 text-[var(--lr-text-2)]">{cluster.user_value || cluster.why_it_matters}</p>
-      <div className="mt-3 text-xs text-[var(--lr-muted)]">{cluster.activity_item_ids?.length || 0} sources · {cluster.status || "candidate"}</div>
-    </button>
-  );
-}
-
-function countLaunchFilter(clusters, filter) {
-  if (filter === "needs-review") return clusters.filter((cluster) => cluster.status !== "accepted" && cluster.status !== "edited").length;
-  if (filter === "accepted") return clusters.filter((cluster) => cluster.status === "accepted" || cluster.status === "edited").length;
-  return clusters.length;
-}
-
-function LaunchMomentReviewDesk({ cluster, sources, onAccept }) {
-  if (!cluster) return <SectionCard title="Review selected candidate" description="Pick a candidate from the queue." compact><EmptyState icon={CircleDot} title="No selected moment" body="Choose a candidate to review its summary, evidence, and acceptance decision." /></SectionCard>;
-  return (
-    <SectionCard title="Review selected candidate" description="One decision: accept this moment or leave it in the queue." compact>
-      <div className="rounded-2xl border border-[var(--lr-border)] bg-white p-5">
-        <div className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--lr-muted)]">Accepted moment candidate</div>
-        <h2 className="mt-3 text-2xl font-semibold tracking-[-0.025em] text-[var(--lr-text)]">{cluster.title}</h2>
-        <p className="mt-3 text-sm leading-6 text-[var(--lr-text-2)]">{cluster.summary}</p>
-        <div className="mt-4 rounded-2xl bg-[var(--lr-orange-tint)] p-4">
-          <div className="text-sm font-semibold text-[var(--lr-text)]">Why it matters</div>
-          <p className="mt-1 text-sm leading-6 text-[var(--lr-text-2)]">{cluster.user_value || cluster.why_it_matters}</p>
-        </div>
-        <div className="mt-5">
-          <div className="text-sm font-semibold text-[var(--lr-text)]">Evidence used</div>
-          <div className="mt-3 space-y-3">
-            {sources.length ? sources.map((item) => <SourceReceipt key={item.id || item.title} item={item} compact />) : <p className="text-sm text-[var(--lr-muted)]">No source records matched this moment yet.</p>}
-          </div>
-        </div>
-        <details className="mt-5 rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4">
-          <summary className="cursor-pointer text-sm font-semibold text-[var(--lr-text)]">Confidence and reasoning</summary>
-          <p className="mt-2 text-sm leading-6 text-[var(--lr-text-2)]">{cluster.detection_reason || cluster.why_it_matters} Confidence is based on {sources.length || cluster.activity_item_ids?.length || 0} linked source records and clarity of user value.</p>
-        </details>
-        <Button onClick={() => onAccept(cluster)} className="mt-5 rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Accept moment</Button>
+function HighlightReview({ cluster, sources, onContinue }) {
+  const visibleEvidence = sources.slice(0, 4);
+  const moreEvidenceCount = Math.max(0, sources.length - visibleEvidence.length);
+  if (!cluster) {
+    return (
+      <div className="mx-auto max-w-[960px] py-8">
+        <EmptyState icon={CircleDot} eyebrow="Highlight" title="No Highlight selected" body="Choose an improvement from Workspace to review it here." />
       </div>
-    </SectionCard>
+    );
+  }
+  return (
+    <div className="mx-auto max-w-[960px] py-8">
+      <article className="rounded-[28px] border border-[var(--lr-border)] bg-white p-6 shadow-[var(--lr-shadow-tight)] md:p-8">
+        <div className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--lr-muted)]">Highlight</div>
+        <h1 className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-[var(--lr-text)] md:text-4xl">{cluster.title}</h1>
+
+        <section className="mt-8 rounded-2xl bg-[var(--lr-orange-tint)] p-5">
+          <div className="text-sm font-semibold text-[var(--lr-text)]">Why it matters</div>
+          <p className="mt-2 text-sm leading-6 text-[var(--lr-text-2)]">{cluster.user_value || cluster.why_it_matters}</p>
+        </section>
+
+        <section className="mt-8">
+          <p className="text-base leading-7 text-[var(--lr-text-2)]">{cluster.summary}</p>
+        </section>
+
+        <section className="mt-8">
+          <div className="text-sm font-semibold text-[var(--lr-text)]">Based on</div>
+          <div className="mt-4 space-y-3">
+            {visibleEvidence.length ? visibleEvidence.map((item) => <SourceReceipt key={item.id || item.title} item={item} compact />) : <p className="text-sm text-[var(--lr-muted)]">No evidence is linked to this Highlight yet.</p>}
+            {moreEvidenceCount > 0 && <div className="rounded-2xl border border-dashed border-[var(--lr-border)] bg-[var(--lr-canvas)] px-4 py-3 text-sm font-medium text-[var(--lr-muted)]">+{moreEvidenceCount} more</div>}
+          </div>
+        </section>
+
+        <Button onClick={() => onContinue(cluster)} className="mt-8 rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Continue to Draft →</Button>
+      </article>
+    </div>
   );
 }
 
