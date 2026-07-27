@@ -95,6 +95,12 @@ function formatRelativeDate(value) {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
+function getSourcesForCluster(cluster, activities = []) {
+  const sourceIds = cluster?.activity_item_ids || [];
+  if (!sourceIds.length) return [];
+  return activities.filter((item) => sourceIds.includes(item.id));
+}
+
 export default function App() {
   const [view, setView] = useState(() => initialViewFromLocation());
   const [currentUser, setCurrentUser] = useState(null);
@@ -112,7 +118,6 @@ export default function App() {
   const [opportunities, setOpportunities] = useState([]);
   const [sourceTab, setSourceTab] = useState("context");
   const [libraryTab, setLibraryTab] = useState("Drafts");
-  const [settingsTab, setSettingsTab] = useState("general");
   const [launchFilter, setLaunchFilter] = useState("all");
   const [librarySearch, setLibrarySearch] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -1315,7 +1320,7 @@ function SettingsScreen({ workspace, currentUser, demoMode, onLogout, githubRepo
           <SettingsRow label="Billing" value="Not connected" action="Manage Subscription →" />
           <button onClick={onLogout} className="mt-2 flex w-full items-center justify-between rounded-2xl border border-[var(--lr-border)] bg-white px-4 py-3 text-left text-sm font-medium text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">
             <span>Sign Out</span>
-            <ChevronRight className="h-4 w-4 text-[var(--lr-muted)]" />
+            <ArrowRight className="h-4 w-4 text-[var(--lr-muted)]" />
           </button>
         </SettingsCard>
       </div>
@@ -1727,7 +1732,7 @@ function PublishedCard({ draft }) {
       <h3 className="font-semibold tracking-[-0.01em] text-[var(--lr-text)]">{draft.title || "Published content"}</h3>
       <div className="mt-4 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--lr-muted)]">Published</div>
       <p className="mt-1 text-sm text-[var(--lr-text-2)]">{formatRelativeDate(draft.updated_at || draft.created_at)}</p>
-      <Badge tone="green" className="mt-4">Published</Badge>
+      <div className="mt-4"><Badge tone="green">Published</Badge></div>
       <Button variant="ghost" className="mt-5 rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">View →</Button>
     </article>
   );
@@ -2216,3 +2221,8 @@ async function fetchGitHubJson(url) {
   }
   return response.json();
 }
+
+export const __qa = {
+  LibraryScreen,
+  SettingsScreen,
+};
