@@ -9,7 +9,7 @@ test('public landing is a single calm doorway with one hero action', () => {
   assert.match(appSource, /LaunchRelay turns shipped product work into source-grounded product education\./);
   assert.match(appSource, /Source activity → reviewed moment → draft/);
   assert.match(appSource, /Start with your product/);
-  assert.match(appSource, /You’ll tell LaunchRelay what product this is, then add source activity\./);
+  assert.match(appSource, /LaunchRelay helps you review meaningful improvements before drafting\./);
 });
 
 test('public landing removes product-tour sections and sample workspace CTA', () => {

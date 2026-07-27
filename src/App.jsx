@@ -43,15 +43,20 @@ const Draft = base44.entities.Draft;
 const Opportunity = base44.entities.Opportunity;
 
 const appNav = [
-  { id: "overview", label: "Overview", icon: Home },
-  { id: "sources", label: "Sources", icon: GitBranch },
-  { id: "launch-moments", label: "Launch Moments", icon: CircleDot },
-  { id: "story-studio", label: "Story Studio", icon: PenLine },
-  { id: "opportunities", label: "Opportunities", icon: Lightbulb },
+  { id: "workspace", label: "Workspace", icon: Home },
+  { id: "review", label: "Review", icon: CircleDot },
+  { id: "draft", label: "Draft", icon: PenLine },
   { id: "library", label: "Library", icon: Library },
+  { id: "settings", label: "Settings", icon: Settings },
 ];
 
-const appRouteIds = [...appNav.map((item) => item.id), "settings", "help"];
+const hiddenInternalRouteIds = ["sources", "opportunities", "help"];
+const legacyRouteAliases = {
+  overview: "workspace",
+  "launch-moments": "review",
+  "story-studio": "draft",
+};
+const appRouteIds = [...appNav.map((item) => item.id), ...hiddenInternalRouteIds, ...Object.keys(legacyRouteAliases)];
 const publicRouteIds = ["public-home", "sign-in"];
 
 const sampleActivity = `PR: Added onboarding checklist for first workspace setup
@@ -101,13 +106,16 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState("welcome");
+  const [onboardingDraft, setOnboardingDraft] = useState({ initiativeName: "", problem: "", audience: "End Users", knowledgeChoice: "GitHub" });
   const [isBusy, setIsBusy] = useState(false);
   const [importPhase, setImportPhase] = useState("idle");
   const [status, setStatus] = useState(null);
 
   const lockedAppRoute = !currentUser && !demoMode && isAppRoute(view);
-  const renderedView = lockedAppRoute ? "sign-in" : view;
+  const renderedView = lockedAppRoute ? "sign-in" : normalizeAppRoute(view);
   const isPublic = renderedView.startsWith("public") || renderedView === "sign-in";
+  const shouldShowOnboarding = Boolean(currentUser && !demoMode && renderedView === "workspace" && !workspaceRecord && activities.length === 0);
 
   useEffect(() => {
     const syncRoute = () => {
@@ -136,7 +144,7 @@ export default function App() {
         if (isAppRoute(postLoginView)) {
           goApp(postLoginView, { replace: true });
         } else if (routeView === "sign-in") {
-          goApp("overview", { replace: true });
+          goApp("workspace", { replace: true });
         }
       } catch (error) {
         if (cancelled) return;
@@ -178,10 +186,11 @@ export default function App() {
   const draftRows = draft ? [draft] : [];
 
   function goApp(nextView, options = {}) {
-    setView(nextView);
+    const normalizedView = normalizeAppRoute(nextView);
+    setView(normalizedView);
     setSidebarOpen(false);
     setUserMenuOpen(false);
-    writeViewToUrl(nextView, options);
+    writeViewToUrl(normalizedView, options);
   }
 
   function goPublic(nextView = "public-home", options = {}) {
@@ -191,13 +200,13 @@ export default function App() {
     writeViewToUrl(nextView, options);
   }
 
-  function enterSystem(nextView = "overview") {
+  function enterSystem(nextView = "workspace") {
     goApp(nextView);
   }
 
   function startAuthProviderLogin(provider) {
-    rememberPostLoginView("overview");
-    base44.auth.loginWithProvider(provider, `${window.location.origin}${window.location.pathname}#/overview`);
+    rememberPostLoginView("workspace");
+    base44.auth.loginWithProvider(provider, `${window.location.origin}${window.location.pathname}#/workspace`);
   }
 
   async function completeAuthenticatedEntry(user) {
@@ -208,7 +217,7 @@ export default function App() {
     setStatus({ tone: "loading", message: "Opening your workspace..." });
     await loadUserWorkspaceData({ setWorkspace, setWorkspaceRecord, setActivities, setClusters, setSelectedCluster, setDraft, setOpportunities }, user);
     setStatus({ tone: "success", message: "Workspace opened." });
-    goApp("overview", { replace: true });
+    goApp("workspace", { replace: true });
   }
 
   async function logout() {
@@ -286,8 +295,42 @@ export default function App() {
     setDraft(null);
     setOpportunities([]);
     setImportPhase("complete");
-    setStatus({ tone: "success", message: "Sample workspace loaded with source activity and a suggested launch moment." });
-    goApp("overview");
+    setStatus({ tone: "success", message: "Sample workspace loaded with evidence and a suggested improvement." });
+    goApp("workspace");
+  }
+
+  function completeV2Onboarding() {
+    const nextWorkspace = {
+      ...workspace,
+      name: onboardingDraft.initiativeName.trim() || "AI Assistant",
+      description: onboardingDraft.problem.trim() || "Helps users complete product work with less repeated context.",
+      target_audience: onboardingDraft.audience,
+    };
+    const workspaceRecordSeed = { id: "local_workspace", ...nextWorkspace };
+    const importedAt = new Date().toISOString();
+    const seededActivities = createManualActivityItemsFromText(sampleActivity, {
+      workspaceId: workspaceRecordSeed.id,
+      importedAt,
+      idPrefix: "onboarding_evidence",
+    });
+    const seededClusters = generateDeterministicLaunchClusters(seededActivities, {
+      workspaceId: workspaceRecordSeed.id,
+      targetAudience: nextWorkspace.target_audience,
+      manualContext: nextWorkspace.description,
+    }).map((cluster, index) => ({ ...cluster, id: `local_cluster_${index + 1}` }));
+    setWorkspace(nextWorkspace);
+    setWorkspaceRecord(workspaceRecordSeed);
+    setActivityText(sampleActivity);
+    setManualNotes(sampleManualNotes);
+    setActivities(seededActivities);
+    setClusters(seededClusters);
+    setSelectedCluster(seededClusters[0] || null);
+    setDraft(null);
+    setOpportunities([]);
+    setImportPhase("complete");
+    setOnboardingStep("welcome");
+    setStatus({ tone: "success", message: `We found ${seededClusters.length} meaningful improvements worth reviewing.` });
+    goApp("review");
   }
 
   async function importManualActivity() {
@@ -456,7 +499,7 @@ export default function App() {
       setClusters(saved);
       setSelectedCluster(saved[0] || null);
       setStatus({ tone: "success", message: "Launch moments detected and saved with source links." });
-      goApp("launch-moments");
+      goApp("review");
     } catch (error) {
       console.error(error);
       const generated = generateDeterministicLaunchClusters(activities, {
@@ -468,7 +511,7 @@ export default function App() {
       setClusters(local);
       setSelectedCluster(local[0] || null);
       setStatus({ tone: "warning", message: "Launch moments detected locally with source links." });
-      goApp("launch-moments");
+      goApp("review");
     } finally {
       setIsBusy(false);
     }
@@ -478,20 +521,20 @@ export default function App() {
     const updated = { ...cluster, status: "accepted" };
     setSelectedCluster(updated);
     setClusters((items) => items.map((item) => (item.id === cluster.id ? updated : item)));
-    setStatus({ tone: "success", message: "Human review complete. Opening Story Studio." });
-    goApp("story-studio");
+    setStatus({ tone: "success", message: "Human review complete. Opening Draft." });
+    goApp("draft");
     try {
       if (cluster.id && !String(cluster.id).startsWith("local_")) await LaunchCluster.update(cluster.id, { status: "accepted" });
     } catch (error) {
       console.error(error);
-      setStatus({ tone: "warning", message: "Launch moment accepted locally. Opening Story Studio." });
+      setStatus({ tone: "warning", message: "Launch moment accepted locally. Opening Draft." });
     }
   }
 
   async function createDraft() {
     if (!acceptedCluster) {
-      setStatus({ tone: "warning", message: "Accept a launch moment before creating a draft." });
-      goApp("launch-moments");
+      setStatus({ tone: "warning", message: "Accept an improvement before creating a draft." });
+      goApp("review");
       return;
     }
     setIsBusy(true);
@@ -526,8 +569,8 @@ export default function App() {
 
   async function createOpportunities() {
     if (!acceptedCluster) {
-      setStatus({ tone: "warning", message: "Accept a launch moment before expanding opportunities." });
-      goApp("launch-moments");
+      setStatus({ tone: "warning", message: "Accept an improvement before expanding opportunities." });
+      goApp("review");
       return;
     }
     setIsBusy(true);
@@ -599,8 +642,8 @@ export default function App() {
   function promoteOpportunity(opportunity) {
     const updated = { ...opportunity, status: "promoted_to_draft" };
     setOpportunities((items) => items.map((item) => (sameOpportunity(item, opportunity) ? updated : item)));
-    setStatus({ tone: "success", message: "Opportunity promoted. Story Studio is preloaded with the source launch moment." });
-    goApp("story-studio");
+    setStatus({ tone: "success", message: "Opportunity promoted. Draft is preloaded with the reviewed improvement." });
+    goApp("draft");
   }
 
   async function ignoreOpportunity(opportunity) {
@@ -617,6 +660,19 @@ export default function App() {
 
   if (!authChecked && hasLocalAuthToken()) {
     return <AuthLoadingScreen />;
+  }
+
+  if (shouldShowOnboarding) {
+    return (
+      <V2Onboarding
+        step={onboardingStep}
+        setStep={setOnboardingStep}
+        draft={onboardingDraft}
+        setDraft={setOnboardingDraft}
+        onComplete={completeV2Onboarding}
+        improvementCount={clusters.length || 4}
+      />
+    );
   }
 
   if (isPublic) {
@@ -642,10 +698,10 @@ export default function App() {
           <Topbar view={renderedView} goApp={goApp} workspace={workspace} currentUser={currentUser} demoMode={demoMode} onLogout={logout} userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen} setSidebarOpen={setSidebarOpen} />
           <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8">
             <StatusNotice status={status} isBusy={isBusy} />
-            {renderedView === "overview" && <Overview workspace={workspace} demoMode={demoMode} currentUser={currentUser} activities={activities} clusters={clusters} selectedCluster={selectedCluster} draftRows={draftRows} opportunities={opportunities} onReview={() => goApp("launch-moments")} onImport={() => goApp("sources")} onSources={() => goApp("sources")} onDraft={() => goApp("story-studio")} onLibrary={() => goApp("library")} onHelp={() => goApp("help")} onDetect={detectLaunchMoments} />}
+            {renderedView === "workspace" && <WorkspaceScreen activities={activities} clusters={clusters} draftRows={draftRows} onReview={() => goApp("review")} onNewInitiative={() => goApp("sources")} />}
             {renderedView === "sources" && <Sources workspace={workspace} setWorkspace={setWorkspace} onSave={saveWorkspace} sourceTab={sourceTab} setSourceTab={setSourceTab} activityText={activityText} setActivityText={setActivityText} manualNotes={manualNotes} setManualNotes={setManualNotes} githubRepoInput={githubRepoInput} setGithubRepoInput={setGithubRepoInput} activities={activities} importPhase={importPhase} isBusy={isBusy} onImport={importManualActivity} onGitHubImport={importGitHubActivity} onDetect={detectLaunchMoments} />}
-            {renderedView === "launch-moments" && <LaunchMoments clusters={clusters} activities={activities} selectedCluster={selectedCluster} selectedSources={selectedSources} setSelectedCluster={setSelectedCluster} onAccept={acceptCluster} onDetect={detectLaunchMoments} isBusy={isBusy} launchFilter={launchFilter} setLaunchFilter={setLaunchFilter} />}
-            {renderedView === "story-studio" && <StoryStudio cluster={acceptedCluster} sourceItems={acceptedSources} draft={draft} setDraft={setDraft} onSaveDraft={saveDraft} onCreateDraft={createDraft} onCreateOpportunities={createOpportunities} isBusy={isBusy} onBack={() => goApp("launch-moments")} onLibrary={() => goApp("library")} />}
+            {renderedView === "review" && <LaunchMoments clusters={clusters} activities={activities} selectedCluster={selectedCluster} selectedSources={selectedSources} setSelectedCluster={setSelectedCluster} onAccept={acceptCluster} onDetect={detectLaunchMoments} isBusy={isBusy} launchFilter={launchFilter} setLaunchFilter={setLaunchFilter} />}
+            {renderedView === "draft" && <StoryStudio cluster={acceptedCluster} sourceItems={acceptedSources} draft={draft} setDraft={setDraft} onSaveDraft={saveDraft} onCreateDraft={createDraft} onCreateOpportunities={createOpportunities} isBusy={isBusy} onBack={() => goApp("review")} onLibrary={() => goApp("library")} />}
             {renderedView === "opportunities" && <Opportunities opportunities={visibleOpportunities} cluster={acceptedCluster} onCreateOpportunities={createOpportunities} onSaveOpportunity={saveOpportunity} onPromote={promoteOpportunity} onIgnore={ignoreOpportunity} isBusy={isBusy} />}
             {renderedView === "library" && <LibraryScreen libraryTab={libraryTab} setLibraryTab={setLibraryTab} draftRows={draftRows} opportunities={opportunities} clusters={clusters} activities={activities} cluster={acceptedCluster} onMarkDraftReady={markDraftReady} librarySearch={librarySearch} setLibrarySearch={setLibrarySearch} />}
             {renderedView === "settings" && <SettingsScreen workspace={workspace} setWorkspace={setWorkspace} onSave={saveWorkspace} isBusy={isBusy} settingsTab={settingsTab} setSettingsTab={setSettingsTab} githubRepoInput={githubRepoInput} activities={activities} importPhase={importPhase} />}
@@ -686,7 +742,7 @@ function PublicSite({ view, currentUser, goPublic, goApp, onLogout, onSample, on
             {currentUser ? (
               <>
                 <Button variant="ghost" onClick={onLogout} className="rounded-xl text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]">Sign out</Button>
-                <Button onClick={() => goApp("overview")} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Enter system</Button>
+                <Button onClick={() => goApp("workspace")} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Open workspace</Button>
               </>
             ) : (
               <>
@@ -712,8 +768,8 @@ function MarketingHome({ currentUser, onSample, goPublic, goApp }) {
           Tell LaunchRelay what product this is, add source activity, review the strongest launch moment, then draft from evidence you accepted.
         </p>
         <div className="mt-8">
-          <Button onClick={() => currentUser ? goApp("overview") : goPublic("sign-in")} className="h-12 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">{currentUser ? "Open workspace" : "Start with your product"} <ArrowRight className="ml-2 h-4 w-4" /></Button>
-          <p className="mt-3 text-sm text-[var(--lr-muted)]">You’ll tell LaunchRelay what product this is, then add source activity.</p>
+          <Button onClick={() => currentUser ? goApp("workspace") : goPublic("sign-in")} className="h-12 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">{currentUser ? "Open workspace" : "Start with your product"} <ArrowRight className="ml-2 h-4 w-4" /></Button>
+          <p className="mt-3 text-sm text-[var(--lr-muted)]">LaunchRelay helps you review meaningful improvements before drafting.</p>
         </div>
         <TransformationPlaceholder />
       </section>
@@ -787,7 +843,7 @@ function SignIn({ currentUser, goPublic, goApp, onAuthProvider, onEmailAuthentic
           <Badge tone="green">Signed in</Badge>
           <h1 className="mt-5 text-4xl font-semibold tracking-[-0.035em]">Welcome back to LaunchRelay.</h1>
           <p className="mx-auto mt-4 max-w-xl leading-7 text-[var(--lr-text-2)]">Your account session is active. Continue into the product workspace.</p>
-          <Button onClick={() => goApp("overview")} className="mt-6 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">Enter the system</Button>
+          <Button onClick={() => goApp("workspace")} className="mt-6 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">Open workspace</Button>
         </section>
       </main>
     );
@@ -847,10 +903,7 @@ function Sidebar({ view, goApp, goPublic, workspace, currentUser, demoMode, onLo
             );
           })}
         </nav>
-        <div className="space-y-1 border-t border-[var(--lr-border)] p-3">
-          <button onClick={() => goApp("settings")} title={sidebarCollapsed ? "Workspace settings" : undefined} className={`flex w-full items-center rounded-xl py-2.5 text-sm font-medium ${sidebarCollapsed ? "justify-center px-2" : "gap-3 px-3"} ${view === "settings" ? "bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]"}`}><Settings className="h-4 w-4" /><span className={sidebarCollapsed ? "sr-only" : ""}>Workspace settings</span></button>
-          <button onClick={() => goApp("help")} title={sidebarCollapsed ? "Help & docs" : undefined} className={`flex w-full items-center rounded-xl py-2.5 text-sm font-medium ${sidebarCollapsed ? "justify-center px-2" : "gap-3 px-3"} ${view === "help" ? "bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]"}`}><HelpCircle className="h-4 w-4" /><span className={sidebarCollapsed ? "sr-only" : ""}>Help & docs</span></button>
-        </div>
+
       </aside>
     </>
   );
@@ -917,25 +970,49 @@ function SampleWorkspacePanel({ onImport, onHelp }) {
   );
 }
 
-function ContinueWhereLeftOff({ nextAction, steps }) {
+function V2Onboarding({ step, setStep, draft, setDraft, onComplete, improvementCount = 4 }) {
+  const stepOrder = ["welcome", "initiative", "details", "knowledge", "analysis", "success"];
+  const currentIndex = Math.max(0, stepOrder.indexOf(step));
+  const progressLabel = step === "welcome" ? "Welcome" : step === "analysis" ? "Analysis" : step === "success" ? "Ready for Review" : `${currentIndex} of 3`;
+  const updateDraft = (key, value) => setDraft({ ...draft, [key]: value });
+  const advance = (nextStep) => setStep(nextStep);
+
+  useEffect(() => {
+    if (step !== "analysis") return undefined;
+    const timer = window.setTimeout(() => setStep("success"), 900);
+    return () => window.clearTimeout(timer);
+  }, [step, setStep]);
+
   return (
-    <section className="rounded-[28px] border border-[var(--lr-border)] bg-white p-6 shadow-[var(--lr-shadow-tight)] md:p-8">
-      <div className="text-sm font-medium text-[var(--lr-muted)]">You are here in the workflow</div>
-      <h2 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-[var(--lr-text)]">Continue where you left off</h2>
-      <p className="mt-3 max-w-2xl leading-7 text-[var(--lr-text-2)]">{nextAction.body}</p>
-      <Button onClick={nextAction.onAction} disabled={nextAction.disabled} className="mt-6 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">{nextAction.label}</Button>
-      <WorkflowStrip steps={steps} />
-    </section>
+    <main className="flex min-h-screen items-center justify-center bg-[var(--lr-canvas)] px-5 py-10 text-[var(--lr-text)]">
+      <section className="w-full max-w-[720px] rounded-[32px] border border-[var(--lr-border)] bg-white p-6 shadow-[var(--lr-shadow)] md:p-9">
+        <div className="mb-8 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3"><BrandMark /><div className="font-semibold">LaunchRelay</div></div>
+          <div className="rounded-full bg-[var(--lr-surface-2)] px-3 py-1 text-xs font-medium text-[var(--lr-muted)]">{progressLabel}</div>
+        </div>
+
+        {step === "welcome" && <OnboardingFrame headline="LaunchRelay is getting ready to learn your work" support="Placeholder welcome copy. Yotam will replace this with the final V2 welcome message."><Button onClick={() => advance("initiative")} className="mt-7 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">Begin</Button></OnboardingFrame>}
+
+        {step === "initiative" && <OnboardingFrame headline="What are we working on?" support="An Initiative represents one area of your product. Examples: Search, Dashboard, Authentication."><Field label="Initiative Name" value={draft.initiativeName} onChange={(value) => updateDraft("initiativeName", value)} help="Example: AI Assistant" /><Button onClick={() => advance("details")} className="mt-7 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">Continue</Button></OnboardingFrame>}
+
+        {step === "details" && <OnboardingFrame headline="Tell us about it." support="The answer helps LaunchRelay understand future improvements."><label className="block"><span className="mb-2 block text-sm font-medium text-[var(--lr-text)]">What problem does this solve for users?</span><textarea value={draft.problem} onChange={(event) => updateDraft("problem", event.target.value)} className="min-h-32 w-full rounded-xl border border-[var(--lr-border)] bg-white px-3 py-3 text-sm outline-none focus:border-[var(--lr-orange)] focus:ring-2 focus:ring-[var(--lr-orange-tint)]" /></label><label className="mt-4 block"><span className="mb-2 block text-sm font-medium text-[var(--lr-text)]">Who is this for?</span><select value={draft.audience} onChange={(event) => updateDraft("audience", event.target.value)} className="h-11 w-full rounded-xl border border-[var(--lr-border)] bg-white px-3 text-sm outline-none focus:border-[var(--lr-orange)] focus:ring-2 focus:ring-[var(--lr-orange-tint)]"><option>End Users</option><option>Developers</option><option>Enterprise Admins</option><option>Designers</option><option>Internal Team</option></select></label><Button onClick={() => advance("knowledge")} className="mt-7 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">Continue</Button></OnboardingFrame>}
+
+        {step === "knowledge" && <OnboardingFrame headline="Where should LaunchRelay learn from?" support="Choose one starting point. Each option is treated equally."><div className="grid gap-3 sm:grid-cols-3">{["GitHub", "Paste Updates", "Release Notes"].map((choice) => <button key={choice} onClick={() => updateDraft("knowledgeChoice", choice)} className={`rounded-2xl border p-4 text-left text-sm transition hover:-translate-y-0.5 hover:shadow-sm ${draft.knowledgeChoice === choice ? "border-[var(--lr-orange)] bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "border-[var(--lr-border)] bg-white text-[var(--lr-text-2)]"}`}>{choice}</button>)}</div><Button onClick={() => advance("analysis")} className="mt-7 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">Continue</Button></OnboardingFrame>}
+
+        {step === "analysis" && <OnboardingFrame headline="Understanding your product..." support="Reading recent improvements... Connecting technical work with user value... Looking for meaningful changes..."><div className="mt-7 flex items-center gap-3 rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4 text-sm text-[var(--lr-text-2)]"><Loader2 className="h-4 w-4 animate-spin text-[var(--lr-orange)]" /> Connecting work with user value...</div></OnboardingFrame>}
+
+        {step === "success" && <OnboardingFrame headline={`We found ${improvementCount} meaningful improvements worth reviewing.`} support="The most interesting one: AI Assistant now remembers previous conversations."><Button onClick={onComplete} className="mt-7 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">Continue to Review <ArrowRight className="ml-2 h-4 w-4" /></Button></OnboardingFrame>}
+      </section>
+    </main>
   );
 }
 
-function WorkflowStrip({ steps }) {
+function OnboardingFrame({ headline, support, children }) {
   return (
-    <div className="mt-8 border-t border-[var(--lr-border)] pt-4">
-      <div className="mb-3 text-xs font-medium uppercase tracking-[0.1em] text-[var(--lr-muted)]">Profile → Sources → Moments → Draft → Library</div>
-      <div className="grid gap-2 sm:grid-cols-5">
-        {steps.map((step) => <div key={step.label} className={`rounded-xl px-3 py-2 text-sm ${step.state === "Current" ? "bg-[var(--lr-orange-tint)] font-semibold text-[var(--lr-orange)]" : "bg-[var(--lr-canvas)] text-[var(--lr-text-2)]"}`}>{step.label}</div>)}
-      </div>
+    <div>
+      <h1 className="text-4xl font-semibold tracking-[-0.045em] text-[var(--lr-text)] md:text-5xl">{headline}</h1>
+      <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--lr-text-2)]">{support}</p>
+      <div className="mt-7">{children}</div>
     </div>
   );
 }
@@ -976,14 +1053,68 @@ function StatusNotice({ status, isBusy }) {
   );
 }
 
-function Overview({ workspace, activities, clusters, draftRows, opportunities, onReview, onImport, onSources, onDraft, onLibrary, onDetect }) {
-  const acceptedMoment = clusters.find((cluster) => cluster.status === "accepted" || cluster.status === "edited") || null;
-  const workflow = buildWorkflowProgress({ workspace, activities, clusters, acceptedMoment, draftRows });
-  const nextAction = buildNextAction({ activities, clusters, acceptedMoment, draftRows, onSources, onImport, onDetect, onReview, onDraft, onLibrary });
+function WorkspaceScreen({ activities, clusters, draftRows, onReview, onNewInitiative }) {
+  const waitingImprovements = clusters.filter((cluster) => cluster.status !== "accepted" && cluster.status !== "edited");
+  const completedDrafts = draftRows.filter((item) => item.status === "ready" || item.status === "published");
   return (
-    <Page title="Overview" eyebrow="Next step" description="Here is where you are and the next thing to do.">
-      <ContinueWhereLeftOff nextAction={nextAction} steps={workflow} />
+    <Page title="Workspace" eyebrow="Workspace" description="Here's what needs your attention today." action={<WorkspaceHeaderActions />}>
+      <div className="space-y-6">
+        <section>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold tracking-[-0.02em] text-[var(--lr-text)]">Needs Review</h2>
+          </div>
+          {waitingImprovements.length ? (
+            <div className="grid gap-4">
+              {waitingImprovements.map((cluster) => <ImprovementCard key={cluster.id || cluster.title} cluster={cluster} activities={activities} onReview={onReview} />)}
+            </div>
+          ) : (
+            <EmptyState icon={CheckCircle2} title="You're all caught up." body="LaunchRelay hasn't found any new improvements worth reviewing. Check back after your team ships more work." />
+          )}
+        </section>
+
+        <section>
+          <h2 className="mb-3 text-lg font-semibold tracking-[-0.02em] text-[var(--lr-text)]">Recently Completed</h2>
+          <div className="grid gap-3 md:grid-cols-2">
+            {completedDrafts.length ? completedDrafts.map((item) => <button key={item.id || item.title} className="rounded-2xl border border-[var(--lr-border)] bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"><div className="font-semibold text-[var(--lr-text)]">✓ {item.title}</div><div className="mt-2 text-sm text-[var(--lr-muted)]">{item.status === "published" ? "Published" : "Approved"}</div></button>) : <div className="rounded-2xl border border-dashed border-[var(--lr-border)] bg-white p-5 text-sm text-[var(--lr-muted)]">Approved drafts will appear here.</div>}
+          </div>
+        </section>
+
+        <div className="border-t border-[var(--lr-border)] pt-5">
+          <Button onClick={onNewInitiative} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">+ New Initiative</Button>
+        </div>
+      </div>
     </Page>
+  );
+}
+
+function WorkspaceHeaderActions() {
+  return (
+    <div className="flex items-center gap-2">
+      <label className="hidden items-center gap-2 rounded-xl border border-[var(--lr-border)] bg-white px-3 py-2 text-sm text-[var(--lr-muted)] md:flex"><Search className="h-4 w-4" /><input aria-label="Search workspace" placeholder="Search" className="w-28 bg-transparent outline-none placeholder:text-[var(--lr-muted)]" /></label>
+      <button className="rounded-xl border border-[var(--lr-border)] bg-white p-2 text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]" aria-label="Notifications"><AlertCircle className="h-4 w-4" /></button>
+    </div>
+  );
+}
+
+function ImprovementCard({ cluster, activities, onReview }) {
+  const evidence = activities.filter((item) => cluster.activity_item_ids?.includes(item.id)).slice(0, 2);
+  const extraCount = Math.max(0, (cluster.activity_item_ids?.length || 0) - evidence.length);
+  return (
+    <button onClick={onReview} className="group w-full rounded-[24px] border border-[var(--lr-border)] bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <h3 className="text-xl font-semibold tracking-[-0.03em] text-[var(--lr-text)]">✨ {cluster.title}</h3>
+          <div className="mt-4 text-sm font-semibold text-[var(--lr-text)]">Why it matters</div>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--lr-text-2)]">{cluster.user_value || cluster.summary}</p>
+          <div className="mt-4 text-sm font-semibold text-[var(--lr-text)]">Based on</div>
+          <ul className="mt-2 space-y-1 text-sm text-[var(--lr-text-2)]">
+            {evidence.map((item) => <li key={item.id || item.title}>• {item.title || item.summary || "Evidence item"}</li>)}
+            {extraCount > 0 && <li>• {extraCount} additional changes</li>}
+          </ul>
+        </div>
+        <span className="shrink-0 rounded-xl bg-[var(--lr-orange)] px-4 py-2 text-sm font-medium text-white transition group-hover:bg-[#d95a2e]">Review →</span>
+      </div>
+    </button>
   );
 }
 
@@ -1129,8 +1260,8 @@ function HelpDocsScreen({ goApp }) {
         <SectionCard title="Need to recover?" description="Use the main workflow screens instead of learning a second interface.">
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             <Button onClick={() => goApp("sources")} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Sources</Button>
-            <Button onClick={() => goApp("launch-moments")} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Moments</Button>
-            <Button onClick={() => goApp("story-studio")} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Studio</Button>
+            <Button onClick={() => goApp("review")} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Moments</Button>
+            <Button onClick={() => goApp("draft")} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Studio</Button>
             <Button onClick={() => goApp("library")} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Library</Button>
           </div>
         </SectionCard>
@@ -1767,16 +1898,16 @@ function BrandMark() {
 
 function viewLabel(view) {
   const labels = {
-    overview: "Overview",
-    sources: "Sources",
-    "launch-moments": "Launch Moments",
-    "story-studio": "Story Studio",
-    opportunities: "Opportunities",
+    workspace: "Workspace",
+    review: "Review",
+    draft: "Draft",
     library: "Library",
-    settings: "Workspace settings",
-    help: "Help & docs",
+    settings: "Settings",
+    sources: "Workspace",
+    opportunities: "Library",
+    help: "Workspace",
   };
-  return labels[view] || "Overview";
+  return labels[normalizeAppRoute(view)] || labels[view] || "Workspace";
 }
 
 function sourceTypeLabel(sourceType) {
@@ -1884,8 +2015,13 @@ function compileManualNotes(manualNotes = [], fallbackText = "") {
 function initialViewFromLocation() {
   if (typeof window === "undefined") return "public-home";
   const hashRoute = extractHashRoute(window.location.hash);
-  if (appRouteIds.includes(hashRoute) || publicRouteIds.includes(hashRoute)) return hashRoute;
+  if (appRouteIds.includes(hashRoute)) return normalizeAppRoute(hashRoute);
+  if (publicRouteIds.includes(hashRoute)) return hashRoute;
   return "public-home";
+}
+
+function normalizeAppRoute(view) {
+  return legacyRouteAliases[view] || view;
 }
 
 function extractHashRoute(hash) {

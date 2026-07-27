@@ -4,18 +4,19 @@ import { readFileSync } from 'node:fs';
 
 const appSource = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8');
 
-test('overview is a next-step screen instead of a command center dashboard', () => {
-  assert.match(appSource, /function ContinueWhereLeftOff/);
-  assert.match(appSource, /Continue where you left off/);
-  assert.match(appSource, /Here is where you are and the next thing to do\./);
-  assert.match(appSource, /Profile → Sources → Moments → Draft → Library/);
+test('workspace is a focused inbox instead of an overview dashboard', () => {
+  assert.match(appSource, /function WorkspaceScreen/);
+  assert.match(appSource, /Here's what needs your attention today\./);
+  assert.match(appSource, /Needs Review/);
+  assert.match(appSource, /Recently Completed/);
+  assert.match(appSource, /\+ New Initiative/);
+  assert.doesNotMatch(appSource, /function Overview/);
+  assert.doesNotMatch(appSource, /Continue where you left off/);
   assert.doesNotMatch(appSource, /Workspace command center/);
-  assert.doesNotMatch(appSource, /Recommended next move/);
-  assert.doesNotMatch(appSource, /New-user guidance/);
   assert.doesNotMatch(appSource, /ExpertOnboardingPanel/);
 });
 
-test('overview removes dashboard metrics for the radical reset', () => {
+test('workspace removes dashboard metrics for the V2 reset', () => {
   assert.doesNotMatch(appSource, /MetricCard/);
   assert.doesNotMatch(appSource, /label="Source receipts"/);
   assert.doesNotMatch(appSource, /label="Moments awaiting review"/);

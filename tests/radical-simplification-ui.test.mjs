@@ -13,23 +13,27 @@ test('sign in is a centered auth card without onboarding proof content', () => {
   assert.doesNotMatch(appSource, /LaunchRelay is a normal product workspace/);
 });
 
-test('app shell is a quiet workflow rail and keeps opportunities', () => {
-  assert.match(appSource, /\{ id: "opportunities", label: "Opportunities", icon: Lightbulb \}/);
+test('app shell follows the V2 five-destination primary navigation', () => {
+  assert.match(appSource, /\{ id: "workspace", label: "Workspace", icon: Home \}/);
+  assert.match(appSource, /\{ id: "review", label: "Review", icon: CircleDot \}/);
+  assert.match(appSource, /\{ id: "draft", label: "Draft", icon: PenLine \}/);
+  assert.match(appSource, /\{ id: "library", label: "Library", icon: Library \}/);
+  assert.match(appSource, /\{ id: "settings", label: "Settings", icon: Settings \}/);
+  assert.match(appSource, /hiddenInternalRouteIds = \["sources", "opportunities", "help"\]/);
+  assert.doesNotMatch(appSource, /\{ id: "sources", label: "Sources"/);
+  assert.doesNotMatch(appSource, /\{ id: "opportunities", label: "Opportunities"/);
   assert.doesNotMatch(appSource, /Active workspace/);
-  assert.doesNotMatch(appSource, /<Plus className="mr-2 h-4 w-4" \/>/);
-  assert.doesNotMatch(appSource, /onClick=\{\(\) => goApp\("sources"\)\} className="hidden rounded-xl bg-\[var\(--lr-orange\)\]/);
-  assert.match(appSource, /function Sidebar/);
-  assert.match(appSource, /Workspace settings/);
-  assert.match(appSource, /Help & docs/);
 });
 
-test('overview is a next-step screen without dashboard metrics or command-center framing', () => {
-  assert.match(appSource, /function ContinueWhereLeftOff/);
-  assert.match(appSource, /Continue where you left off/);
-  assert.match(appSource, /Profile → Sources → Moments → Draft → Library/);
+test('workspace replaces overview next-step framing', () => {
+  assert.match(appSource, /function WorkspaceScreen/);
+  assert.match(appSource, /Needs Review/);
+  assert.match(appSource, /Recently Completed/);
+  assert.match(appSource, /You're all caught up\./);
+  assert.doesNotMatch(appSource, /function ContinueWhereLeftOff/);
+  assert.doesNotMatch(appSource, /Continue where you left off/);
+  assert.doesNotMatch(appSource, /Profile → Sources → Moments → Draft → Library/);
   assert.doesNotMatch(appSource, /Workspace command center/);
   assert.doesNotMatch(appSource, /MetricCard label="Source receipts"/);
-  assert.doesNotMatch(appSource, /MetricCard label="Moments awaiting review"/);
-  assert.doesNotMatch(appSource, /MetricCard label="Library items"/);
   assert.doesNotMatch(appSource, /ExpertOnboardingPanel/);
 });
