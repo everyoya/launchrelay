@@ -718,8 +718,8 @@ export default function App() {
             {renderedView === "review" && <LaunchMoments clusters={clusters} activities={activities} selectedCluster={selectedCluster} selectedSources={selectedSources} setSelectedCluster={setSelectedCluster} onAccept={acceptCluster} onDetect={detectLaunchMoments} isBusy={isBusy} launchFilter={launchFilter} setLaunchFilter={setLaunchFilter} />}
             {renderedView === "draft" && <DraftScreen cluster={acceptedCluster} sourceItems={acceptedSources} draft={draft} setDraft={setDraft} onSaveDraft={saveDraft} onPublishDraft={publishDraft} onCreateDraft={createDraft} isBusy={isBusy} onBack={() => goApp("review")} />}
             {renderedView === "opportunities" && <Opportunities opportunities={visibleOpportunities} cluster={acceptedCluster} onCreateOpportunities={createOpportunities} onSaveOpportunity={saveOpportunity} onPromote={promoteOpportunity} onIgnore={ignoreOpportunity} isBusy={isBusy} />}
-            {renderedView === "library" && <LibraryScreen libraryTab={libraryTab} setLibraryTab={setLibraryTab} draftRows={draftRows} opportunities={opportunities} clusters={clusters} activities={activities} cluster={acceptedCluster} onMarkDraftReady={markDraftReady} librarySearch={librarySearch} setLibrarySearch={setLibrarySearch} />}
-            {renderedView === "settings" && <SettingsScreen workspace={workspace} setWorkspace={setWorkspace} onSave={saveWorkspace} isBusy={isBusy} settingsTab={settingsTab} setSettingsTab={setSettingsTab} githubRepoInput={githubRepoInput} activities={activities} importPhase={importPhase} />}
+            {renderedView === "library" && <LibraryScreen libraryTab={libraryTab} setLibraryTab={setLibraryTab} draftRows={draftRows} clusters={clusters} activities={activities} onReview={(cluster) => { setSelectedCluster(cluster); goApp("review"); }} onDraft={() => goApp("draft")} onWorkspace={() => goApp("workspace")} librarySearch={librarySearch} setLibrarySearch={setLibrarySearch} />}
+            {renderedView === "settings" && <SettingsScreen workspace={workspace} currentUser={currentUser} demoMode={demoMode} onLogout={logout} githubRepoInput={githubRepoInput} activities={activities} />}
             {renderedView === "help" && <HelpDocsScreen goApp={goApp} />}
           </main>
         </div>
@@ -1204,30 +1204,31 @@ function Opportunities({ opportunities, cluster, onCreateOpportunities, onSaveOp
   );
 }
 
-function LibraryScreen({ libraryTab, setLibraryTab, draftRows, opportunities, cluster, onMarkDraftReady, librarySearch, setLibrarySearch }) {
-  const tabs = ["Drafts", "Opportunities", "Published"];
+function LibraryScreen({ libraryTab, setLibraryTab, draftRows, clusters, activities, onReview, onDraft, onWorkspace, librarySearch, setLibrarySearch }) {
+  const tabs = ["Drafts", "Suggested Highlights", "Published"];
+  const activeTab = tabs.includes(libraryTab) ? libraryTab : "Drafts";
   const query = librarySearch.trim().toLowerCase();
-  const savedOpportunities = opportunities.filter((item) => item.status === "saved" || item.status === "promoted_to_draft");
-  const itemsByTab = {
-    Drafts: draftRows.map((item) => ({ title: item.title, type: item.draft_type || "Launch story", linked: cluster?.title || "Accepted moment", status: item.status || "draft", action: item.status === "ready" ? <Badge tone="green">Ready</Badge> : <Button onClick={onMarkDraftReady} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Mark ready</Button> })),
-    Opportunities: savedOpportunities.map((item) => ({ title: item.title, type: item.format || "Education idea", linked: cluster?.title || "Launch moment", status: item.status || "saved" })),
-    Published: [],
-  };
-  const activeItems = (itemsByTab[libraryTab] || []).filter((item) => !query || [item.title, item.type, item.linked, item.status].some((value) => String(value || "").toLowerCase().includes(query)));
+  const suggestedHighlights = clusters.filter((item) => item.status !== "accepted" && item.status !== "drafted");
+  const publishedDrafts = draftRows.filter((item) => item.status === "published");
+  const visibleDrafts = draftRows.filter((item) => item.status !== "published");
+  const matches = (...values) => !query || values.some((value) => String(value || "").toLowerCase().includes(query));
+  const filteredDrafts = visibleDrafts.filter((item) => matches(item.title, item.updated_at, item.status));
+  const filteredHighlights = suggestedHighlights.filter((item) => matches(item.title, item.why_it_matters, item.user_value, item.summary));
+  const filteredPublished = publishedDrafts.filter((item) => matches(item.title, item.updated_at, item.status));
   return (
-    <Page title="Library" eyebrow="Saved work" description="Find saved drafts, saved opportunities, and published items.">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap rounded-2xl border border-[var(--lr-border)] bg-white p-1 shadow-sm">{tabs.map((tab) => <LibraryTabButton key={tab} active={libraryTab === tab} onClick={() => setLibraryTab(tab)}>{tab}</LibraryTabButton>)}</div>
+    <Page title="Library">
+      <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-wrap rounded-2xl border border-[var(--lr-border)] bg-white p-1 shadow-sm">{tabs.map((tab) => <LibraryTabButton key={tab} active={activeTab === tab} onClick={() => setLibraryTab(tab)}>{tab}</LibraryTabButton>)}</div>
         <label className="flex items-center gap-2 rounded-xl border border-[var(--lr-border)] bg-white px-3 py-2 text-sm text-[var(--lr-muted)]">
           <Search className="h-4 w-4" />
-          <input aria-label="Search library" value={librarySearch} onChange={(event) => setLibrarySearch(event.target.value)} placeholder="Search saved work" className="min-w-[160px] bg-transparent text-[var(--lr-text)] outline-none placeholder:text-[var(--lr-muted)]" />
+          <input aria-label="Search library" value={librarySearch} onChange={(event) => setLibrarySearch(event.target.value)} placeholder="Search Library" className="min-w-[180px] bg-transparent text-[var(--lr-text)] outline-none placeholder:text-[var(--lr-muted)]" />
         </label>
       </div>
-      <SectionCard title={`${libraryTab} saved work`} description={simpleLibrarySummary({ draftRows, opportunities: savedOpportunities })}>
-        <div className="grid gap-3 md:grid-cols-2">
-          {activeItems.length ? activeItems.map((item) => <SavedWorkCard key={`${item.title}-${item.status}`} item={item} />) : <div className="md:col-span-2"><EmptyState icon={Library} title={query ? `No ${libraryTab.toLowerCase()} match “${librarySearch}”.` : libraryEmptyText(libraryTab)} body="Saved work will appear here after you save useful outputs from the workflow." /></div>}
-        </div>
-      </SectionCard>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {activeTab === "Drafts" && (filteredDrafts.length ? filteredDrafts.map((item) => <DraftLibraryCard key={item.id || item.title} draft={item} onDraft={onDraft} />) : <div className="sm:col-span-2 xl:col-span-3"><EmptyState icon={FileText} title={query ? `No drafts match “${librarySearch}”.` : "No drafts yet."} body="Create your first draft from a Highlight." actionLabel="Go to Workspace" onAction={onWorkspace} /></div>)}
+        {activeTab === "Suggested Highlights" && (filteredHighlights.length ? filteredHighlights.map((item) => <SuggestedHighlightCard key={item.id || item.title} cluster={item} activities={activities} onReview={onReview} />) : <div className="sm:col-span-2 xl:col-span-3"><EmptyState icon={Sparkles} title={query ? `No Highlights match “${librarySearch}”.` : "No new Highlights right now."} body="We'll keep watching your connected sources." /></div>)}
+        {activeTab === "Published" && (filteredPublished.length ? filteredPublished.map((item) => <PublishedCard key={item.id || item.title} draft={item} />) : <div className="sm:col-span-2 xl:col-span-3"><EmptyState icon={Library} title={query ? `No published content matches “${librarySearch}”.` : "Nothing published yet."} body="Publish a draft to see it here." /></div>)}
+      </div>
     </Page>
   );
 }
@@ -1259,74 +1260,70 @@ function HelpDocsScreen({ goApp }) {
   );
 }
 
-function SettingsScreen({ workspace, setWorkspace, onSave, isBusy, settingsTab, setSettingsTab, githubRepoInput, activities, importPhase }) {
-  const tabs = [
-    ["general", "General"],
-    ["model", "AI model"],
-    ["connections", "Connections"],
-    ["billing", "Account & billing"],
-  ];
+function SettingsScreen({ workspace, currentUser, demoMode, onLogout, githubRepoInput, activities }) {
   return (
-    <Page title="Workspace settings" eyebrow="Settings" description="Manage product context, source connections, model options, and account readiness." action={<Button onClick={onSave} disabled={isBusy} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Save settings</Button>}>
-      <div className="grid gap-5 xl:grid-cols-[260px_1fr]">
-        <SectionCard title="Settings" description="Workspace areas" compact>
-          {tabs.map(([id, label]) => <button key={id} onClick={() => setSettingsTab(id)} className={`mb-1 flex w-full rounded-xl px-3 py-2 text-left text-sm ${settingsTab === id ? 'bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]' : 'text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]'}`}>{label}</button>)}
-        </SectionCard>
-        {settingsTab === "general" && <ProductContextForm workspace={workspace} setWorkspace={setWorkspace} onSave={onSave} isBusy={isBusy} settingsMode />}
-        {settingsTab === "model" && <ModelSettingsPanel />}
-        {settingsTab === "connections" && <SettingsConnectionsPanel githubRepoInput={githubRepoInput} activities={activities} importPhase={importPhase} />}
-        {settingsTab === "billing" && <AccountBillingPanel />}
+    <Page title="Settings">
+      <div className="space-y-5">
+        <SettingsCard title="Profile">
+          <SettingsRow label="Name" value={currentUser?.full_name || currentUser?.name || workspace.name || "Not set"} action="Edit Profile" />
+          <SettingsRow label="Email" value={currentUser?.email || (demoMode ? "Demo workspace" : "Not set")} />
+        </SettingsCard>
+
+        <SettingsCard title="Connected Sources">
+          <SettingsRow label="GitHub" value={githubRepoInput || workspace.primary_repo_url ? "Connected" : "Not Connected"} action={githubRepoInput || workspace.primary_repo_url ? "Manage →" : "Connect →"} />
+          <SettingsRow label="Notion" value="Not Connected" action="Connect →" />
+          <SettingsRow label="Linear" value="Not Connected" action="Connect →" />
+          <SettingsRow label="Manual Uploads" value={activities.length ? "Available" : "Available"} action="Upload →" />
+        </SettingsCard>
+
+        <SettingsCard title="AI Preferences">
+          <SettingsRow label="Automatically detect new Highlights" value="ON" />
+          <SettingsRow label="Notify me when new Highlights are found" value="OFF" />
+        </SettingsCard>
+
+        <SettingsCard title="Publishing">
+          <SettingsRow label="LinkedIn" value="Not Connected" action="Connect →" />
+          <SettingsRow label="X" value="Not Connected" action="Connect →" />
+          <SettingsRow label="Website" value="Coming Soon" />
+        </SettingsCard>
+
+        <SettingsCard title="Workspace">
+          <SettingsRow label="Theme" value="System" action="Change →" />
+          <SettingsRow label="Start on" value="Workspace" action="Change →" />
+        </SettingsCard>
+
+        <SettingsCard title="Notifications">
+          <SettingsRow label="Highlight notifications" value="ON" />
+          <SettingsRow label="Weekly summary" value="OFF" />
+          <SettingsRow label="Product updates" value="ON" />
+        </SettingsCard>
+
+        <SettingsCard title="Account">
+          <SettingsRow label="Plan" value="Free" />
+          <SettingsRow label="Billing" value="Not connected" action="Manage Subscription →" />
+          <button onClick={onLogout} className="mt-2 flex w-full items-center justify-between rounded-2xl border border-[var(--lr-border)] bg-white px-4 py-3 text-left text-sm font-medium text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">
+            <span>Sign Out</span>
+            <ChevronRight className="h-4 w-4 text-[var(--lr-muted)]" />
+          </button>
+        </SettingsCard>
       </div>
     </Page>
   );
 }
 
-function ModelSettingsPanel() {
-  return (
-    <SectionCard title="AI model connection" description="Prepare optional AI assistance without turning the core workflow into a black-box writer.">
-      <div className="mb-4 rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4 text-sm text-[var(--lr-text-2)]">
-        Coming soon: connect a Base44-supported model or bring another approved provider. Current drafts still use deterministic templates and source checks.
-      </div>
-      <div className="grid gap-3 md:grid-cols-2">
-        <StatusRow label="Current mode" value="Deterministic generation" />
-        <StatusRow label="Preferred path" value="Base44 AI connection" />
-        <StatusRow label="Human gate" value="Required before publishing" />
-        <StatusRow label="Source grounding" value="Always required" />
-      </div>
-    </SectionCard>
-  );
+function SettingsCard({ title, children }) {
+  return <section className="rounded-3xl border border-[var(--lr-border)] bg-white p-5 shadow-sm"><h2 className="mb-3 text-[17px] font-semibold tracking-[-0.018em] text-[var(--lr-text)]">{title}</h2><div className="divide-y divide-[var(--lr-border)]">{children}</div></section>;
 }
 
-function SettingsConnectionsPanel({ githubRepoInput, activities, importPhase }) {
+function SettingsRow({ label, value, action }) {
   return (
-    <SectionCard title="Connections" description="Source connections feed the product education workflow.">
-      <div className="grid gap-4 md:grid-cols-2">
-        <StatusRow label="Primary repository" value={githubRepoInput || "Not set"} />
-        <StatusRow label="Imported records" value={`${activities.length} source activities`} />
-        <StatusRow label="Import path" value="Base44 function with browser fallback" />
-        <StatusRow label="Current phase" value={importPhase || "idle"} />
+    <div className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <div className="text-sm font-medium text-[var(--lr-text)]">{label}</div>
+        <div className="mt-1 text-sm text-[var(--lr-text-2)]">{value}</div>
       </div>
-      <p className="mt-4 text-sm leading-6 text-[var(--lr-text-2)]">
-        Connections are where LaunchRelay remembers which product sources can become source receipts. For this build, GitHub repository import and manual shipped-work notes are the active paths.
-      </p>
-    </SectionCard>
-  );
-}
-
-function AccountBillingPanel() {
-  return (
-    <SectionCard title="Account & billing" description="Account controls are prepared for a real workspace path, with paid controls kept inactive until needed.">
-      <Badge tone="blue">Coming soon</Badge>
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
-        <StatusRow label="Workspace plan" value="Contest workspace" />
-        <StatusRow label="Billing status" value="Not connected" />
-        <StatusRow label="Credits policy" value="Credit-safe deterministic core" />
-        <StatusRow label="Upgrade path" value="Add after auth + billing are verified" />
-      </div>
-      <p className="mt-4 text-sm leading-6 text-[var(--lr-text-2)]">
-        This keeps account expectations visible without requesting payment details or enabling paid AI features during the submission flow.
-      </p>
-    </SectionCard>
+      {action && <button type="button" className="text-left text-sm font-medium text-[var(--lr-orange)] sm:text-right">{action}</button>}
+    </div>
   );
 }
 
@@ -1686,20 +1683,40 @@ function OpportunityCard({ item, onSave }) {
   );
 }
 
-function SavedWorkCard({ item }) {
+function DraftLibraryCard({ draft, onDraft }) {
   return (
-    <article className="rounded-2xl border border-[var(--lr-border)] bg-white p-4 shadow-sm">
+    <article className="rounded-2xl border border-[var(--lr-border)] bg-white p-5 shadow-sm">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <Badge tone={item.status === "published" ? "green" : "blue"}>{item.type}</Badge>
-          <h3 className="mt-3 font-semibold tracking-[-0.01em] text-[var(--lr-text)]">{item.title}</h3>
-        </div>
-        {item.action}
+        <h3 className="font-semibold tracking-[-0.01em] text-[var(--lr-text)]">{draft.title || "Untitled draft"}</h3>
+        <Badge tone="blue">Draft</Badge>
       </div>
-      <dl className="mt-4 grid gap-2 text-sm">
-        <InfoLine label="Linked moment" value={item.linked} />
-        <InfoLine label="Status" value={item.status} />
-      </dl>
+      <div className="mt-4 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--lr-muted)]">Last edited</div>
+      <p className="mt-1 text-sm text-[var(--lr-text-2)]">{formatRelativeDate(draft.updated_at || draft.created_at)}</p>
+      <Button onClick={onDraft} variant="ghost" className="mt-5 rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Continue Editing →</Button>
+    </article>
+  );
+}
+
+function SuggestedHighlightCard({ cluster, activities, onReview }) {
+  const sources = getSourcesForCluster(cluster, activities);
+  return (
+    <article className="rounded-2xl border border-[var(--lr-border)] bg-white p-5 shadow-sm">
+      <h3 className="font-semibold tracking-[-0.01em] text-[var(--lr-text)]">{cluster.title}</h3>
+      <p className="mt-3 text-sm leading-6 text-[var(--lr-text-2)]">{cluster.why_it_matters || cluster.user_value || cluster.summary}</p>
+      <p className="mt-4 text-sm font-medium text-[var(--lr-muted)]">Based on {cluster.activity_item_ids?.length || sources.length || 0} sources</p>
+      <Button onClick={() => onReview(cluster)} className="mt-5 rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Review Highlight →</Button>
+    </article>
+  );
+}
+
+function PublishedCard({ draft }) {
+  return (
+    <article className="rounded-2xl border border-[var(--lr-border)] bg-white p-5 shadow-sm">
+      <h3 className="font-semibold tracking-[-0.01em] text-[var(--lr-text)]">{draft.title || "Published content"}</h3>
+      <div className="mt-4 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--lr-muted)]">Published</div>
+      <p className="mt-1 text-sm text-[var(--lr-text-2)]">{formatRelativeDate(draft.updated_at || draft.created_at)}</p>
+      <Badge tone="green" className="mt-4">Published</Badge>
+      <Button variant="ghost" className="mt-5 rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">View →</Button>
     </article>
   );
 }
@@ -1836,20 +1853,6 @@ function TextArea({ label, value, onChange, rows = 4, help }) {
 
 function LibraryTabButton({ active, onClick, children }) {
   return <button onClick={onClick} className={`rounded-xl px-3 py-2 text-sm font-medium transition ${active ? "bg-[var(--lr-text)] text-white" : "text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)] hover:text-[var(--lr-text)]"}`}>{children}</button>;
-}
-
-function simpleLibrarySummary({ draftRows, opportunities }) {
-  const savedCount = opportunities.length;
-  return `${draftRows.length} saved draft${draftRows.length === 1 ? "" : "s"} · ${savedCount} saved opportunit${savedCount === 1 ? "y" : "ies"} · Published stays available.`;
-}
-
-function libraryEmptyText(tab) {
-  const messages = {
-    Drafts: "No drafts yet. Accept a launch moment and create a draft in Story Studio to start saved work.",
-    Opportunities: "No saved opportunities yet. Generate ideas from an accepted moment, then save the useful ones here.",
-    Published: "No published records yet. Published stays here for the real workflow when publishing is ready.",
-  };
-  return messages[tab] || "Nothing saved here yet.";
 }
 
 function TabButton({ active, onClick, children }) {

@@ -13,21 +13,34 @@ test('opportunities is an extremely simple accepted-moment to ideas flow', () =>
   assert.doesNotMatch(appSource, /Ignore<\/Button>/);
 });
 
-test('library keeps drafts opportunities and published, but removes advanced archive tabs and permanent source banner', () => {
-  assert.match(appSource, /const tabs = \["Drafts", "Opportunities", "Published"\]/);
-  assert.match(appSource, /function SavedWorkCard/);
-  assert.match(appSource, /Saved work/);
+test('library uses Drafts Suggested Highlights and Published without saved-work metadata', () => {
+  assert.match(appSource, /const tabs = \["Drafts", "Suggested Highlights", "Published"\]/);
+  assert.match(appSource, /function DraftLibraryCard/);
+  assert.match(appSource, /function SuggestedHighlightCard/);
+  assert.match(appSource, /function PublishedCard/);
+  assert.match(appSource, /Search Library/);
+  assert.match(appSource, /Continue Editing →/);
+  assert.match(appSource, /Review Highlight →/);
+  assert.match(appSource, /View →/);
   assert.doesNotMatch(appSource, /const tabs = \["Drafts", "Ready", "Published", "Opportunities", "Moments"\]/);
   assert.doesNotMatch(appSource, /Moments: clusters\.map/);
   assert.doesNotMatch(appSource, /Source trail preserved:/);
   assert.doesNotMatch(appSource, /DataTable columns=\{columnsByTab\[libraryTab\]/);
+  assert.doesNotMatch(appSource, /SavedWorkCard/);
 });
 
-test('settings stays as-is per decision', () => {
+test('settings is a lightweight control panel, not a tabbed configuration dashboard', () => {
   assert.match(appSource, /function SettingsScreen/);
-  assert.match(appSource, /\["model", "AI model"\]/);
-  assert.match(appSource, /\["connections", "Connections"\]/);
-  assert.match(appSource, /\["billing", "Account & billing"\]/);
+  assert.match(appSource, /Connected Sources/);
+  assert.match(appSource, /AI Preferences/);
+  assert.match(appSource, /Publishing/);
+  assert.match(appSource, /Notifications/);
+  assert.match(appSource, /Sign Out/);
+  assert.match(appSource, /function SettingsRow/);
+  assert.doesNotMatch(appSource, /\["model", "AI model"\]/);
+  assert.doesNotMatch(appSource, /AI model connection/);
+  assert.doesNotMatch(appSource, /Base44-supported model/);
+  assert.doesNotMatch(appSource, /Deterministic generation/);
 });
 
 test('help is reduced to workflow guide without removed sections', () => {
