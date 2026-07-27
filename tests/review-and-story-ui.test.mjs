@@ -27,13 +27,14 @@ test('review uses Highlight terminology and reordered content', () => {
   assert.doesNotMatch(appSource, /Accept moment/);
 });
 
-test('story studio is editor-first with context and proof collapsed', () => {
+test('draft screen is editor-first without old story studio rails', () => {
+  assert.match(appSource, /function DraftScreen/);
   assert.match(appSource, /function StoryEditorWorkspace/);
-  assert.match(appSource, /Accepted moment/);
-  assert.match(appSource, /Large editor surface/);
-  assert.match(appSource, /View source brief/);
-  assert.match(appSource, /View sources and checks/);
+  assert.match(appSource, /Draft Editor/);
+  assert.match(appSource, /function DraftHighlightContext/);
   assert.doesNotMatch(appSource, /xl:grid-cols-\[300px_minmax\(0,1fr\)_340px\]/);
   assert.doesNotMatch(appSource, /<AssistantPanel/);
   assert.doesNotMatch(appSource, /title="Story foundation"/);
+  assert.doesNotMatch(appSource, /View source brief/);
+  assert.doesNotMatch(appSource, /View sources and checks/);
 });

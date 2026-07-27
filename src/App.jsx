@@ -618,10 +618,25 @@ export default function App() {
       if (draft.id && !String(draft.id).startsWith("local_")) {
         await Draft.update(draft.id, { title: draft.title, body: draft.body, status: draft.status || "draft" });
       }
-      setStatus({ tone: "success", message: "Draft saved and kept visible in Library." });
+      setStatus({ tone: "success", message: "Draft saved." });
     } catch (error) {
       console.error(error);
       setStatus({ tone: "warning", message: "Draft saved locally for this session. Remote save can be retried later." });
+    }
+  }
+
+  async function publishDraft() {
+    if (!draft) return;
+    const publishedAt = new Date().toISOString();
+    const updated = { ...draft, status: "published", updated_at: publishedAt, published_at: publishedAt };
+    setDraft(updated);
+    setLibraryTab("Published");
+    try {
+      if (draft.id && !String(draft.id).startsWith("local_")) await Draft.update(draft.id, { title: draft.title, body: draft.body, status: "published", published_at: publishedAt });
+      setStatus({ tone: "success", message: "Draft published." });
+    } catch (error) {
+      console.error(error);
+      setStatus({ tone: "warning", message: "Draft published locally for this session." });
     }
   }
 
@@ -701,7 +716,7 @@ export default function App() {
             {renderedView === "workspace" && <WorkspaceScreen activities={activities} clusters={clusters} draftRows={draftRows} onReview={(cluster) => { setSelectedCluster(cluster); goApp("review"); }} onNewInitiative={() => goApp("sources")} />}
             {renderedView === "sources" && <Sources workspace={workspace} setWorkspace={setWorkspace} onSave={saveWorkspace} sourceTab={sourceTab} setSourceTab={setSourceTab} activityText={activityText} setActivityText={setActivityText} manualNotes={manualNotes} setManualNotes={setManualNotes} githubRepoInput={githubRepoInput} setGithubRepoInput={setGithubRepoInput} activities={activities} importPhase={importPhase} isBusy={isBusy} onImport={importManualActivity} onGitHubImport={importGitHubActivity} onDetect={detectLaunchMoments} />}
             {renderedView === "review" && <LaunchMoments clusters={clusters} activities={activities} selectedCluster={selectedCluster} selectedSources={selectedSources} setSelectedCluster={setSelectedCluster} onAccept={acceptCluster} onDetect={detectLaunchMoments} isBusy={isBusy} launchFilter={launchFilter} setLaunchFilter={setLaunchFilter} />}
-            {renderedView === "draft" && <StoryStudio cluster={acceptedCluster} sourceItems={acceptedSources} draft={draft} setDraft={setDraft} onSaveDraft={saveDraft} onCreateDraft={createDraft} onCreateOpportunities={createOpportunities} isBusy={isBusy} onBack={() => goApp("review")} onLibrary={() => goApp("library")} />}
+            {renderedView === "draft" && <DraftScreen cluster={acceptedCluster} sourceItems={acceptedSources} draft={draft} setDraft={setDraft} onSaveDraft={saveDraft} onPublishDraft={publishDraft} onCreateDraft={createDraft} isBusy={isBusy} onBack={() => goApp("review")} />}
             {renderedView === "opportunities" && <Opportunities opportunities={visibleOpportunities} cluster={acceptedCluster} onCreateOpportunities={createOpportunities} onSaveOpportunity={saveOpportunity} onPromote={promoteOpportunity} onIgnore={ignoreOpportunity} isBusy={isBusy} />}
             {renderedView === "library" && <LibraryScreen libraryTab={libraryTab} setLibraryTab={setLibraryTab} draftRows={draftRows} opportunities={opportunities} clusters={clusters} activities={activities} cluster={acceptedCluster} onMarkDraftReady={markDraftReady} librarySearch={librarySearch} setLibrarySearch={setLibrarySearch} />}
             {renderedView === "settings" && <SettingsScreen workspace={workspace} setWorkspace={setWorkspace} onSave={saveWorkspace} isBusy={isBusy} settingsTab={settingsTab} setSettingsTab={setSettingsTab} githubRepoInput={githubRepoInput} activities={activities} importPhase={importPhase} />}
@@ -1151,13 +1166,16 @@ function LaunchMoments({ clusters, activities, selectedCluster, selectedSources,
   return <HighlightReview cluster={activeCluster} sources={sources} onContinue={onAccept} />;
 }
 
-function StoryStudio({ cluster, sourceItems, draft, setDraft, onSaveDraft, onCreateDraft, isBusy, onBack, onLibrary }) {
+function DraftScreen({ cluster, sourceItems, draft, setDraft, onSaveDraft, onPublishDraft, onCreateDraft, isBusy, onBack }) {
   if (!cluster) {
-    return <Page title="Story Studio" eyebrow="Story Coproduction" description="Edit a draft created from an accepted source moment."><EmptyState icon={PenLine} eyebrow="Human review required" title="No accepted launch moment" body="Story Studio opens after a person accepts a source-backed launch moment." actionLabel="Review launch moments" onAction={onBack} /></Page>;
+    return <Page title="Draft" description="Based on Highlight"><div className="mx-auto max-w-[960px]"><EmptyState icon={PenLine} eyebrow="Human review required" title="No Highlight selected" body="Draft opens after a person reviews a Highlight." actionLabel="Review" onAction={onBack} /></div></Page>;
   }
   return (
-    <Page title="Story Studio" eyebrow="Focused editor" description="Edit and save one source-grounded draft." action={<Button onClick={draft ? onSaveDraft : onCreateDraft} disabled={isBusy} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">{draft ? "Save draft" : "Generate draft"}</Button>}>
-      <StoryEditorWorkspace cluster={cluster} sourceItems={sourceItems} draft={draft} setDraft={setDraft} onSaveDraft={onSaveDraft} onCreateDraft={onCreateDraft} isBusy={isBusy} onLibrary={onLibrary} />
+    <Page title="Draft" description="Based on Highlight">
+      <div className="mx-auto max-w-[960px] space-y-8">
+        <DraftHighlightContext cluster={cluster} sourceItems={sourceItems} />
+        <StoryEditorWorkspace cluster={cluster} sourceItems={sourceItems} draft={draft} setDraft={setDraft} onSaveDraft={onSaveDraft} onPublishDraft={onPublishDraft} onCreateDraft={onCreateDraft} isBusy={isBusy} />
+      </div>
     </Page>
   );
 }
@@ -1591,44 +1609,59 @@ function HighlightReview({ cluster, sources, onContinue }) {
   );
 }
 
-function StoryEditorWorkspace({ cluster, sourceItems, draft, setDraft, onSaveDraft, onCreateDraft, isBusy, onLibrary }) {
+function DraftHighlightContext({ cluster, sourceItems }) {
+  const visibleEvidence = sourceItems.slice(0, 4);
+  const moreEvidenceCount = Math.max(0, sourceItems.length - visibleEvidence.length);
   return (
-    <div className="w-full space-y-5">
-      <div className="rounded-2xl border border-[var(--lr-border)] bg-white p-4 shadow-[var(--lr-shadow-tight)]">
-        <div className="text-xs font-medium uppercase tracking-[0.1em] text-[var(--lr-muted)]">Accepted moment</div>
-        <div className="mt-2 font-semibold text-[var(--lr-text)]">{cluster.title}</div>
-        <p className="mt-1 text-sm leading-6 text-[var(--lr-text-2)]">{cluster.summary}</p>
+    <section className="rounded-[28px] border border-[var(--lr-border)] bg-white p-6 shadow-[var(--lr-shadow-tight)] md:p-8">
+      <div className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--lr-muted)]">Highlight</div>
+      <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-[var(--lr-text)]">{cluster.title}</h2>
+      <div className="mt-5 rounded-2xl bg-[var(--lr-orange-tint)] p-5">
+        <div className="text-sm font-semibold text-[var(--lr-text)]">Why it matters</div>
+        <p className="mt-2 text-sm leading-6 text-[var(--lr-text-2)]">{cluster.user_value || cluster.why_it_matters}</p>
       </div>
-      <SectionCard title="Large editor surface" description="Edit the draft; proof stays available below when needed.">
-        <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-[var(--lr-text-2)]">
-          <span className="font-medium capitalize text-[var(--lr-text)]">{draft?.status || "draft"}</span>
-          <span>{wordCount(draft?.body)} words</span>
-          <span>source-grounded</span>
-        </div>
-        {draft ? (
-          <div className="space-y-3">
-            <Input aria-label="Draft title" value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} className="h-12 rounded-xl border-[var(--lr-border)] bg-white text-lg font-semibold text-[var(--lr-text)]" />
-            <textarea aria-label="Draft body" value={draft.body} onChange={(event) => setDraft({ ...draft, body: event.target.value })} className="min-h-[560px] w-full rounded-2xl border border-[var(--lr-border)] bg-white p-5 text-sm leading-7 text-[var(--lr-text)] shadow-sm outline-none focus:ring-2 focus:ring-[var(--lr-orange)]" />
-            <div className="flex flex-wrap gap-2">
-              <Button onClick={onSaveDraft} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Save draft</Button>
-              <Button onClick={onLibrary} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Open Library</Button>
-            </div>
-          </div>
-        ) : (
-          <EmptyState icon={FileText} eyebrow="Draft from accepted evidence" title="No draft yet" body="Generate a first draft from this accepted launch moment, then edit it here." actionLabel="Generate draft" onAction={onCreateDraft} disabled={isBusy} />
-        )}
-      </SectionCard>
-      <details className="rounded-2xl border border-[var(--lr-border)] bg-white p-4">
-        <summary className="cursor-pointer text-sm font-semibold text-[var(--lr-text)]">View source brief</summary>
-        <div className="mt-4"><FoundationList cluster={cluster} sourceItems={sourceItems} /></div>
-      </details>
-      <details className="rounded-2xl border border-[var(--lr-border)] bg-white p-4">
-        <summary className="cursor-pointer text-sm font-semibold text-[var(--lr-text)]">View sources and checks</summary>
+      <div className="mt-8">
+        <div className="text-sm font-semibold text-[var(--lr-text)]">Based on</div>
         <div className="mt-4 space-y-3">
-          {sourceItems.length ? sourceItems.map((item) => <SourceReceipt key={item.id || item.title} item={item} compact />) : <p className="text-sm text-[var(--lr-muted)]">No source records linked.</p>}
+          {visibleEvidence.length ? visibleEvidence.map((item) => <SourceReceipt key={item.id || item.title} item={item} compact />) : <p className="text-sm text-[var(--lr-muted)]">No evidence is linked to this Highlight yet.</p>}
+          {moreEvidenceCount > 0 && <div className="rounded-2xl border border-dashed border-[var(--lr-border)] bg-[var(--lr-canvas)] px-4 py-3 text-sm font-medium text-[var(--lr-muted)]">+{moreEvidenceCount} more</div>}
         </div>
-      </details>
-    </div>
+      </div>
+    </section>
+  );
+}
+
+function StoryEditorWorkspace({ draft, setDraft, onSaveDraft, onPublishDraft, onCreateDraft, isBusy }) {
+  const [autoSaveLabel, setAutoSaveLabel] = useState("Saved");
+
+  function updateDraft(field, value) {
+    setDraft({ ...draft, [field]: value, updated_at: new Date().toISOString() });
+    setAutoSaveLabel("Saving...");
+    window.setTimeout(() => setAutoSaveLabel("Saved"), 650);
+  }
+
+  return (
+    <section className="rounded-[28px] border border-[var(--lr-border)] bg-white p-6 shadow-[var(--lr-shadow-tight)] md:p-8">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--lr-muted)]">Draft Editor</div>
+          <h2 className="mt-2 text-xl font-semibold tracking-[-0.02em] text-[var(--lr-text)]">Draft</h2>
+        </div>
+        {draft && <span className="rounded-full bg-[var(--lr-canvas)] px-3 py-1 text-xs font-medium text-[var(--lr-muted)]">{autoSaveLabel}</span>}
+      </div>
+      {draft ? (
+        <div className="space-y-4">
+          <Input aria-label="Draft title" value={draft.title} onChange={(event) => updateDraft("title", event.target.value)} className="h-12 rounded-xl border-[var(--lr-border)] bg-white text-lg font-semibold text-[var(--lr-text)]" />
+          <textarea aria-label="Draft body" value={draft.body} onChange={(event) => updateDraft("body", event.target.value)} className="min-h-[560px] w-full rounded-2xl border border-[var(--lr-border)] bg-white p-5 text-sm leading-7 text-[var(--lr-text)] shadow-sm outline-none focus:ring-2 focus:ring-[var(--lr-orange)]" />
+          <div className="flex flex-wrap gap-2 pt-2">
+            <Button onClick={onPublishDraft} disabled={isBusy} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Publish</Button>
+            <Button onClick={onSaveDraft} disabled={isBusy} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Save Draft</Button>
+          </div>
+        </div>
+      ) : (
+        <EmptyState icon={FileText} eyebrow="Draft from Highlight" title="No draft yet" body="Create a first draft from this reviewed Highlight, then edit it here." actionLabel="Create Draft" onAction={onCreateDraft} disabled={isBusy} />
+      )}
+    </section>
   );
 }
 
@@ -1908,63 +1941,6 @@ function buildWorkflowProgress({ workspace, activities, clusters, acceptedMoment
     label,
     state: done ? "Done" : index === firstOpenIndex ? "Current" : "Locked",
   }));
-}
-
-function buildNextAction({ activities, clusters, acceptedMoment, draftRows, onSources, onImport, onDetect, onReview, onDraft, onLibrary }) {
-  if (!activities.length) {
-    return {
-      title: "Import the first source trail",
-      body: "LaunchRelay needs source activity before it can detect launch-worthy product stories. Start with GitHub activity or pasted shipped-work notes.",
-      reason: "No source receipts exist yet, so the product has nothing reliable to detect or draft from.",
-      result: "A structured source trail appears in Sources and unlocks launch moment detection.",
-      label: "Import source activity",
-      onAction: onImport || onSources,
-    };
-  }
-  if (!clusters.length) {
-    return {
-      title: "Detect launch moments",
-      body: "Source receipts are available. Run detection to group related changes into reviewable story candidates.",
-      reason: `${activities.length} source receipt${activities.length === 1 ? " is" : "s are"} ready for deterministic grouping.`,
-      result: "Launch Moments gets a review queue with evidence-linked candidates.",
-      label: "Detect launch moments",
-      onAction: onDetect,
-    };
-  }
-  if (!acceptedMoment) {
-    return {
-      title: "Review the strongest candidate",
-      body: "Launch moments should not become content automatically. Inspect the evidence, then accept the moment worth drafting.",
-      reason: `${clusters.length} candidate${clusters.length === 1 ? " needs" : "s need"} human approval before Story Studio can draft from it.`,
-      result: "An accepted launch moment unlocks a source-grounded draft workspace.",
-      label: "Review launch moments",
-      onAction: onReview,
-    };
-  }
-  if (!draftRows.length) {
-    return {
-      title: "Create the first source-grounded draft",
-      body: "A human-reviewed launch moment is ready. Open Story Studio to create an editable draft from the accepted evidence.",
-      reason: "The evidence decision is complete, so drafting can start without inventing unsupported claims.",
-      result: "Story Studio creates an editable draft tied back to the accepted source moment.",
-      label: "Open Story Studio",
-      onAction: onDraft,
-    };
-  }
-  return {
-    title: "Review durable work in Library",
-    body: "A draft exists. Check the Library to mark ready, search saved work, or continue expanding follow-up opportunities.",
-    reason: "The workflow has produced durable assets; Library is where reviewed work should be managed.",
-    result: "Saved drafts and opportunities stay organized for later product education work.",
-    label: "Open Library",
-    onAction: onLibrary,
-  };
-}
-
-function sourceModeLabel(activities) {
-  if (!activities.length) return "No source records yet";
-  const sourceTypes = new Set(activities.map((item) => sourceTypeLabel(item.source_type)));
-  return `${Array.from(sourceTypes).join(" + ")} source records`;
 }
 
 function sameOpportunity(left, right) {
