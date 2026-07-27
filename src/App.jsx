@@ -83,6 +83,18 @@ const initialWorkspace = {
 
 const nowLabel = "Today";
 
+function formatRelativeDate(value) {
+  if (!value) return nowLabel;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return nowLabel;
+  const today = new Date();
+  const diffDays = Math.floor((today.setHours(0, 0, 0, 0) - date.setHours(0, 0, 0, 0)) / 86400000);
+  if (diffDays <= 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
 export default function App() {
   const [view, setView] = useState(() => initialViewFromLocation());
   const [currentUser, setCurrentUser] = useState(null);
@@ -644,7 +656,7 @@ export default function App() {
     if (!draft) return;
     const updated = { ...draft, status: "ready", updated_at: new Date().toISOString() };
     setDraft(updated);
-    setLibraryTab("Ready");
+    setLibraryTab("Drafts");
     try {
       if (draft.id && !String(draft.id).startsWith("local_")) await Draft.update(draft.id, { status: "ready" });
       setStatus({ tone: "success", message: "Draft marked ready in Library." });
