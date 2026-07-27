@@ -14,7 +14,9 @@ test('v2 primary navigation uses only the five GLOBAL destinations', () => {
 test('v2 onboarding is a centered no-sidebar flow with separate welcome step', () => {
   assert.match(appSource, /function V2Onboarding/);
   assert.match(appSource, /onboardingStep, setOnboardingStep\] = useState\("welcome"\)/);
-  assert.match(appSource, /LaunchRelay is getting ready to learn your work/);
+  assert.match(appSource, /Every great story starts with context\./);
+  assert.match(appSource, /Before we can discover Highlights worth sharing/);
+  assert.doesNotMatch(appSource, /Placeholder welcome copy/);
   assert.match(appSource, /What are we working on\?/);
   assert.match(appSource, /Tell us about it\./);
   assert.match(appSource, /Where should LaunchRelay learn from\?/);

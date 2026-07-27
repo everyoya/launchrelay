@@ -1023,7 +1023,7 @@ function V2Onboarding({ step, setStep, draft, setDraft, onComplete, improvementC
           <div className="rounded-full bg-[var(--lr-surface-2)] px-3 py-1 text-xs font-medium text-[var(--lr-muted)]">{progressLabel}</div>
         </div>
 
-        {step === "welcome" && <OnboardingFrame headline="LaunchRelay is getting ready to learn your work" support="Placeholder welcome copy. Yotam will replace this with the final V2 welcome message."><Button onClick={() => advance("initiative")} className="mt-7 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">Begin</Button></OnboardingFrame>}
+        {step === "welcome" && <OnboardingFrame headline="Every great story starts with context." support="Before we can discover Highlights worth sharing, we need to understand your product, your audience, and the work behind it. It only takes a few minutes."><Button onClick={() => advance("initiative")} className="mt-7 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">Continue</Button></OnboardingFrame>}
 
         {step === "initiative" && <OnboardingFrame headline="What are we working on?" support="An Initiative represents one area of your product. Examples: Search, Dashboard, Authentication."><Field label="Initiative Name" value={draft.initiativeName} onChange={(value) => updateDraft("initiativeName", value)} help="Example: AI Assistant" /><Button onClick={() => advance("details")} className="mt-7 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">Continue</Button></OnboardingFrame>}
 
