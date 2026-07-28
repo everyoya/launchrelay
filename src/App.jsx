@@ -120,7 +120,6 @@ export default function App() {
   const [libraryTab, setLibraryTab] = useState("Drafts");
   const [launchFilter, setLaunchFilter] = useState("all");
   const [librarySearch, setLibrarySearch] = useState("");
-  const [workspaceSearch, setWorkspaceSearch] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -203,19 +202,6 @@ export default function App() {
   const visibleOpportunities = opportunities.filter((item) => item.status !== "ignored");
   const draftRows = draft ? [draft] : [];
 
-  const workspaceSearchTargets = useMemo(() => buildWorkspaceSearchTargets({
-    clusters,
-    activities,
-    draftRows,
-    opportunities: visibleOpportunities,
-  }), [clusters, activities, draftRows, visibleOpportunities]);
-
-  const workspaceSearchMatches = useMemo(() => {
-    const query = workspaceSearch.trim().toLowerCase();
-    if (!query) return [];
-    return workspaceSearchTargets.filter((target) => target.searchText.includes(query)).slice(0, 6);
-  }, [workspaceSearch, workspaceSearchTargets]);
-
   function goApp(nextView, options = {}) {
     const normalizedView = normalizeAppRoute(nextView);
     setView(normalizedView);
@@ -233,14 +219,6 @@ export default function App() {
 
   function enterSystem(nextView = "workspace") {
     goApp(nextView);
-  }
-
-  function openWorkspaceSearchResult(target) {
-    if (!target) return;
-    if (target.cluster) setSelectedCluster(target.cluster);
-    if (target.view === "library" && target.libraryTab) setLibraryTab(target.libraryTab);
-    setWorkspaceSearch("");
-    goApp(target.view);
   }
 
   function startAuthProviderLogin(provider) {
@@ -752,7 +730,7 @@ export default function App() {
           <Topbar view={renderedView} goApp={goApp} workspace={workspace} currentUser={currentUser} demoMode={demoMode} onLogout={logout} userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen} setSidebarOpen={setSidebarOpen} />
           <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8">
             <StatusNotice status={status} isBusy={isBusy} />
-            {renderedView === "workspace" && <WorkspaceScreen activities={activities} clusters={clusters} draftRows={draftRows} onReview={(cluster) => { setSelectedCluster(cluster); goApp("review"); }} onNewInitiative={() => goApp("sources")} workspaceSearch={workspaceSearch} setWorkspaceSearch={setWorkspaceSearch} workspaceSearchMatches={workspaceSearchMatches} onWorkspaceSearchResult={openWorkspaceSearchResult} />}
+            {renderedView === "workspace" && <WorkspaceScreen activities={activities} clusters={clusters} draftRows={draftRows} onReview={(cluster) => { setSelectedCluster(cluster); goApp("review"); }} onNewInitiative={() => goApp("sources")} />}
             {renderedView === "sources" && <Sources workspace={workspace} setWorkspace={setWorkspace} onSave={saveWorkspace} sourceTab={sourceTab} setSourceTab={setSourceTab} activityText={activityText} setActivityText={setActivityText} manualNotes={manualNotes} setManualNotes={setManualNotes} githubRepoInput={githubRepoInput} setGithubRepoInput={setGithubRepoInput} activities={activities} importPhase={importPhase} isBusy={isBusy} onImport={importManualActivity} onGitHubImport={importGitHubActivity} onDetect={detectLaunchMoments} />}
             {renderedView === "review" && <LaunchMoments clusters={clusters} activities={activities} selectedCluster={selectedCluster} selectedSources={selectedSources} setSelectedCluster={setSelectedCluster} onAccept={acceptCluster} onDetect={detectLaunchMoments} isBusy={isBusy} launchFilter={launchFilter} setLaunchFilter={setLaunchFilter} />}
             {renderedView === "draft" && <DraftScreen cluster={acceptedCluster} sourceItems={acceptedSources} draft={draft} setDraft={setDraft} onSaveDraft={saveDraft} onPublishDraft={publishDraft} onCreateDraft={createDraft} isBusy={isBusy} onBack={() => goApp("review")} />}
@@ -1204,11 +1182,11 @@ function StatusNotice({ status, isBusy }) {
   );
 }
 
-function WorkspaceScreen({ activities, clusters, draftRows, onReview, onNewInitiative, workspaceSearch, setWorkspaceSearch, workspaceSearchMatches, onWorkspaceSearchResult }) {
+function WorkspaceScreen({ activities, clusters, draftRows, onReview, onNewInitiative }) {
   const waitingImprovements = clusters.filter((cluster) => cluster.status !== "accepted" && cluster.status !== "edited");
   const completedDrafts = draftRows.filter((item) => item.status === "ready" || item.status === "published");
   return (
-    <Page title="Workspace" eyebrow="Workspace" description="Here's what needs your attention today." action={<WorkspaceHeaderActions searchValue={workspaceSearch} setSearchValue={setWorkspaceSearch} matches={workspaceSearchMatches} onOpenResult={onWorkspaceSearchResult} />}>
+    <Page title="Workspace" eyebrow="Workspace" description="Here's what needs your attention today.">
       <div className="space-y-6">
         <section>
           <div className="mb-3 flex items-center justify-between gap-3">
@@ -1235,28 +1213,6 @@ function WorkspaceScreen({ activities, clusters, draftRows, onReview, onNewIniti
         </div>
       </div>
     </Page>
-  );
-}
-
-function WorkspaceHeaderActions({ searchValue, setSearchValue, matches, onOpenResult }) {
-  const hasQuery = searchValue.trim().length > 0;
-  return (
-    <div className="relative flex items-center gap-2">
-      <label className="hidden items-center gap-2 rounded-xl border border-[var(--lr-border)] bg-white px-3 py-2 text-sm text-[var(--lr-muted)] shadow-sm md:flex">
-        <Search className="h-4 w-4" />
-        <input aria-label="Search workspace" value={searchValue} onChange={(event) => setSearchValue(event.target.value)} placeholder="Search workflow" className="w-40 bg-transparent text-[var(--lr-text)] outline-none placeholder:text-[var(--lr-muted)]" />
-      </label>
-      {hasQuery && (
-        <div className="absolute right-0 top-[calc(100%+8px)] z-30 hidden w-80 rounded-2xl border border-[var(--lr-border)] bg-white p-2 shadow-[var(--lr-shadow)] md:block">
-          {matches.length ? matches.map((match) => (
-            <button key={`${match.view}-${match.label}`} type="button" onClick={() => onOpenResult(match)} className="flex w-full flex-col rounded-xl px-3 py-2 text-left hover:bg-[var(--lr-surface-2)]">
-              <span className="text-sm font-medium text-[var(--lr-text)]">{match.label}</span>
-              <span className="text-xs text-[var(--lr-muted)]">{match.type}</span>
-            </button>
-          )) : <div className="px-3 py-2 text-sm text-[var(--lr-muted)]">No workspace results.</div>}
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -2100,53 +2056,6 @@ function buildWorkflowProgress({ workspace, activities, clusters, acceptedMoment
 function sameOpportunity(left, right) {
   if (left.id && right.id) return left.id === right.id;
   return left.title === right.title && left.format === right.format;
-}
-
-function buildWorkspaceSearchTargets({ clusters = [], activities = [], draftRows = [], opportunities = [] }) {
-  const targets = [
-    { type: "Screen", label: "Workspace", view: "workspace", text: "workspace overview needs review" },
-    { type: "Screen", label: "Sources", view: "sources", text: "sources import github manual notes activity" },
-    { type: "Screen", label: "Review", view: "review", text: "review highlights launch moments" },
-    { type: "Screen", label: "Draft", view: "draft", text: "draft story editor publish save" },
-    { type: "Screen", label: "Opportunities", view: "opportunities", text: "opportunities ideas follow up" },
-    { type: "Screen", label: "Library", view: "library", text: "library drafts highlights published" },
-    { type: "Screen", label: "Settings", view: "settings", text: "settings account sources preferences" },
-  ];
-
-  clusters.forEach((cluster) => targets.push({
-    type: "Highlight",
-    label: cluster.title || "Untitled Highlight",
-    view: "review",
-    cluster,
-    text: `${cluster.title || ""} ${cluster.summary || ""} ${cluster.user_value || ""} ${cluster.why_it_matters || ""}`,
-  }));
-
-  activities.slice(0, 12).forEach((item) => targets.push({
-    type: "Source receipt",
-    label: item.title || item.body || "Source receipt",
-    view: "sources",
-    text: `${item.title || ""} ${item.body || ""} ${item.impact_hint || ""} ${item.source_type || ""}`,
-  }));
-
-  draftRows.forEach((item) => targets.push({
-    type: "Draft",
-    label: item.title || "Untitled draft",
-    view: "library",
-    libraryTab: item.status === "published" ? "Published" : "Drafts",
-    text: `${item.title || ""} ${item.body || ""} ${item.status || "draft"}`,
-  }));
-
-  opportunities.forEach((item) => targets.push({
-    type: "Opportunity",
-    label: item.title || "Opportunity idea",
-    view: "opportunities",
-    text: `${item.title || ""} ${item.summary || ""} ${item.angle || ""} ${item.why_it_matters || ""}`,
-  }));
-
-  return targets.map((target) => ({
-    ...target,
-    searchText: `${target.label || ""} ${target.text || ""} ${target.type || ""}`.toLowerCase(),
-  }));
 }
 
 function compileManualNotes(manualNotes = [], fallbackText = "") {
