@@ -7,6 +7,7 @@ import {
   ArrowRight,
   BookOpen,
   CheckCircle2,
+  ChevronDown,
   CircleDot,
   ExternalLink,
   FileText,
@@ -726,7 +727,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--lr-canvas)] text-[var(--lr-text)]">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,rgba(217,229,255,0.72),transparent_30rem),radial-gradient(circle_at_92%_36%,rgba(184,240,210,0.42),transparent_24rem),var(--lr-canvas)] text-[var(--lr-text)]">
       <div className="flex min-h-screen">
         <Sidebar view={renderedView} goApp={goApp} goPublic={goPublic} workspace={workspace} currentUser={currentUser} demoMode={demoMode} onLogout={logout} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} sidebarCollapsed={sidebarCollapsed} setSidebarCollapsed={setSidebarCollapsed} />
         <div className={`flex min-w-0 flex-1 flex-col transition-[padding] duration-200 ${sidebarCollapsed ? "lg:pl-20" : "lg:pl-72"}`}>
@@ -786,12 +787,12 @@ function PublicSite({ view, currentUser, goPublic, goApp, onLogout, onSample, on
             {currentUser ? (
               <>
                 <Button variant="ghost" onClick={onLogout} className="rounded-xl text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]">Sign out</Button>
-                <Button onClick={() => goApp("workspace")} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Open Workspace</Button>
+                <Button onClick={() => goApp("workspace")} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">Open Workspace</Button>
               </>
             ) : (
               <>
                 <Button variant="ghost" onClick={() => goPublic("sign-in")} className="rounded-xl text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]">Sign in</Button>
-                {!isAuth && <Button onClick={() => goPublic("sign-in")} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Get Started</Button>}
+                {!isAuth && <Button onClick={() => goPublic("sign-in")} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">Get Started</Button>}
               </>
             )}
           </div>
@@ -803,54 +804,45 @@ function PublicSite({ view, currentUser, goPublic, goApp, onLogout, onSample, on
 }
 
 function MarketingHome({ currentUser, onSample, goPublic, goApp }) {
-  const startProduct = () => currentUser ? goApp("workspace") : goPublic("sign-in");
   return (
     <main className="overflow-hidden">
-      <section className="mx-auto grid max-w-7xl items-center gap-12 px-5 py-20 lg:grid-cols-[0.9fr_1.1fr] lg:py-28">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--lr-orange)]">Product communication from shipped work</p>
-          <h1 className="mt-5 max-w-4xl text-5xl font-semibold tracking-[-0.055em] text-[var(--lr-text)] md:text-7xl">
-            Your team ships great work. Make sure people understand it.
-          </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-8 text-[var(--lr-text-2)]">
-            LaunchRelay discovers the Highlights hidden in your shipped work and turns them into clear, source-grounded product stories your users actually care about.
-          </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Button onClick={startProduct} className="h-12 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">Get Started <ArrowRight className="ml-2 h-4 w-4" /></Button>
-            <button type="button" onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="inline-flex h-12 items-center justify-center rounded-xl border border-[var(--lr-border)] bg-white px-5 text-sm font-medium text-[var(--lr-text)] transition-colors hover:bg-[var(--lr-surface-2)]">See How It Works</button>
+      <section className="relative overflow-hidden bg-[radial-gradient(circle_at_72%_12%,rgba(217,229,255,0.95),transparent_28rem),radial-gradient(circle_at_92%_34%,rgba(184,240,210,0.72),transparent_22rem),linear-gradient(180deg,#F8FBFF_0%,#FFFFFF_72%)]">
+        <div className="mx-auto grid max-w-7xl items-center gap-14 px-5 py-20 lg:grid-cols-[0.86fr_1.14fr] lg:px-11 lg:py-28">
+          <div>
+            <h1 className="max-w-4xl font-display text-6xl font-bold leading-[0.95] tracking-[-0.055em] text-[var(--lr-text)] md:text-[84px] lg:text-[92px]">
+              You built a great app. We help users understand it.
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg leading-[1.45] text-[var(--lr-text-2)]">
+              LaunchRelay discovers the Highlights hidden in your shipped work and turns them into clear, source-grounded product stories your users actually care about.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Button onClick={onSample} className="h-12 min-h-12 items-center rounded-[14px] bg-[var(--lr-text)] px-5 py-0 text-sm font-semibold leading-none text-white shadow-none hover:bg-slate-900">Get Started <ArrowRight className="ml-2 h-4 w-4" /></Button>
+              <button type="button" onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="inline-flex h-12 min-h-12 items-center justify-center rounded-[14px] border border-[var(--lr-border)] bg-[var(--lr-blue-tint)] px-5 py-0 text-sm font-semibold leading-none text-[var(--lr-blue-strong)] transition-colors hover:bg-white">See How It Works</button>
+            </div>
           </div>
-        </div>
-        <LandingVisualPlaceholder label="Hero product preview placeholder" />
-      </section>
-
-      <section className="border-y border-[var(--lr-border)] bg-white/60" aria-label="Supported integrations">
-        <div className="mx-auto max-w-7xl px-5 py-8">
-          <p className="text-center text-sm font-semibold uppercase tracking-[0.16em] text-[var(--lr-muted)]">Works with the tools your team already uses.</p>
-          <div className="mt-5 flex flex-wrap justify-center gap-3 text-sm font-medium text-[var(--lr-text-2)]">
-            {["GitHub", "Linear", "Notion", "Jira", "Manual Uploads"].map((tool) => <span key={tool} className="rounded-full border border-[var(--lr-border)] bg-white px-4 py-2">{tool}</span>)}
-          </div>
+          <LandingVisualPlaceholder label="Hero product preview placeholder" />
         </div>
       </section>
 
-      <section id="product" className="mx-auto grid max-w-7xl gap-10 px-5 py-20 lg:grid-cols-[0.8fr_1.2fr] lg:py-28">
+      <section id="product" className="mx-auto grid max-w-7xl gap-10 px-5 py-20 lg:grid-cols-[0.78fr_1.22fr] lg:px-11 lg:py-28">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--lr-orange)]">The problem</p>
-          <h2 className="mt-4 text-4xl font-semibold tracking-[-0.045em] text-[var(--lr-text)] md:text-6xl">Shipping is only half the job.</h2>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--lr-blue-strong)]">The problem</p>
+          <h2 className="mt-5 font-display text-5xl font-bold leading-[0.98] tracking-[-0.045em] text-[var(--lr-text)] md:text-6xl">Shipping is only half the job.</h2>
         </div>
-        <div className="max-w-3xl space-y-5 text-xl leading-9 text-[var(--lr-text-2)]">
+        <div className="max-w-3xl space-y-5 text-lg leading-[1.55] text-[var(--lr-text-2)] md:text-xl">
           <p>Every sprint, your team ships valuable improvements.</p>
           <p>Bug fixes. Performance gains. Quality-of-life updates. New capabilities.</p>
           <p>Most of them never become stories.</p>
           <p>Users miss the value because nobody has time to explain what changed or why it matters.</p>
-          <p className="font-medium text-[var(--lr-text)]">LaunchRelay exists to close that gap.</p>
+          <p className="font-semibold text-[var(--lr-text)]">LaunchRelay exists to close that gap.</p>
         </div>
       </section>
 
-      <section id="how-it-works" className="bg-white py-20 lg:py-28">
-        <div className="mx-auto max-w-7xl px-5">
-          <div className="max-w-2xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--lr-orange)]">How LaunchRelay works</p>
-            <h2 className="mt-4 text-4xl font-semibold tracking-[-0.045em] text-[var(--lr-text)] md:text-6xl">From shipped work to clear product stories.</h2>
+      <section id="how-it-works" className="bg-[linear-gradient(180deg,#FFFFFF,#F8FBFF)] py-20 lg:py-28">
+        <div className="mx-auto max-w-7xl px-5 lg:px-11">
+          <div className="max-w-3xl">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--lr-blue-strong)]">How LaunchRelay works</p>
+            <h2 className="mt-5 font-display text-5xl font-bold leading-[0.98] tracking-[-0.045em] text-[var(--lr-text)] md:text-6xl">From shipped work to clear product stories.</h2>
           </div>
           <div className="mt-12 grid gap-4 md:grid-cols-3">
             <LandingStep icon={GitBranch} number="01" title="Connect your work" body="Bring in GitHub, Notion, Linear, documents, or manual updates." />
@@ -860,19 +852,19 @@ function MarketingHome({ currentUser, onSample, goPublic, goApp }) {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-5 py-20 lg:py-28">
-        <div className="mb-10 max-w-2xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--lr-orange)]">Product preview</p>
-          <h2 className="mt-4 text-4xl font-semibold tracking-[-0.045em] text-[var(--lr-text)] md:text-6xl">See the workflow, not a fake dashboard.</h2>
+      <section className="mx-auto max-w-7xl px-5 py-20 lg:px-11 lg:py-28">
+        <div className="mb-10 max-w-3xl">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--lr-blue-strong)]">Product preview</p>
+          <h2 className="mt-5 font-display text-5xl font-bold leading-[0.98] tracking-[-0.045em] text-[var(--lr-text)] md:text-6xl">See the workflow, not a fake dashboard.</h2>
         </div>
         <LandingVisualPlaceholder label="Large LaunchRelay screenshot placeholder" large />
       </section>
 
-      <section className="bg-white py-20 lg:py-28">
-        <div className="mx-auto max-w-7xl px-5">
-          <div className="mb-10 max-w-2xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--lr-orange)]">Why LaunchRelay</p>
-            <h2 className="mt-4 text-4xl font-semibold tracking-[-0.045em] text-[var(--lr-text)] md:text-6xl">Designed around the work your users should notice.</h2>
+      <section className="border-y border-[var(--lr-border)] bg-white py-20 lg:py-28">
+        <div className="mx-auto max-w-7xl px-5 lg:px-11">
+          <div className="mb-10 max-w-3xl">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--lr-blue-strong)]">Why LaunchRelay</p>
+            <h2 className="mt-5 font-display text-5xl font-bold leading-[0.98] tracking-[-0.045em] text-[var(--lr-text)] md:text-6xl">Designed around the work your users should notice.</h2>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
             <PrincipleCard title="Never miss important work" body="Discover launch-worthy Highlights automatically." />
@@ -882,18 +874,30 @@ function MarketingHome({ currentUser, onSample, goPublic, goApp }) {
         </div>
       </section>
 
+      <section className="mx-auto max-w-7xl px-5 py-20 text-center lg:px-11 lg:py-28">
+        <div className="mx-auto max-w-3xl">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--lr-blue-strong)]">FAQ</p>
+          <p className="mx-auto mt-5 max-w-2xl text-lg leading-[1.5] text-[var(--lr-text-2)]">Everything you need to know about LaunchRelay's source-grounded workflow.</p>
+        </div>
+        <div className="mx-auto mt-10 max-w-6xl space-y-3 text-left">
+          <FAQRow question="How is this different from an AI writer?" answer="LaunchRelay starts with source activity and human review, not a blank prompt." />
+          <FAQRow question="Does it publish automatically?" answer="No. The product keeps a review step between source discovery and user-facing output." />
+          <FAQRow question="What is real today?" answer="Source import, highlight review, deterministic drafts, opportunities, and a library workflow." />
+        </div>
+      </section>
+
       <section id="pricing" className="mx-auto max-w-4xl px-5 py-20 text-center lg:py-28">
-        <h2 className="text-4xl font-semibold tracking-[-0.045em] text-[var(--lr-text)] md:text-6xl">Great products deserve great communication.</h2>
-        <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-[var(--lr-text-2)]">Start discovering the stories already hidden inside your product work.</p>
+        <h2 className="font-display text-5xl font-bold leading-[0.98] tracking-[-0.045em] text-[var(--lr-text)] md:text-6xl">Great products deserve great communication.</h2>
+        <p className="mx-auto mt-5 max-w-2xl text-lg leading-[1.45] text-[var(--lr-text-2)]">Start discovering the stories already hidden inside your product work.</p>
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-          <Button onClick={startProduct} className="h-12 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">Get Started <ArrowRight className="ml-2 h-4 w-4" /></Button>
-          <button type="button" onClick={() => goApp("workspace")} className="inline-flex h-12 items-center justify-center rounded-xl border border-[var(--lr-border)] bg-white px-5 text-sm font-medium text-[var(--lr-text)] transition-colors hover:bg-[var(--lr-surface-2)]">Open Workspace</button>
+          <Button onClick={onSample} className="h-12 min-h-12 items-center rounded-[14px] bg-[var(--lr-text)] px-5 py-0 text-sm font-semibold leading-none text-white shadow-none hover:bg-slate-900">Get Started <ArrowRight className="ml-2 h-4 w-4" /></Button>
+          <button type="button" onClick={() => goApp("workspace")} className="inline-flex h-12 min-h-12 items-center justify-center rounded-[14px] border border-[var(--lr-border)] bg-[var(--lr-blue-tint)] px-5 py-0 text-sm font-semibold leading-none text-[var(--lr-blue-strong)] transition-colors hover:bg-white">Open Workspace</button>
         </div>
       </section>
 
       <footer id="docs" className="border-t border-[var(--lr-border)] bg-white/70">
-        <div className="mx-auto flex max-w-7xl flex-col gap-5 px-5 py-8 text-sm text-[var(--lr-text-2)] md:flex-row md:items-center md:justify-between">
-          <div className="font-semibold text-[var(--lr-text)]">LaunchRelay</div>
+        <div className="mx-auto flex max-w-7xl flex-col gap-5 px-5 py-8 text-sm text-[var(--lr-text-2)] md:flex-row md:items-center md:justify-between lg:px-11">
+          <div className="font-display font-bold text-[var(--lr-text)]">LaunchRelay</div>
           <div className="flex flex-wrap gap-4">
             {["Product", "Docs", "Privacy", "Terms", "Contact"].map((link) => <span key={link}>{link}</span>)}
           </div>
@@ -904,26 +908,73 @@ function MarketingHome({ currentUser, onSample, goPublic, goApp }) {
 }
 
 function LandingVisualPlaceholder({ label, large = false }) {
+  const isLarge = large;
   return (
-    <div className={`rounded-[32px] border border-[var(--lr-border)] bg-white p-4 shadow-[var(--lr-shadow)] ${large ? "min-h-[520px]" : "min-h-[420px]"}`}>
-      <div className="flex h-full min-h-[inherit] items-center justify-center rounded-[24px] border border-dashed border-[var(--lr-border)] bg-[var(--lr-canvas)] p-8 text-center">
-        <div>
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[var(--lr-orange)] shadow-sm"><Layers3 className="h-5 w-5" /></div>
-          <p className="mt-5 text-sm font-semibold uppercase tracking-[0.14em] text-[var(--lr-muted)]">{label}</p>
-          <p className="mx-auto mt-3 max-w-md text-lg font-medium leading-7 text-[var(--lr-text)]">Real LaunchRelay screenshot coming soon.</p>
-          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--lr-text-2)]">This space is reserved for the actual product preview Yotam will provide.</p>
+    <div className={`relative rounded-[30px] border border-[var(--lr-border)] bg-white p-4 shadow-[var(--lr-shadow)] ${isLarge ? "min-h-[500px]" : "min-h-[520px]"}`} aria-label={label}>
+      <div className={`grid h-full min-h-[inherit] overflow-hidden rounded-[22px] border border-[var(--lr-border)] bg-[linear-gradient(180deg,#FFFFFF,#F9FBFF)] ${isLarge ? "grid-cols-[245px_1fr]" : "grid-cols-[172px_1fr]"}`}>
+        <aside className="hidden border-r border-[var(--lr-border)] bg-[#F6F9FF] p-4 sm:block">
+          <div className="flex items-center gap-2 font-display text-sm font-bold text-[var(--lr-text)]"><span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[var(--lr-text)] text-xs text-white">LR</span>{isLarge ? "Sources" : "Workspace"}</div>
+          <div className="mt-4 space-y-3">
+            <div className="h-9 rounded-xl bg-[#E8F0FF]" />
+            <div className="h-9 rounded-xl bg-[#E8F0FF]" />
+            <div className="h-9 rounded-xl border border-[var(--lr-border)] bg-white" />
+            <div className="h-9 rounded-xl bg-[#E8F0FF]" />
+          </div>
+        </aside>
+        <div className="p-5 md:p-7">
+          <div className="flex items-start justify-between gap-5">
+            <div>
+              <Badge tone="blue">{isLarge ? "Source trail" : "Needs review"}</Badge>
+              <h3 className="mt-4 font-display text-[28px] font-bold leading-[0.98] tracking-[-0.04em] text-[var(--lr-text)] md:text-[34px]">{isLarge ? "Review evidence before writing" : "Launch-worthy highlights"}</h3>
+              {isLarge && <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--lr-text-2)]">Flat, software-like product preview: thin borders, white panels, blue operational labels, and no decorative illustration replacing the product.</p>}
+            </div>
+            <div className="hidden h-10 w-36 rounded-xl border border-[var(--lr-border)] bg-white md:block" />
+          </div>
+          <div className="mt-6 grid gap-4 md:grid-cols-[1fr_190px]">
+            <div className="rounded-[20px] border border-[var(--lr-border)] bg-white p-5">
+              <h4 className="font-display text-xl font-bold leading-none tracking-[-0.035em] text-[var(--lr-text)]">{isLarge ? "Manual onboarding flow reduces first-run friction" : "Importer speed improvements"}</h4>
+              <SkeletonLines />
+            </div>
+            <div className="rounded-[20px] border border-[var(--lr-border)] bg-white p-5">
+              <h4 className="font-display text-xl font-bold leading-none tracking-[-0.035em] text-[var(--lr-text)]">Sources</h4>
+              <SkeletonLines compact />
+            </div>
+          </div>
+          <div className="mt-4 rounded-[20px] border border-[var(--lr-border)] bg-white p-5">
+            <h4 className="font-display text-xl font-bold leading-none tracking-[-0.035em] text-[var(--lr-text)]">{isLarge ? "GitHub import now explains why a change matters" : "Draft guardrails"}</h4>
+            <SkeletonLines />
+          </div>
         </div>
       </div>
+      {!isLarge && <div className="absolute -right-5 bottom-16 hidden w-64 rounded-[22px] border border-[var(--lr-border)] bg-white p-5 shadow-[var(--lr-shadow)] lg:block"><Badge tone="blue">Proof card</Badge><div className="mt-4 font-display text-3xl font-bold tracking-[-0.04em] text-[var(--lr-text)]">4 ready <span className="font-ui text-sm font-semibold text-[var(--lr-text-2)]">stories</span></div><SkeletonLines compact /></div>}
     </div>
   );
 }
 
-function LandingStep({ icon: Icon, number, title, body }) {
-  return <article className="rounded-[28px] border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-6"><div className="flex items-center justify-between"><div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[var(--lr-orange)] shadow-sm"><Icon className="h-5 w-5" /></div><span className="text-xs font-semibold text-[var(--lr-muted)]">{number}</span></div><h3 className="mt-8 text-xl font-semibold tracking-[-0.025em] text-[var(--lr-text)]">{title}</h3><p className="mt-3 leading-7 text-[var(--lr-text-2)]">{body}</p></article>;
+function SkeletonLines({ compact = false }) {
+  return <div className="mt-4 space-y-2"><div className="h-2 rounded-full bg-[#DDE6F6]" /><div className={`h-2 rounded-full bg-[#DDE6F6] ${compact ? "w-2/3" : "w-4/5"}`} /><div className="h-2 w-1/2 rounded-full bg-[#DDE6F6]" /></div>;
+}
+
+function LandingStep({ number, title, body }) {
+  return <article className="rounded-[22px] border border-[var(--lr-border)] bg-white p-6"><div className="font-display text-sm font-bold text-[var(--lr-blue-strong)]">{number}</div><h3 className="mt-8 font-display text-2xl font-bold tracking-[-0.035em] text-[var(--lr-text)]">{title}</h3><p className="mt-3 leading-7 text-[var(--lr-text-2)]">{body}</p></article>;
 }
 
 function PrincipleCard({ title, body }) {
-  return <article className="rounded-[28px] border border-[var(--lr-border)] bg-white p-6"><h3 className="text-xl font-semibold tracking-[-0.025em] text-[var(--lr-text)]">{title}</h3><p className="mt-4 leading-7 text-[var(--lr-text-2)]">{body}</p></article>;
+  return <article className="rounded-[22px] border border-[var(--lr-border)] bg-white p-6"><h3 className="font-display text-2xl font-bold tracking-[-0.035em] text-[var(--lr-text)]">{title}</h3><p className="mt-4 leading-7 text-[var(--lr-text-2)]">{body}</p></article>;
+}
+
+function FAQRow({ question, answer }) {
+  return (
+    <details className="group rounded-[22px] border border-[var(--lr-border)] bg-white shadow-[var(--lr-shadow-object)] transition-all duration-200 open:shadow-[var(--lr-shadow-tight)] hover:border-[#BFD0F5]">
+      <summary className="flex min-h-[80px] cursor-pointer list-none items-center justify-between gap-6 px-6 py-5 font-display text-2xl font-bold tracking-[-0.035em] text-[var(--lr-text)] marker:hidden md:px-8 [&::-webkit-details-marker]:hidden">
+        <span>{question}</span>
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[var(--lr-border)] bg-[var(--lr-blue-tint)] text-[var(--lr-blue-strong)] transition-transform duration-200 group-open:rotate-180">
+          <ChevronDown className="h-5 w-5" aria-hidden="true" />
+        </span>
+      </summary>
+      <p className="max-w-4xl border-t border-[var(--lr-border)] px-6 pb-7 pt-5 leading-7 text-[var(--lr-text-2)] md:px-8">{answer}</p>
+    </details>
+  );
 }
 
 function SignIn({ currentUser, goPublic, goApp, onAuthProvider, onEmailAuthenticated }) {
@@ -975,7 +1026,7 @@ function SignIn({ currentUser, goPublic, goApp, onAuthProvider, onEmailAuthentic
           <Badge tone="green">Signed in</Badge>
           <h1 className="mt-5 text-4xl font-semibold tracking-[-0.035em]">Welcome back to LaunchRelay.</h1>
           <p className="mx-auto mt-4 max-w-xl leading-7 text-[var(--lr-text-2)]">Your account session is active. Continue into the product workspace.</p>
-          <Button onClick={() => goApp("workspace")} className="mt-6 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">Open workspace</Button>
+          <Button onClick={() => goApp("workspace")} className="mt-6 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#1D46B8]">Open workspace</Button>
         </section>
       </main>
     );
@@ -996,7 +1047,7 @@ function SignIn({ currentUser, goPublic, goApp, onAuthProvider, onEmailAuthentic
           <label htmlFor="sign-in-password" className="block"><span className="mb-2 block text-sm font-medium text-[var(--lr-text)]">Password</span><Input id="sign-in-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="h-11 rounded-xl border-[var(--lr-border)] bg-white text-[var(--lr-text)] shadow-sm" /></label>
           {emailMode === "verify" && <Field label="Verification code" value={otpCode} onChange={setOtpCode} help="Enter the code Base44 sent to your email." />}
           {emailStatus && <div className={`rounded-xl border px-3 py-2 text-sm ${emailStatus.tone === "error" ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}>{emailStatus.message}</div>}
-          <Button type="submit" disabled={emailBusy} className="h-11 w-full rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e] disabled:opacity-70">{emailBusy ? "Working..." : emailMode === "signup" ? "Create account" : emailMode === "verify" ? "Verify and open workspace" : "Sign in with email"}</Button>
+          <Button type="submit" disabled={emailBusy} className="h-11 w-full rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8] disabled:opacity-70">{emailBusy ? "Working..." : emailMode === "signup" ? "Create account" : emailMode === "verify" ? "Verify and open workspace" : "Sign in with email"}</Button>
         </form>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm">
           <button type="button" onClick={() => { setEmailMode(emailMode === "signup" ? "login" : "signup"); setEmailStatus(null); }} className="font-medium text-[var(--lr-blue)] underline-offset-4 hover:underline">{emailMode === "signup" ? "Already have an account? Sign in" : "Create an email account"}</button>
@@ -1012,7 +1063,7 @@ function Sidebar({ view, goApp, goPublic, workspace, currentUser, demoMode, onLo
   return (
     <>
       <div className={`fixed inset-0 z-40 bg-slate-950/20 backdrop-blur-sm lg:hidden ${sidebarOpen ? "block" : "hidden"}`} onClick={() => setSidebarOpen(false)} />
-      <aside className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-[var(--lr-border)] bg-white transition-[transform,width] duration-200 lg:translate-x-0 ${sidebarCollapsed ? "lg:w-20" : "lg:w-72"} ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-[var(--lr-border)] bg-[#F6F9FF] transition-[transform,width] duration-200 lg:translate-x-0 ${sidebarCollapsed ? "lg:w-20" : "lg:w-72"} ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className={`flex items-center border-b border-[var(--lr-border)] px-5 py-4 ${sidebarCollapsed ? "lg:justify-center lg:px-3" : "justify-between"}`}>
           <button onClick={() => goPublic("public-home")} className={`flex items-center gap-3 text-left ${sidebarCollapsed ? "lg:justify-center" : ""}`} aria-label="Open public home">
             <BrandMark />
@@ -1039,7 +1090,7 @@ function Sidebar({ view, goApp, goPublic, workspace, currentUser, demoMode, onLo
 function SidebarNavButton({ item, active, goApp, sidebarCollapsed }) {
   const Icon = item.icon;
   return (
-    <button onClick={() => goApp(item.id)} title={sidebarCollapsed ? item.label : undefined} className={`flex w-full items-center rounded-xl py-2.5 text-sm font-medium transition ${sidebarCollapsed ? "justify-center px-2" : "gap-3 px-3"} ${active ? "bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)] hover:text-[var(--lr-text)]"}`}>
+    <button onClick={() => goApp(item.id)} title={sidebarCollapsed ? item.label : undefined} className={`flex w-full items-center rounded-xl py-2.5 text-sm font-semibold transition ${sidebarCollapsed ? "justify-center px-2" : "gap-3 px-3"} ${active ? "border border-[var(--lr-border)] bg-white text-[var(--lr-blue-strong)]" : "text-[var(--lr-text-2)] hover:bg-white hover:text-[var(--lr-text)]"}`}>
       <Icon className="h-4 w-4" aria-hidden="true" />
       <span className={sidebarCollapsed ? "sr-only" : ""}>{item.label}</span>
     </button>
@@ -1051,7 +1102,7 @@ function Topbar({ view, goApp, workspace, currentUser, demoMode, onLogout, userM
   const userName = currentUser ? displayUserName(currentUser) : "LaunchRelay";
   const initials = avatarInitials(userName, currentUser?.email);
   return (
-    <header className="sticky top-0 z-20 border-b border-[var(--lr-border)] bg-[var(--lr-canvas)]/92 px-4 py-3 backdrop-blur sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-20 border-b border-[var(--lr-border)] bg-[var(--lr-canvas)]/88 px-4 py-3 backdrop-blur sm:px-6 lg:px-8">
       <div className="flex items-center gap-3">
         <button className="rounded-xl border border-[var(--lr-border)] bg-white p-2 text-[var(--lr-text-2)] lg:hidden" onClick={() => setSidebarOpen(true)} aria-label="Open sidebar"><Menu className="h-5 w-5" /></button>
         <div className="min-w-0 flex-1">
@@ -1099,7 +1150,7 @@ function SampleWorkspacePanel({ onImport, onHelp }) {
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--lr-text-2)]">Use this to understand the full flow, then import your own repository or notes to start a real source trail.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={onImport} className="min-w-[170px] whitespace-nowrap rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Import your source activity</Button>
+          <Button onClick={onImport} className="min-w-[170px] whitespace-nowrap rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">Import your source activity</Button>
           <Button onClick={onHelp} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">See guide</Button>
         </div>
       </div>
@@ -1128,17 +1179,17 @@ function V2Onboarding({ step, setStep, draft, setDraft, onComplete, improvementC
           <div className="rounded-full bg-[var(--lr-surface-2)] px-3 py-1 text-xs font-medium text-[var(--lr-muted)]">{progressLabel}</div>
         </div>
 
-        {step === "welcome" && <OnboardingFrame headline="Every great story starts with context." support="Before we can discover Highlights worth sharing, we need to understand your product, your audience, and the work behind it. It only takes a few minutes."><Button onClick={() => advance("initiative")} className="mt-7 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">Continue</Button></OnboardingFrame>}
+        {step === "welcome" && <OnboardingFrame headline="Every great story starts with context." support="Before we can discover Highlights worth sharing, we need to understand your product, your audience, and the work behind it. It only takes a few minutes."><Button onClick={() => advance("initiative")} className="mt-7 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#1D46B8]">Continue</Button></OnboardingFrame>}
 
-        {step === "initiative" && <OnboardingFrame headline="What are we working on?" support="An Initiative represents one area of your product. Examples: Search, Dashboard, Authentication."><Field label="Initiative Name" value={draft.initiativeName} onChange={(value) => updateDraft("initiativeName", value)} help="Example: AI Assistant" /><Button onClick={() => advance("details")} className="mt-7 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">Continue</Button></OnboardingFrame>}
+        {step === "initiative" && <OnboardingFrame headline="What are we working on?" support="An Initiative represents one area of your product. Examples: Search, Dashboard, Authentication."><Field label="Initiative Name" value={draft.initiativeName} onChange={(value) => updateDraft("initiativeName", value)} help="Example: AI Assistant" /><Button onClick={() => advance("details")} className="mt-7 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#1D46B8]">Continue</Button></OnboardingFrame>}
 
-        {step === "details" && <OnboardingFrame headline="Tell us about it." support="The answer helps LaunchRelay understand future improvements."><label className="block"><span className="mb-2 block text-sm font-medium text-[var(--lr-text)]">What problem does this solve for users?</span><textarea value={draft.problem} onChange={(event) => updateDraft("problem", event.target.value)} className="min-h-32 w-full rounded-xl border border-[var(--lr-border)] bg-white px-3 py-3 text-sm outline-none focus:border-[var(--lr-orange)] focus:ring-2 focus:ring-[var(--lr-orange-tint)]" /></label><label className="mt-4 block"><span className="mb-2 block text-sm font-medium text-[var(--lr-text)]">Who is this for?</span><select value={draft.audience} onChange={(event) => updateDraft("audience", event.target.value)} className="h-11 w-full rounded-xl border border-[var(--lr-border)] bg-white px-3 text-sm outline-none focus:border-[var(--lr-orange)] focus:ring-2 focus:ring-[var(--lr-orange-tint)]"><option>End Users</option><option>Developers</option><option>Enterprise Admins</option><option>Designers</option><option>Internal Team</option></select></label><Button onClick={() => advance("knowledge")} className="mt-7 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">Continue</Button></OnboardingFrame>}
+        {step === "details" && <OnboardingFrame headline="Tell us about it." support="The answer helps LaunchRelay understand future improvements."><label className="block"><span className="mb-2 block text-sm font-medium text-[var(--lr-text)]">What problem does this solve for users?</span><textarea value={draft.problem} onChange={(event) => updateDraft("problem", event.target.value)} className="min-h-32 w-full rounded-xl border border-[var(--lr-border)] bg-white px-3 py-3 text-sm outline-none focus:border-[var(--lr-orange)] focus:ring-2 focus:ring-[var(--lr-orange-tint)]" /></label><label className="mt-4 block"><span className="mb-2 block text-sm font-medium text-[var(--lr-text)]">Who is this for?</span><select value={draft.audience} onChange={(event) => updateDraft("audience", event.target.value)} className="h-11 w-full rounded-xl border border-[var(--lr-border)] bg-white px-3 text-sm outline-none focus:border-[var(--lr-orange)] focus:ring-2 focus:ring-[var(--lr-orange-tint)]"><option>End Users</option><option>Developers</option><option>Enterprise Admins</option><option>Designers</option><option>Internal Team</option></select></label><Button onClick={() => advance("knowledge")} className="mt-7 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#1D46B8]">Continue</Button></OnboardingFrame>}
 
-        {step === "knowledge" && <OnboardingFrame headline="Where should LaunchRelay learn from?" support="Choose one starting point. Each option is treated equally."><div className="grid gap-3 sm:grid-cols-3">{["GitHub", "Paste Updates", "Release Notes"].map((choice) => <button key={choice} onClick={() => updateDraft("knowledgeChoice", choice)} className={`rounded-2xl border p-4 text-left text-sm transition hover:-translate-y-0.5 hover:shadow-sm ${draft.knowledgeChoice === choice ? "border-[var(--lr-orange)] bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "border-[var(--lr-border)] bg-white text-[var(--lr-text-2)]"}`}>{choice}</button>)}</div><Button onClick={() => advance("analysis")} className="mt-7 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">Continue</Button></OnboardingFrame>}
+        {step === "knowledge" && <OnboardingFrame headline="Where should LaunchRelay learn from?" support="Choose one starting point. Each option is treated equally."><div className="grid gap-3 sm:grid-cols-3">{["GitHub", "Paste Updates", "Release Notes"].map((choice) => <button key={choice} onClick={() => updateDraft("knowledgeChoice", choice)} className={`rounded-2xl border p-4 text-left text-sm transition hover:-translate-y-0.5 hover:shadow-sm ${draft.knowledgeChoice === choice ? "border-[var(--lr-orange)] bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "border-[var(--lr-border)] bg-white text-[var(--lr-text-2)]"}`}>{choice}</button>)}</div><Button onClick={() => advance("analysis")} className="mt-7 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#1D46B8]">Continue</Button></OnboardingFrame>}
 
         {step === "analysis" && <OnboardingFrame headline="Understanding your product..." support="Reading recent improvements... Connecting technical work with user value... Looking for meaningful changes..."><div className="mt-7 flex items-center gap-3 rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4 text-sm text-[var(--lr-text-2)]"><Loader2 className="h-4 w-4 animate-spin text-[var(--lr-orange)]" /> Connecting work with user value...</div></OnboardingFrame>}
 
-        {step === "success" && <OnboardingFrame headline={`We found ${improvementCount} meaningful improvements worth reviewing.`} support="The most interesting one: AI Assistant now remembers previous conversations."><Button onClick={onComplete} className="mt-7 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#d95a2e]">Continue to Review <ArrowRight className="ml-2 h-4 w-4" /></Button></OnboardingFrame>}
+        {step === "success" && <OnboardingFrame headline={`We found ${improvementCount} meaningful improvements worth reviewing.`} support="The most interesting one: AI Assistant now remembers previous conversations."><Button onClick={onComplete} className="mt-7 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#1D46B8]">Continue to Review <ArrowRight className="ml-2 h-4 w-4" /></Button></OnboardingFrame>}
       </section>
     </main>
   );
@@ -1231,7 +1282,7 @@ function ImprovementCard({ cluster, activities, onReview }) {
     <button onClick={onReview} className="group w-full rounded-[24px] border border-[var(--lr-border)] bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0">
-          <h3 className="text-xl font-semibold tracking-[-0.03em] text-[var(--lr-text)]">✨ {cluster.title}</h3>
+          <h3 className="font-display text-xl font-bold tracking-[-0.035em] text-[var(--lr-text)]">{cluster.title}</h3>
           <div className="mt-4 text-sm font-semibold text-[var(--lr-text)]">Why it matters</div>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--lr-text-2)]">{cluster.user_value || cluster.summary}</p>
           <div className="mt-4 text-sm font-semibold text-[var(--lr-text)]">Based on</div>
@@ -1240,7 +1291,7 @@ function ImprovementCard({ cluster, activities, onReview }) {
             {extraCount > 0 && <li>• {extraCount} additional changes</li>}
           </ul>
         </div>
-        <span className="shrink-0 rounded-xl bg-[var(--lr-orange)] px-4 py-2 text-sm font-medium text-white transition group-hover:bg-[#d95a2e]">Review →</span>
+        <span className="shrink-0 rounded-xl bg-[var(--lr-orange)] px-4 py-2 text-sm font-medium text-white transition group-hover:bg-[#1D46B8]">Review →</span>
       </div>
     </button>
   );
@@ -1295,7 +1346,7 @@ function DraftScreen({ cluster, sourceItems, draft, setDraft, onSaveDraft, onPub
 
 function Opportunities({ opportunities, cluster, onCreateOpportunities, onSaveOpportunity, onPromote, onIgnore, isBusy }) {
   return (
-    <Page title="Opportunities" eyebrow="Simple expansion" description="Selected accepted moment → generate ideas → save useful ideas." action={<Button onClick={onCreateOpportunities} disabled={isBusy || !cluster} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Generate ideas</Button>}>
+    <Page title="Opportunities" eyebrow="Simple expansion" description="Selected accepted moment → generate ideas → save useful ideas." action={<Button onClick={onCreateOpportunities} disabled={isBusy || !cluster} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">Generate ideas</Button>}>
       {!cluster ? <EmptyState icon={Lightbulb} eyebrow="Accepted moment required" title="No accepted moment yet" body="Accept a launch moment first. Opportunities expand one reviewed story into useful follow-up ideas." /> : (
         <div className="w-full space-y-5">
           <SectionCard title="Selected accepted moment" description="The source-backed story these ideas will expand.">
@@ -1362,7 +1413,7 @@ function HelpDocsScreen({ goApp }) {
         </SectionCard>
         <SectionCard title="Need to recover?" description="Use the main workflow screens instead of learning a second interface.">
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            <Button onClick={() => goApp("sources")} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Sources</Button>
+            <Button onClick={() => goApp("sources")} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">Sources</Button>
             <Button onClick={() => goApp("review")} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Moments</Button>
             <Button onClick={() => goApp("draft")} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Studio</Button>
             <Button onClick={() => goApp("library")} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Library</Button>
@@ -1476,7 +1527,7 @@ function ProductProfileStep({ workspace, setWorkspace, onSave, isBusy, onNext })
     <SectionCard title="Step 1: Product Profile" description="Tell LaunchRelay what product this is before adding source activity.">
       <div className="grid gap-4 md:grid-cols-2">{fields.map(([key, label, help]) => <Field key={key} label={label} help={help} value={workspace[key]} onChange={(value) => setWorkspace({ ...workspace, [key]: value })} />)}</div>
       <div className="mt-5 flex flex-wrap gap-2">
-        <Button onClick={onSave} disabled={isBusy} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Save product profile</Button>
+        <Button onClick={onSave} disabled={isBusy} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">Save product profile</Button>
         <Button type="button" onClick={onNext} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Add source activity</Button>
       </div>
     </SectionCard>
@@ -1490,7 +1541,7 @@ function SourceActivityStep({ githubRepoInput, setGithubRepoInput, importPhase, 
         <div className="rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4">
           <h3 className="font-semibold text-[var(--lr-text)]">GitHub repository</h3>
           <Field label="Repository URL or owner/repo" help="Public GitHub URL or owner/repo." value={githubRepoInput} onChange={setGithubRepoInput} />
-          <Button onClick={onGitHubImport} disabled={isBusy} className="mt-4 rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Import GitHub activity</Button>
+          <Button onClick={onGitHubImport} disabled={isBusy} className="mt-4 rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">Import GitHub activity</Button>
           <ImportProgress phase={importPhase} />
         </div>
         <div className="rounded-2xl border border-[var(--lr-border)] bg-white p-4">
@@ -1508,7 +1559,7 @@ function ContinueToMomentsStep({ activities, onDetect, isBusy, onAddMore }) {
     <SectionCard title="Step 3: Continue to Launch Moments" description="Source activity exists. Now detect launch moments from it.">
       <div className="rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4 text-sm text-[var(--lr-text-2)]">{activities.length} source records are ready.</div>
       <div className="mt-5 flex flex-wrap gap-2">
-        <Button onClick={onDetect} disabled={isBusy} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Detect launch moments</Button>
+        <Button onClick={onDetect} disabled={isBusy} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">Detect launch moments</Button>
         <Button type="button" onClick={onAddMore} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Add more activity</Button>
       </div>
       <ActivityDetailsDisclosure activities={activities} />
@@ -1559,7 +1610,7 @@ function ProductContextForm({ workspace, setWorkspace, onSave, isBusy, settingsM
           <p className="mt-3">Save context first, then import evidence. This keeps launch moments practical instead of generic.</p>
         </div>
       </div>
-      <Button onClick={onSave} disabled={isBusy} className="mt-5 rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Save product context</Button>
+      <Button onClick={onSave} disabled={isBusy} className="mt-5 rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">Save product context</Button>
     </SectionCard>
   );
 }
@@ -1611,7 +1662,7 @@ function ManualNotesPanel({ activityText, setActivityText, manualNotes, setManua
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <Button type="button" onClick={addNote} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Add another note</Button>
-        <Button onClick={onImport} disabled={isBusy} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Normalize notes</Button>
+        <Button onClick={onImport} disabled={isBusy} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">Normalize notes</Button>
         <span className="text-sm text-[var(--lr-text-2)]">{activities.length ? `${activities.length} source records currently available.` : "No records imported yet."}</span>
       </div>
     </>
@@ -1713,7 +1764,7 @@ function HighlightReview({ cluster, sources, onContinue }) {
           </div>
         </section>
 
-        <Button onClick={() => onContinue(cluster)} className="mt-8 rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Continue to Draft →</Button>
+        <Button onClick={() => onContinue(cluster)} className="mt-8 rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">Continue to Draft →</Button>
       </article>
     </div>
   );
@@ -1764,7 +1815,7 @@ function StoryEditorWorkspace({ draft, setDraft, onSaveDraft, onPublishDraft, on
           <Input aria-label="Draft title" value={draft.title} onChange={(event) => updateDraft("title", event.target.value)} className="h-12 rounded-xl border-[var(--lr-border)] bg-white text-lg font-semibold text-[var(--lr-text)]" />
           <textarea aria-label="Draft body" value={draft.body} onChange={(event) => updateDraft("body", event.target.value)} className="min-h-[560px] w-full rounded-2xl border border-[var(--lr-border)] bg-white p-5 text-sm leading-7 text-[var(--lr-text)] shadow-sm outline-none focus:ring-2 focus:ring-[var(--lr-orange)]" />
           <div className="flex flex-wrap gap-2 pt-2">
-            <Button onClick={onPublishDraft} disabled={isBusy} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Publish</Button>
+            <Button onClick={onPublishDraft} disabled={isBusy} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">Publish</Button>
             <Button onClick={onSaveDraft} disabled={isBusy} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Save Draft</Button>
           </div>
         </div>
@@ -1790,7 +1841,7 @@ function OpportunityCard({ item, onSave, onPromote, onIgnore }) {
         <InfoLine label="Why it matters" value={item.why_it_matters} />
       </dl>
       <div className="mt-5 flex flex-wrap gap-2">
-        <Button onClick={onSave} disabled={item.status === "saved"} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">{item.status === "saved" ? "Saved" : "Save idea"}</Button>
+        <Button onClick={onSave} disabled={item.status === "saved"} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">{item.status === "saved" ? "Saved" : "Save idea"}</Button>
         <Button onClick={onPromote} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Promote to Draft</Button>
         <Button onClick={onIgnore} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-muted)] hover:bg-[var(--lr-surface-2)]">Ignore</Button>
       </div>
@@ -1819,7 +1870,7 @@ function SuggestedHighlightCard({ cluster, activities, onReview }) {
       <h3 className="font-semibold tracking-[-0.01em] text-[var(--lr-text)]">{cluster.title}</h3>
       <p className="mt-3 text-sm leading-6 text-[var(--lr-text-2)]">{cluster.why_it_matters || cluster.user_value || cluster.summary}</p>
       <p className="mt-4 text-sm font-medium text-[var(--lr-muted)]">Based on {cluster.activity_item_ids?.length || sources.length || 0} sources</p>
-      <Button onClick={() => onReview(cluster)} className="mt-5 rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Review Highlight →</Button>
+      <Button onClick={() => onReview(cluster)} className="mt-5 rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">Review Highlight →</Button>
     </article>
   );
 }
@@ -1858,11 +1909,11 @@ function PreviewColumn({ title, items, tone }) {
 function Page({ eyebrow, title, description, action, children }) {
   return (
     <div className="mx-auto max-w-[1500px] lr-soft-enter">
-      <div className="mb-6 lr-work-surface overflow-hidden bg-[linear-gradient(135deg,#fff_0%,#fff_58%,var(--lr-orange-tint)_145%)] p-5 md:p-6">
+      <div className="mb-6 lr-work-surface overflow-hidden bg-[linear-gradient(135deg,#fff_0%,#fff_62%,var(--lr-blue-tint)_150%)] p-5 md:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            {eyebrow && <div className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--lr-orange)]">{eyebrow}</div>}
-            <h1 className="mt-2 max-w-4xl text-3xl font-semibold tracking-[-0.04em] text-[var(--lr-text)] md:text-[2.45rem] md:leading-[1.05]">{title}</h1>
+            {eyebrow && <div className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--lr-blue-strong)]">{eyebrow}</div>}
+            <h1 className="mt-2 max-w-4xl font-display text-3xl font-bold tracking-[-0.045em] text-[var(--lr-text)] md:text-[2.45rem] md:leading-[1.05]">{title}</h1>
             {description && <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--lr-text-2)] md:text-[15px]">{description}</p>}
           </div>
           {action && <div className="flex shrink-0 gap-2">{action}</div>}
@@ -1875,7 +1926,7 @@ function Page({ eyebrow, title, description, action, children }) {
 
 function SectionCard({ title, description, children, compact = false, level = "supporting" }) {
   const surfaceClass = level === "work" ? "lr-work-surface" : "lr-supporting-panel";
-  return <section className={`${surfaceClass} ${compact ? "p-4" : "p-5"}`}><div className="mb-4"><h2 className="text-[17px] font-semibold tracking-[-0.018em] text-[var(--lr-text)]">{title}</h2>{description && <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--lr-text-2)]">{description}</p>}</div>{children}</section>;
+  return <section className={`${surfaceClass} ${compact ? "p-4" : "p-5"}`}><div className="mb-4"><h2 className="font-display text-[17px] font-bold tracking-[-0.025em] text-[var(--lr-text)]">{title}</h2>{description && <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--lr-text-2)]">{description}</p>}</div>{children}</section>;
 }
 
 function ChecklistStep({ step, active }) {
@@ -1951,7 +2002,7 @@ function EmptyState({ icon: Icon, eyebrow, title, body, actionLabel, onAction, s
       {eyebrow && <div className="mt-4 text-xs font-medium uppercase tracking-[0.08em] text-[var(--lr-muted)]">{eyebrow}</div>}
       <h3 className={eyebrow ? "mt-2 font-semibold" : "mt-4 font-semibold"}>{title}</h3>
       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--lr-text-2)]">{body}</p>
-      {(actionLabel || secondaryLabel) && <div className="mt-4 flex flex-wrap justify-center gap-2">{actionLabel && <Button onClick={onAction} disabled={disabled} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">{actionLabel}</Button>}{secondaryLabel && <Button onClick={onSecondary} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">{secondaryLabel}</Button>}</div>}
+      {(actionLabel || secondaryLabel) && <div className="mt-4 flex flex-wrap justify-center gap-2">{actionLabel && <Button onClick={onAction} disabled={disabled} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">{actionLabel}</Button>}{secondaryLabel && <Button onClick={onSecondary} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">{secondaryLabel}</Button>}</div>}
     </div>
   );
 }
@@ -1976,11 +2027,11 @@ function TabButton({ active, onClick, children }) {
 
 function Badge({ children, tone = "orange" }) {
   const classes = {
-    orange: "border-[rgba(216,93,51,0.22)] bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]",
-    blue: "border-[rgba(54,95,232,0.18)] bg-[#EEF2FF] text-[var(--lr-blue)]",
-    green: "border-[rgba(31,157,104,0.18)] bg-[#EAF8F1] text-[var(--lr-green)]",
+    orange: "border-[rgba(79,124,255,0.22)] bg-[var(--lr-blue-tint)] text-[var(--lr-blue-strong)]",
+    blue: "border-[rgba(79,124,255,0.22)] bg-[var(--lr-blue-tint)] text-[var(--lr-blue-strong)]",
+    green: "border-[rgba(104,207,160,0.22)] bg-[#ECFBF3] text-[#247557]",
   };
-  return <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${classes[tone] || classes.orange}`}>{children}</span>;
+  return <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold uppercase tracking-[0.14em] ${classes[tone] || classes.orange}`}>{children}</span>;
 }
 
 function StatusIcon({ tone }) {
