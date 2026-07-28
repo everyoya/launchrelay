@@ -38,29 +38,30 @@ test('library cards are simplified and suggested highlights open Review', () => 
   assert.match(appSource, /Published content stays here as a receipt/);
 });
 
-test('settings is a lightweight control panel with ordered card sections', () => {
+test('settings is a lightweight control panel with ordered card sections and BYO AI', () => {
   assert.match(settingsSource, /function SettingsScreen/);
   assert.match(settingsSource, /Profile/);
   assert.match(settingsSource, /Connected Sources/);
-  assert.match(settingsSource, /AI Preferences/);
+  assert.match(settingsSource, /Bring your own AI/);
   assert.match(settingsSource, /Publishing/);
   assert.match(settingsSource, /Workspace/);
   assert.match(settingsSource, /Notifications/);
   assert.match(settingsSource, /Account/);
   assert.match(settingsSource, /Sign Out/);
-  assert.doesNotMatch(settingsSource, /AI model connection/);
-  assert.doesNotMatch(settingsSource, /Base44-supported model/);
-  assert.doesNotMatch(settingsSource, /Deterministic generation/);
+  assert.match(settingsSource, /Provider/);
+  assert.match(settingsSource, /Model/);
+  assert.match(settingsSource, /API key/);
+  assert.match(settingsSource, /Your key is only sent to the Base44 backend when you click Generate/);
   assert.doesNotMatch(settingsSource, /Account & billing/);
 });
 
-test('settings rows stay simple and avoid advanced AI controls', () => {
+test('settings rows keep AI cost under the user provider key, not app secrets', () => {
   assert.match(settingsSource, /function SettingsRow/);
-  assert.match(settingsSource, /Automatically detect new Highlights/);
-  assert.match(settingsSource, /Notify me when new Highlights are found/);
+  assert.match(settingsSource, /No LaunchRelay-owned AI key is used for generation/);
+  assert.match(settingsSource, /Session only/);
   assert.match(settingsSource, /Theme/);
   assert.match(settingsSource, /Start on/);
   assert.match(settingsSource, /GitHub/);
   assert.match(settingsSource, /Manual Uploads/);
-  assert.doesNotMatch(settingsSource, /prompts|models|temperature|tokens/i);
+  assert.doesNotMatch(settingsSource, /OPENAI_API_KEY|ANTHROPIC_API_KEY|Base44 InvokeLLM/);
 });

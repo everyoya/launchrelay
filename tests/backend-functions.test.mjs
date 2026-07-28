@@ -5,6 +5,7 @@ import { handler as normalizeActivity } from '../base44/functions/normalizeActiv
 import { handler as importPublicGitHubActivity } from '../base44/functions/importPublicGitHubActivity/entry.js';
 import { handler as detectLaunchMoments } from '../base44/functions/detectLaunchMoments/entry.js';
 import { handler as expandOpportunities } from '../base44/functions/expandOpportunities/entry.js';
+import { handler as runUserAiGeneration } from '../base44/functions/runUserAiGeneration/entry.js';
 
 test('normalizeActivity backend function returns normalized activity records', async () => {
   const result = await normalizeActivity({
@@ -119,4 +120,78 @@ test('expandOpportunities backend function creates five follow-up opportunities'
   assert.equal(result.functionName, 'expandOpportunities');
   assert.equal(result.count, 5);
   assert.deepEqual(result.opportunities.map((item) => item.format), ['tutorial', 'faq', 'docs', 'use_case', 'enablement']);
+});
+
+test('runUserAiGeneration refuses to use app-owned AI credentials when user key is missing', async () => {
+  const originalFetch = globalThis.fetch;
+  let fetchCalled = false;
+  globalThis.fetch = async () => {
+    fetchCalled = true;
+    throw new Error('fetch should not be called without a user API key');
+  };
+
+  try {
+    const result = await runUserAiGeneration({
+      task: 'draft',
+      provider: 'openai',
+      model: 'gpt-4o-mini',
+      workspace: { name: 'LaunchRelay' },
+      cluster: { title: 'Faster onboarding' },
+      sources: [],
+    });
+
+    assert.equal(result.ok, false);
+    assert.equal(result.code, 'user_ai_key_required');
+    assert.equal(result.billedTo, 'none');
+    assert.equal(fetchCalled, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('runUserAiGeneration calls OpenAI with the user supplied key and structured JSON prompt', async () => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url, options = {}) => {
+    calls.push({ url, options });
+    return new Response(JSON.stringify({
+      choices: [{
+        message: {
+          content: JSON.stringify({
+            title: 'Faster onboarding for new teams',
+            body: 'Source-grounded draft body.',
+            source_summary: 'Generated from 2 source receipts.',
+          }),
+        },
+      }],
+      usage: { total_tokens: 321 },
+    }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+
+  try {
+    const result = await runUserAiGeneration({
+      task: 'draft',
+      provider: 'openai',
+      model: 'gpt-4o-mini',
+      apiKey: 'user-owned-openai-key',
+      workspace: { name: 'LaunchRelay', target_audience: 'Product educators' },
+      cluster: { title: 'Faster onboarding', user_value: 'Less setup friction.' },
+      sources: [{ id: 'activity_1', title: 'PR: Added onboarding checklist' }],
+      maxOutputTokens: 1200,
+    });
+
+    assert.equal(result.ok, true);
+    assert.equal(result.billedTo, 'user_provider_key');
+    assert.equal(result.provider, 'openai');
+    assert.equal(result.output.title, 'Faster onboarding for new teams');
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].url, 'https://api.openai.com/v1/chat/completions');
+    assert.equal(calls[0].options.headers.Authorization, 'Bearer user-owned-openai-key');
+    const body = JSON.parse(calls[0].options.body);
+    assert.equal(body.model, 'gpt-4o-mini');
+    assert.equal(body.response_format.type, 'json_object');
+    assert.match(body.messages[1].content, /PR: Added onboarding checklist/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });

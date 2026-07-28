@@ -129,6 +129,7 @@ export default function App() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState("welcome");
   const [onboardingDraft, setOnboardingDraft] = useState({ initiativeName: "", problem: "", audience: "End Users", knowledgeChoice: "GitHub" });
+  const [aiConnection, setAiConnection] = useState(() => loadAiConnection());
   const [isBusy, setIsBusy] = useState(false);
   const [importPhase, setImportPhase] = useState("idle");
   const [status, setStatus] = useState(null);
@@ -505,13 +506,25 @@ export default function App() {
     const workspaceId = activeWorkspace.id;
 
     try {
-      const response = await invokeFunctionWithTimeout("detectLaunchMoments", {
-        activityItems: activities,
-        workspaceId,
-        targetAudience: workspace.target_audience,
-        manualContext: workspace.positioning_notes,
-      });
-      const generated = response.data.launchClusters || [];
+      const aiReady = isAiConnectionReady(aiConnection);
+      const response = aiReady
+        ? await runUserAiTask({
+          aiConnection,
+          task: "detect",
+          workspace,
+          sources: activities,
+          maxOutputTokens: 1100,
+        })
+        : await invokeFunctionWithTimeout("detectLaunchMoments", {
+          activityItems: activities,
+          workspaceId,
+          targetAudience: workspace.target_audience,
+          manualContext: workspace.positioning_notes,
+        });
+      const responseData = response.data || response;
+      const generated = aiReady
+        ? normalizeAiLaunchClusters(responseData.output?.launchClusters, activities, workspaceId, aiConnection)
+        : responseData.launchClusters || [];
       const saved = [];
       for (const cluster of generated) {
         const { id, ...payload } = cluster;
@@ -519,7 +532,7 @@ export default function App() {
       }
       setClusters(saved);
       setSelectedCluster(saved[0] || null);
-      setStatus({ tone: "success", message: "Launch moments detected and saved with source links." });
+      setStatus({ tone: "success", message: aiReady ? "AI detected launch moments using your connected provider." : "Launch moments detected and saved with source links." });
       goApp("review");
     } catch (error) {
       console.error(error);
@@ -559,30 +572,48 @@ export default function App() {
       return;
     }
     setIsBusy(true);
-    setStatus({ tone: "loading", message: "Creating a source-grounded draft with guardrails..." });
+    const aiReady = isAiConnectionReady(aiConnection);
+    setStatus({ tone: "loading", message: aiReady ? "Asking your connected AI provider to create a source-grounded draft..." : "Creating a source-grounded draft with guardrails..." });
     const sourceItems = activities.filter((item) => acceptedCluster.activity_item_ids?.includes(item.id));
     const activeWorkspace = await ensureWorkspaceRecord();
-    const guardrailed = createGuardrailedDraft({ workspace, cluster: acceptedCluster, sources: sourceItems });
+    let aiDraft = null;
+    if (aiReady) {
+      try {
+        const response = await runUserAiTask({
+          aiConnection,
+          task: "draft",
+          workspace,
+          cluster: acceptedCluster,
+          sources: sourceItems,
+          maxOutputTokens: 1300,
+        });
+        aiDraft = response.output;
+      } catch (error) {
+        console.error(error);
+        setStatus({ tone: "warning", message: "Your AI provider did not return a usable draft. Falling back to LaunchRelay guardrails." });
+      }
+    }
+    const guardrailed = aiDraft ? null : createGuardrailedDraft({ workspace, cluster: acceptedCluster, sources: sourceItems });
     const draftPayload = {
       workspace_id: activeWorkspace.id,
       launch_cluster_id: acceptedCluster.id,
       draft_type: "feature_launch",
-      title: guardrailed.title,
-      body: guardrailed.body,
+      title: aiDraft?.title || guardrailed.title,
+      body: aiDraft?.body || guardrailed.body,
       status: "draft",
-      source_summary: `Generated from ${sourceItems.length} accepted source activities with the ${guardrailed.template_label} harness and ${guardrailed.psychological_driver} driver.`,
-      generation_inputs_snapshot: JSON.stringify({ workspace, cluster: acceptedCluster, guardrails: guardrailed }),
+      source_summary: aiDraft?.source_summary || `Generated from ${sourceItems.length} accepted source activities with the ${guardrailed.template_label} harness and ${guardrailed.psychological_driver} driver.`,
+      generation_inputs_snapshot: JSON.stringify(aiDraft ? { workspace, cluster: acceptedCluster, ai_provider: aiConnection.provider, model: aiConnection.model, source_count: sourceItems.length } : { workspace, cluster: acceptedCluster, guardrails: guardrailed }),
       source_activity_item_ids: acceptedCluster.activity_item_ids || [],
     };
 
     try {
       const saved = await Draft.create(draftPayload);
       setDraft(saved);
-      setStatus({ tone: "success", message: "Draft saved with source references and guardrail metadata." });
+      setStatus({ tone: "success", message: aiDraft ? "AI draft saved with source references. Billed to the user provider key." : "Draft saved with source references and guardrail metadata." });
     } catch (error) {
       console.error(error);
       setDraft({ ...draftPayload, id: "local_draft_1" });
-      setStatus({ tone: "warning", message: "Draft created locally with source references and guardrail metadata." });
+      setStatus({ tone: "warning", message: aiDraft ? "AI draft created locally with source references." : "Draft created locally with source references and guardrail metadata." });
     } finally {
       setIsBusy(false);
     }
@@ -595,17 +626,23 @@ export default function App() {
       return;
     }
     setIsBusy(true);
-    setStatus({ tone: "loading", message: "Expanding one shipped moment into follow-up education opportunities..." });
+    const aiReady = isAiConnectionReady(aiConnection);
+    setStatus({ tone: "loading", message: aiReady ? "Asking your connected AI provider for source-grounded follow-up ideas..." : "Expanding one shipped moment into follow-up education opportunities..." });
     const activeWorkspace = await ensureWorkspaceRecord();
     const workspaceId = activeWorkspace.id;
 
     try {
-      const response = await invokeFunctionWithTimeout("expandOpportunities", { cluster: acceptedCluster, workspaceId });
-      const generated = response.data.opportunities || [];
+      const response = aiReady
+        ? await runUserAiTask({ aiConnection, task: "opportunities", workspace, cluster: acceptedCluster, sources: acceptedSources, maxOutputTokens: 1300 })
+        : await invokeFunctionWithTimeout("expandOpportunities", { cluster: acceptedCluster, workspaceId });
+      const responseData = response.data || response;
+      const generated = aiReady
+        ? normalizeAiOpportunities(responseData.output?.opportunities, acceptedCluster, workspaceId)
+        : responseData.opportunities || [];
       const saved = [];
       for (const opportunity of generated) saved.push(await Opportunity.create(opportunity));
       setOpportunities(saved);
-      setStatus({ tone: "success", message: "Five follow-up education opportunities created." });
+      setStatus({ tone: "success", message: aiReady ? "AI generated follow-up opportunities using your provider key." : "Five follow-up education opportunities created." });
       goApp("opportunities");
     } catch (error) {
       console.error(error);
@@ -740,7 +777,7 @@ export default function App() {
             {renderedView === "draft" && <DraftScreen cluster={acceptedCluster} sourceItems={acceptedSources} draft={draft} setDraft={setDraft} onSaveDraft={saveDraft} onPublishDraft={publishDraft} onCreateDraft={createDraft} isBusy={isBusy} onBack={() => goApp("review")} />}
             {renderedView === "opportunities" && <Opportunities opportunities={visibleOpportunities} cluster={acceptedCluster} onCreateOpportunities={createOpportunities} onSaveOpportunity={saveOpportunity} onPromote={promoteOpportunity} onIgnore={ignoreOpportunity} isBusy={isBusy} />}
             {renderedView === "library" && <LibraryScreen libraryTab={libraryTab} setLibraryTab={setLibraryTab} draftRows={draftRows} clusters={clusters} activities={activities} onReview={(cluster) => { setSelectedCluster(cluster); goApp("review"); }} onDraft={() => goApp("draft")} onWorkspace={() => goApp("workspace")} librarySearch={librarySearch} setLibrarySearch={setLibrarySearch} />}
-            {renderedView === "settings" && <SettingsScreen workspace={workspace} currentUser={currentUser} demoMode={demoMode} onLogout={logout} githubRepoInput={githubRepoInput} activities={activities} />}
+            {renderedView === "settings" && <SettingsScreen workspace={workspace} currentUser={currentUser} demoMode={demoMode} onLogout={logout} githubRepoInput={githubRepoInput} activities={activities} aiConnection={aiConnection} setAiConnection={setAiConnection} />}
             {renderedView === "help" && <HelpDocsScreen goApp={goApp} />}
           </main>
         </div>
@@ -1424,7 +1461,33 @@ function HelpDocsScreen({ goApp }) {
   );
 }
 
-function SettingsScreen({ workspace, currentUser, demoMode, onLogout, githubRepoInput, activities }) {
+function SettingsScreen({ workspace, currentUser, demoMode, onLogout, githubRepoInput, activities, aiConnection, setAiConnection }) {
+  const [draftConnection, setDraftConnection] = useState(aiConnection || defaultAiConnection());
+  const connected = isAiConnectionReady(aiConnection);
+
+  function updateConnection(field, value) {
+    setDraftConnection((current) => ({ ...current, [field]: value }));
+  }
+
+  function saveConnection() {
+    const normalized = {
+      ...draftConnection,
+      provider: draftConnection.provider || "openai",
+      model: draftConnection.model || defaultModelForProvider(draftConnection.provider),
+      keyMasked: maskApiKey(draftConnection.apiKey) || draftConnection.keyMasked || "Session only",
+      connectedAt: new Date().toISOString(),
+    };
+    saveAiConnection(normalized);
+    setAiConnection(normalized);
+  }
+
+  function disconnectConnection() {
+    clearAiConnection();
+    const cleared = defaultAiConnection();
+    setDraftConnection(cleared);
+    setAiConnection(cleared);
+  }
+
   return (
     <Page title="Settings">
       <div className="space-y-5">
@@ -1440,9 +1503,38 @@ function SettingsScreen({ workspace, currentUser, demoMode, onLogout, githubRepo
           <SettingsRow label="Manual Uploads" value={activities.length ? "Available" : "Available"} action="Upload →" />
         </SettingsCard>
 
-        <SettingsCard title="AI Preferences">
-          <SettingsRow label="Automatically detect new Highlights" value="ON" />
-          <SettingsRow label="Notify me when new Highlights are found" value="OFF" />
+        <SettingsCard title="Bring your own AI">
+          <div className="space-y-4 py-3">
+            <div className="rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4 text-sm leading-6 text-[var(--lr-text-2)]">
+              <div className="font-semibold text-[var(--lr-text)]">No LaunchRelay-owned AI key is used for generation.</div>
+              <p className="mt-1">Your key is only sent to the Base44 backend when you click Generate. The backend uses it once for that request, so AI usage is billed to your provider account, not LaunchRelay.</p>
+            </div>
+            <label className="block">
+              <span className="mb-2 block text-sm font-medium text-[var(--lr-text)]">Provider</span>
+              <select value={draftConnection.provider} onChange={(event) => {
+                const provider = event.target.value;
+                setDraftConnection((current) => ({ ...current, provider, model: defaultModelForProvider(provider) }));
+              }} className="h-11 w-full rounded-xl border border-[var(--lr-border)] bg-white px-3 text-sm text-[var(--lr-text)] shadow-sm outline-none focus:ring-2 focus:ring-[var(--lr-orange)]">
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Anthropic</option>
+                <option value="gemini">Gemini</option>
+                <option value="openrouter">OpenRouter</option>
+                <option value="custom_openai">Custom OpenAI-compatible</option>
+              </select>
+            </label>
+            <Field label="Model" value={draftConnection.model} onChange={(value) => updateConnection("model", value)} help="Example: gpt-4o-mini, claude-3-5-haiku-latest, gemini-1.5-flash, or an OpenRouter model slug." />
+            {draftConnection.provider === "custom_openai" && <Field label="Endpoint URL" value={draftConnection.endpointUrl} onChange={(value) => updateConnection("endpointUrl", value)} help="Base URL or /chat/completions URL for an OpenAI-compatible API." />}
+            <label className="block">
+              <span className="mb-2 block text-sm font-medium text-[var(--lr-text)]">API key</span>
+              <Input type="password" value={draftConnection.apiKey || ""} onChange={(event) => updateConnection("apiKey", event.target.value)} placeholder={aiConnection?.keyMasked || "Paste your provider key"} className="h-11 rounded-xl border-[var(--lr-border)] bg-white text-[var(--lr-text)] shadow-sm" />
+              <span className="mt-1 block text-xs leading-5 text-[var(--lr-muted)]">Session only. LaunchRelay stores provider/model metadata in this browser, but the raw key is kept only in session storage.</span>
+            </label>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button onClick={saveConnection} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">{connected ? "Update AI connection" : "Connect AI"}</Button>
+              <Button onClick={disconnectConnection} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Disconnect</Button>
+              <span className="text-sm text-[var(--lr-muted)]">{connected ? `Connected: ${aiConnection.provider} · ${aiConnection.model} · ${aiConnection.keyMasked || "Session only"}` : "Not connected"}</span>
+            </div>
+          </div>
         </SettingsCard>
 
         <SettingsCard title="Publishing">
@@ -2120,6 +2212,108 @@ function sameOpportunity(left, right) {
 function compileManualNotes(manualNotes = [], fallbackText = "") {
   const noteText = manualNotes.map((note) => note.body.trim()).filter(Boolean).join("\n");
   return noteText || fallbackText;
+}
+
+function defaultAiConnection() {
+  return { provider: "openai", model: "gpt-4o-mini", endpointUrl: "", apiKey: "", keyMasked: "" };
+}
+
+function defaultModelForProvider(provider) {
+  const models = {
+    openai: "gpt-4o-mini",
+    anthropic: "claude-3-5-haiku-latest",
+    gemini: "gemini-1.5-flash",
+    openrouter: "openai/gpt-4o-mini",
+    custom_openai: "gpt-4o-mini",
+  };
+  return models[provider] || models.openai;
+}
+
+function loadAiConnection() {
+  if (typeof window === "undefined") return defaultAiConnection();
+  try {
+    const metadata = JSON.parse(window.localStorage.getItem("launchrelay_ai_connection") || "{}");
+    const apiKey = window.sessionStorage.getItem("launchrelay_user_ai_key") || "";
+    return { ...defaultAiConnection(), ...metadata, apiKey };
+  } catch (error) {
+    return defaultAiConnection();
+  }
+}
+
+function saveAiConnection(connection) {
+  if (typeof window === "undefined") return;
+  const { apiKey, ...metadata } = connection;
+  window.localStorage.setItem("launchrelay_ai_connection", JSON.stringify(metadata));
+  if (apiKey) window.sessionStorage.setItem("launchrelay_user_ai_key", apiKey);
+}
+
+function clearAiConnection() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem("launchrelay_ai_connection");
+  window.sessionStorage.removeItem("launchrelay_user_ai_key");
+}
+
+function maskApiKey(apiKey = "") {
+  const value = String(apiKey || "").trim();
+  if (!value) return "";
+  if (value.length <= 8) return "Session only";
+  return `${value.slice(0, 4)}…${value.slice(-4)}`;
+}
+
+function isAiConnectionReady(connection) {
+  return Boolean(connection?.provider && connection?.model && connection?.apiKey);
+}
+
+async function runUserAiTask({ aiConnection, task, workspace, cluster, sources, maxOutputTokens }) {
+  const response = await invokeFunctionWithTimeout("runUserAiGeneration", {
+    task,
+    provider: aiConnection.provider,
+    model: aiConnection.model,
+    endpointUrl: aiConnection.endpointUrl,
+    apiKey: aiConnection.apiKey,
+    workspace,
+    cluster,
+    sources,
+    maxOutputTokens,
+  }, 22000);
+  const data = response.data || response;
+  if (!data.ok) throw new Error(data.message || "AI generation failed.");
+  return data;
+}
+
+function normalizeAiLaunchClusters(aiClusters, activities, workspaceId, aiConnection) {
+  const fallbackSourceIds = activities.map((item) => item.id).filter(Boolean);
+  return (Array.isArray(aiClusters) ? aiClusters : []).slice(0, 3).map((cluster, index) => {
+    const sourceIds = Array.isArray(cluster.activity_item_ids) && cluster.activity_item_ids.length ? cluster.activity_item_ids : fallbackSourceIds;
+    return {
+      workspace_id: workspaceId,
+      title: cluster.title || `AI Highlight ${index + 1}`,
+      summary: cluster.summary || cluster.why_it_matters || "AI found a source-backed product education opportunity.",
+      why_it_matters: cluster.why_it_matters || cluster.user_value || "This shipped work may help users understand new value.",
+      user_value: cluster.user_value || cluster.why_it_matters || "Clearer product education from shipped work.",
+      audience: cluster.audience || "Product users",
+      confidence_label: cluster.confidence_label || "medium",
+      status: "suggested",
+      detection_reason: cluster.detection_reason || `Generated by ${aiConnection.provider} from selected source activity.`,
+      created_from: "user_ai_provider",
+      activity_item_ids: sourceIds,
+    };
+  });
+}
+
+function normalizeAiOpportunities(aiOpportunities, cluster, workspaceId) {
+  return (Array.isArray(aiOpportunities) ? aiOpportunities : []).slice(0, 5).map((item) => ({
+    workspace_id: workspaceId,
+    launch_cluster_id: cluster.id,
+    title: item.title || "Follow-up product education idea",
+    angle: item.angle || item.summary || item.why_it_matters || "Source-grounded follow-up angle.",
+    audience: item.audience || cluster.audience || "Product users",
+    format: item.format || "tutorial",
+    why_it_matters: item.why_it_matters || "Helps users understand the accepted Highlight.",
+    suggested_next_step: item.suggested_next_step || "Turn this into an editable draft.",
+    source_reasoning: item.source_reasoning || `Derived from the accepted Highlight: ${cluster.title}.`,
+    status: item.status || "suggested",
+  }));
 }
 
 
