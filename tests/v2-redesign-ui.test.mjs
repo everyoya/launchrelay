@@ -4,8 +4,10 @@ import { readFileSync } from 'node:fs';
 
 const appSource = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8');
 
-test('v2 primary navigation uses only the five GLOBAL destinations', () => {
-  assert.match(appSource, /const appNav = \[\s*\{ id: "workspace", label: "Workspace", icon: Home \},\s*\{ id: "review", label: "Review", icon: CircleDot \},\s*\{ id: "draft", label: "Draft", icon: PenLine \},\s*\{ id: "library", label: "Library", icon: Library \},\s*\{ id: "settings", label: "Settings", icon: Settings \},\s*\];/s);
+test('v2 navigation keeps core workflow primary and moves settings to the bottom', () => {
+  assert.match(appSource, /const appNav = \[\s*\{ id: "workspace", label: "Workspace", icon: Home \},\s*\{ id: "review", label: "Review", icon: CircleDot \},\s*\{ id: "draft", label: "Draft", icon: PenLine \},\s*\{ id: "library", label: "Library", icon: Library \},\s*\];/s);
+  assert.match(appSource, /const secondaryAppNav = \[\s*\{ id: "settings", label: "Settings", icon: Settings \},\s*\];/s);
+  assert.match(appSource, /aria-label="Workspace settings navigation"/);
   assert.doesNotMatch(appSource, /\{ id: "sources", label: "Sources"/);
   assert.doesNotMatch(appSource, /\{ id: "opportunities", label: "Opportunities"/);
   assert.doesNotMatch(appSource, /\{ id: "help", label: "Help/);

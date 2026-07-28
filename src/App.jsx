@@ -47,6 +47,9 @@ const appNav = [
   { id: "review", label: "Review", icon: CircleDot },
   { id: "draft", label: "Draft", icon: PenLine },
   { id: "library", label: "Library", icon: Library },
+];
+
+const secondaryAppNav = [
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
@@ -56,7 +59,7 @@ const legacyRouteAliases = {
   "launch-moments": "review",
   "story-studio": "draft",
 };
-const appRouteIds = [...appNav.map((item) => item.id), ...hiddenInternalRouteIds, ...Object.keys(legacyRouteAliases)];
+const appRouteIds = [...appNav.map((item) => item.id), ...secondaryAppNav.map((item) => item.id), ...hiddenInternalRouteIds, ...Object.keys(legacyRouteAliases)];
 const publicRouteIds = ["public-home", "sign-in"];
 
 const sampleActivity = `PR: Added onboarding checklist for first workspace setup
@@ -1022,19 +1025,24 @@ function Sidebar({ view, goApp, goPublic, workspace, currentUser, demoMode, onLo
           <button className="rounded-lg p-2 text-[var(--lr-muted)] hover:bg-[var(--lr-surface-2)] lg:hidden" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar"><X className="h-4 w-4" /></button>
         </div>
         <nav className="flex-1 space-y-1 px-3 pt-6" aria-label="App navigation">
-          {appNav.map(({ id, label, icon: Icon }) => {
-            const active = view === id;
-            return (
-              <button key={id} onClick={() => goApp(id)} title={sidebarCollapsed ? label : undefined} className={`flex w-full items-center rounded-xl py-2.5 text-sm font-medium transition ${sidebarCollapsed ? "justify-center px-2" : "gap-3 px-3"} ${active ? "bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)] hover:text-[var(--lr-text)]"}`}>
-                <Icon className="h-4 w-4" aria-hidden="true" />
-                <span className={sidebarCollapsed ? "sr-only" : ""}>{label}</span>
-              </button>
-            );
-          })}
+          {appNav.map((item) => <SidebarNavButton key={item.id} item={item} active={view === item.id} goApp={goApp} sidebarCollapsed={sidebarCollapsed} />)}
+        </nav>
+        <nav className="border-t border-[var(--lr-border)] px-3 py-4" aria-label="Workspace settings navigation">
+          {secondaryAppNav.map((item) => <SidebarNavButton key={item.id} item={item} active={view === item.id} goApp={goApp} sidebarCollapsed={sidebarCollapsed} />)}
         </nav>
 
       </aside>
     </>
+  );
+}
+
+function SidebarNavButton({ item, active, goApp, sidebarCollapsed }) {
+  const Icon = item.icon;
+  return (
+    <button onClick={() => goApp(item.id)} title={sidebarCollapsed ? item.label : undefined} className={`flex w-full items-center rounded-xl py-2.5 text-sm font-medium transition ${sidebarCollapsed ? "justify-center px-2" : "gap-3 px-3"} ${active ? "bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)] hover:text-[var(--lr-text)]"}`}>
+      <Icon className="h-4 w-4" aria-hidden="true" />
+      <span className={sidebarCollapsed ? "sr-only" : ""}>{item.label}</span>
+    </button>
   );
 }
 

@@ -16,5 +16,5 @@ test('desktop sidebar can collapse to icon-only mode and expand main content', (
   assert.match(appSource, /sidebarCollapsed \? "lg:pl-20" : "lg:pl-72"/);
   assert.match(appSource, /sidebarCollapsed \? "lg:w-20" : "lg:w-72"/);
   assert.match(appSource, /sidebarCollapsed \? "justify-center px-2" : "gap-3 px-3"/);
-  assert.match(appSource, /<span className=\{sidebarCollapsed \? "sr-only" : ""\}>\{label\}<\/span>/);
+  assert.match(appSource, /<span className=\{sidebarCollapsed \? "sr-only" : ""\}>\{item\.label\}<\/span>/);
 });

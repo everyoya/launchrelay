@@ -13,11 +13,12 @@ test('sign in is a centered auth card without onboarding proof content', () => {
   assert.doesNotMatch(appSource, /LaunchRelay is a normal product workspace/);
 });
 
-test('app shell follows the V2 five-destination primary navigation', () => {
+test('app shell keeps four workflow destinations primary and settings secondary', () => {
   assert.match(appSource, /\{ id: "workspace", label: "Workspace", icon: Home \}/);
   assert.match(appSource, /\{ id: "review", label: "Review", icon: CircleDot \}/);
   assert.match(appSource, /\{ id: "draft", label: "Draft", icon: PenLine \}/);
   assert.match(appSource, /\{ id: "library", label: "Library", icon: Library \}/);
+  assert.match(appSource, /const secondaryAppNav = \[/);
   assert.match(appSource, /\{ id: "settings", label: "Settings", icon: Settings \}/);
   assert.match(appSource, /hiddenInternalRouteIds = \["sources", "opportunities", "help"\]/);
   assert.doesNotMatch(appSource, /\{ id: "sources", label: "Sources"/);
