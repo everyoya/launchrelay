@@ -39,3 +39,12 @@ test('source receipts are hidden until requested and detection is gated', () => 
   assert.doesNotMatch(appSource, /Source setup/);
   assert.doesNotMatch(appSource, /Sources review pass later/);
 });
+
+test('sources supports app-user connectors for GitHub and Google Drive', () => {
+  assert.match(appSource, /Connect GitHub account/);
+  assert.match(appSource, /Import with connected GitHub/);
+  assert.match(appSource, /Google Drive/);
+  assert.match(appSource, /Connect Google Drive/);
+  assert.match(appSource, /Import Google Drive docs/);
+  assert.match(appSource, /Linear · Notion · Slack/);
+});

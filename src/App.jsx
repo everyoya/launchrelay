@@ -130,6 +130,7 @@ export default function App() {
   const [onboardingStep, setOnboardingStep] = useState("welcome");
   const [onboardingDraft, setOnboardingDraft] = useState({ initiativeName: "", problem: "", audience: "End Users", knowledgeChoice: "GitHub" });
   const [aiConnection, setAiConnection] = useState(() => loadAiConnection());
+  const [connectorConfig, setConnectorConfig] = useState(() => loadConnectorConfig());
   const [isBusy, setIsBusy] = useState(false);
   const [importPhase, setImportPhase] = useState("idle");
   const [status, setStatus] = useState(null);
@@ -249,6 +250,42 @@ export default function App() {
     forgetPostLoginView();
     clearLocalAuthToken();
     base44.auth.logout(`${window.location.origin}${window.location.pathname}`);
+  }
+
+  function updateConnectorConfig(nextConfig) {
+    const normalized = { ...defaultConnectorConfig(), ...nextConfig };
+    saveConnectorConfig(normalized);
+    setConnectorConfig(normalized);
+  }
+
+  async function connectSourceAccount(source) {
+    const connectorId = getConnectorId(connectorConfig, source);
+    if (!connectorId) {
+      setStatus({ tone: "warning", message: `${source === "github" ? "GitHub" : "Google Drive"} connector ID is missing. Add it in Settings after creating the Base44 app-user connector.` });
+      goApp("settings");
+      return;
+    }
+    try {
+      rememberPostLoginView("sources");
+      setStatus({ tone: "loading", message: `Opening ${source === "github" ? "GitHub" : "Google Drive"} OAuth...` });
+      const redirectUrl = await base44.connectors.connectAppUser(connectorId);
+      window.location.href = redirectUrl;
+    } catch (error) {
+      console.error(error);
+      setStatus({ tone: "error", message: `Could not start ${source === "github" ? "GitHub" : "Google Drive"} connection. Check the connector ID in Settings.` });
+    }
+  }
+
+  async function disconnectSourceAccount(source) {
+    const connectorId = getConnectorId(connectorConfig, source);
+    if (!connectorId) return;
+    try {
+      await base44.connectors.disconnectAppUser(connectorId);
+      setStatus({ tone: "success", message: `${source === "github" ? "GitHub" : "Google Drive"} disconnected for this user.` });
+    } catch (error) {
+      console.error(error);
+      setStatus({ tone: "warning", message: `Could not disconnect ${source === "github" ? "GitHub" : "Google Drive"}. You can revoke it from the provider or Base44 connector settings.` });
+    }
   }
 
 
@@ -411,12 +448,14 @@ export default function App() {
     const activeWorkspace = await ensureWorkspaceRecord();
     const workspaceId = activeWorkspace.id;
     const importedAt = new Date().toISOString();
+    const githubConnectorId = connectorConfig.githubConnectorId?.trim();
 
     try {
       const connectionPayload = {
         workspace_id: workspaceId,
         source_type: "github",
-        connection_mode: "manual_repo_url",
+        connection_mode: githubConnectorId ? "app_user_oauth" : "manual_repo_url",
+        connector_id: githubConnectorId || undefined,
         repo_owner: parsed.repoOwner,
         repo_name: parsed.repoName,
         repo_url: parsed.repoUrl,
@@ -437,6 +476,7 @@ export default function App() {
         workspaceId,
         sourceConnectionId,
         importedAt,
+        githubConnectorId: githubConnectorId || undefined,
       });
       setImportPhase("deduplicating");
       const imported = response.data.activityItems || [];
@@ -489,6 +529,74 @@ export default function App() {
         setImportPhase("error");
         setStatus({ tone: "error", message: "GitHub import could not complete. Paste shipped-work notes below to keep moving." });
       }
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
+  async function importGoogleDriveActivity() {
+    setIsBusy(true);
+    setImportPhase("connecting");
+    setStatus({ tone: "loading", message: "Connecting to Google Drive source documents..." });
+    const googleDriveConnectorId = connectorConfig.googleDriveConnectorId?.trim();
+    if (!googleDriveConnectorId) {
+      setStatus({ tone: "warning", message: "Google Drive connector ID is missing. Add it in Settings after creating the Base44 app-user connector." });
+      setImportPhase("error");
+      setIsBusy(false);
+      goApp("settings");
+      return;
+    }
+
+    const activeWorkspace = await ensureWorkspaceRecord();
+    const workspaceId = activeWorkspace.id;
+    const importedAt = new Date().toISOString();
+
+    try {
+      let sourceConnectionId = null;
+      try {
+        const connection = await SourceConnection.create({
+          workspace_id: workspaceId,
+          source_type: "google_drive",
+          connection_mode: "app_user_oauth",
+          connector_id: googleDriveConnectorId,
+          status: "active",
+          last_imported_at: importedAt,
+        });
+        sourceConnectionId = connection.id;
+      } catch (connectionError) {
+        console.warn(connectionError);
+      }
+
+      setImportPhase("fetching");
+      const response = await invokeFunctionWithTimeout("importConnectedGoogleDriveActivity", {
+        workspaceId,
+        sourceConnectionId,
+        importedAt,
+        googleDriveConnectorId,
+      }, 14000);
+      const data = response.data || response;
+      if (!data.ok) throw new Error(data.error || "Google Drive import failed.");
+      setImportPhase("deduplicating");
+      const imported = data.activityItems || [];
+      const existingKeys = new Set(activities.map((item) => item.dedupe_key || `${item.source_type}:${item.source_id}:${item.title}`));
+      const uniqueImported = imported.filter((item) => {
+        const key = item.dedupe_key || `${item.source_type}:${item.source_id}:${item.title}`;
+        if (existingKeys.has(key)) return false;
+        existingKeys.add(key);
+        return true;
+      });
+      const saved = [];
+      for (const item of uniqueImported) {
+        const { id, ...payload } = item;
+        saved.push(await ActivityItem.create(payload));
+      }
+      setActivities((items) => [...items, ...saved]);
+      setImportPhase("complete");
+      setStatus({ tone: "success", message: `Imported ${saved.length} Google Drive docs into the source trail.` });
+    } catch (error) {
+      console.error(error);
+      setImportPhase("error");
+      setStatus({ tone: "error", message: "Google Drive import could not complete. Connect Google Drive first, or paste key docs as manual notes." });
     } finally {
       setIsBusy(false);
     }
@@ -772,12 +880,12 @@ export default function App() {
           <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8">
             <StatusNotice status={status} isBusy={isBusy} />
             {renderedView === "workspace" && <WorkspaceScreen activities={activities} clusters={clusters} draftRows={draftRows} onReview={(cluster) => { setSelectedCluster(cluster); goApp("review"); }} onNewInitiative={() => goApp("sources")} />}
-            {renderedView === "sources" && <Sources workspace={workspace} setWorkspace={setWorkspace} onSave={saveWorkspace} sourceTab={sourceTab} setSourceTab={setSourceTab} activityText={activityText} setActivityText={setActivityText} manualNotes={manualNotes} setManualNotes={setManualNotes} githubRepoInput={githubRepoInput} setGithubRepoInput={setGithubRepoInput} activities={activities} importPhase={importPhase} isBusy={isBusy} onImport={importManualActivity} onGitHubImport={importGitHubActivity} onDetect={detectLaunchMoments} />}
+            {renderedView === "sources" && <Sources workspace={workspace} setWorkspace={setWorkspace} onSave={saveWorkspace} sourceTab={sourceTab} setSourceTab={setSourceTab} activityText={activityText} setActivityText={setActivityText} manualNotes={manualNotes} setManualNotes={setManualNotes} githubRepoInput={githubRepoInput} setGithubRepoInput={setGithubRepoInput} activities={activities} importPhase={importPhase} isBusy={isBusy} onImport={importManualActivity} onGitHubImport={importGitHubActivity} onGoogleDriveImport={importGoogleDriveActivity} connectorConfig={connectorConfig} onConnectSource={connectSourceAccount} onDisconnectSource={disconnectSourceAccount} onDetect={detectLaunchMoments} />}
             {renderedView === "review" && <LaunchMoments clusters={clusters} activities={activities} selectedCluster={selectedCluster} selectedSources={selectedSources} setSelectedCluster={setSelectedCluster} onAccept={acceptCluster} onDetect={detectLaunchMoments} isBusy={isBusy} launchFilter={launchFilter} setLaunchFilter={setLaunchFilter} />}
             {renderedView === "draft" && <DraftScreen cluster={acceptedCluster} sourceItems={acceptedSources} draft={draft} setDraft={setDraft} onSaveDraft={saveDraft} onPublishDraft={publishDraft} onCreateDraft={createDraft} isBusy={isBusy} onBack={() => goApp("review")} />}
             {renderedView === "opportunities" && <Opportunities opportunities={visibleOpportunities} cluster={acceptedCluster} onCreateOpportunities={createOpportunities} onSaveOpportunity={saveOpportunity} onPromote={promoteOpportunity} onIgnore={ignoreOpportunity} isBusy={isBusy} />}
             {renderedView === "library" && <LibraryScreen libraryTab={libraryTab} setLibraryTab={setLibraryTab} draftRows={draftRows} clusters={clusters} activities={activities} onReview={(cluster) => { setSelectedCluster(cluster); goApp("review"); }} onDraft={() => goApp("draft")} onWorkspace={() => goApp("workspace")} librarySearch={librarySearch} setLibrarySearch={setLibrarySearch} />}
-            {renderedView === "settings" && <SettingsScreen workspace={workspace} currentUser={currentUser} demoMode={demoMode} onLogout={logout} githubRepoInput={githubRepoInput} activities={activities} aiConnection={aiConnection} setAiConnection={setAiConnection} />}
+            {renderedView === "settings" && <SettingsScreen workspace={workspace} currentUser={currentUser} demoMode={demoMode} onLogout={logout} githubRepoInput={githubRepoInput} activities={activities} aiConnection={aiConnection} setAiConnection={setAiConnection} connectorConfig={connectorConfig} setConnectorConfig={updateConnectorConfig} onConnectSource={connectSourceAccount} onDisconnectSource={disconnectSourceAccount} />}
             {renderedView === "help" && <HelpDocsScreen goApp={goApp} />}
           </main>
         </div>
@@ -1334,7 +1442,7 @@ function ImprovementCard({ cluster, activities, onReview }) {
   );
 }
 
-function Sources({ workspace, setWorkspace, onSave, sourceTab, setSourceTab, activityText, setActivityText, manualNotes, setManualNotes, githubRepoInput, setGithubRepoInput, activities, importPhase, isBusy, onImport, onGitHubImport, onDetect }) {
+function Sources({ workspace, setWorkspace, onSave, sourceTab, setSourceTab, activityText, setActivityText, manualNotes, setManualNotes, githubRepoInput, setGithubRepoInput, activities, importPhase, isBusy, onImport, onGitHubImport, onGoogleDriveImport, connectorConfig, onConnectSource, onDisconnectSource, onDetect }) {
   return (
     <Page title="Sources" eyebrow="Source trail" description="Create the source trail one step at a time.">
       <SourceSetupFlow
@@ -1354,6 +1462,10 @@ function Sources({ workspace, setWorkspace, onSave, sourceTab, setSourceTab, act
         isBusy={isBusy}
         onImport={onImport}
         onGitHubImport={onGitHubImport}
+        onGoogleDriveImport={onGoogleDriveImport}
+        connectorConfig={connectorConfig}
+        onConnectSource={onConnectSource}
+        onDisconnectSource={onDisconnectSource}
         onDetect={onDetect}
       />
     </Page>
@@ -1461,7 +1573,7 @@ function HelpDocsScreen({ goApp }) {
   );
 }
 
-function SettingsScreen({ workspace, currentUser, demoMode, onLogout, githubRepoInput, activities, aiConnection, setAiConnection }) {
+function SettingsScreen({ workspace, currentUser, demoMode, onLogout, githubRepoInput, activities, aiConnection, setAiConnection, connectorConfig, setConnectorConfig, onConnectSource, onDisconnectSource }) {
   const [draftConnection, setDraftConnection] = useState(aiConnection || defaultAiConnection());
   const connected = isAiConnectionReady(aiConnection);
 
@@ -1497,10 +1609,14 @@ function SettingsScreen({ workspace, currentUser, demoMode, onLogout, githubRepo
         </SettingsCard>
 
         <SettingsCard title="Connected Sources">
-          <SettingsRow label="GitHub" value={githubRepoInput || workspace.primary_repo_url ? "Connected" : "Not Connected"} action={githubRepoInput || workspace.primary_repo_url ? "Manage →" : "Connect →"} />
-          <SettingsRow label="Notion" value="Not Connected" action="Connect →" />
-          <SettingsRow label="Linear" value="Not Connected" action="Connect →" />
+          <ConnectorSettingsPanel
+            connectorConfig={connectorConfig}
+            setConnectorConfig={setConnectorConfig}
+            onConnectSource={onConnectSource}
+            onDisconnectSource={onDisconnectSource}
+          />
           <SettingsRow label="Manual Uploads" value={activities.length ? "Available" : "Available"} action="Upload →" />
+          <SettingsRow label="Later" value="Linear · Notion · Slack" action="Coming soon" />
         </SettingsCard>
 
         <SettingsCard title="Bring your own AI">
@@ -1567,6 +1683,29 @@ function SettingsScreen({ workspace, currentUser, demoMode, onLogout, githubRepo
   );
 }
 
+function ConnectorSettingsPanel({ connectorConfig, setConnectorConfig, onConnectSource, onDisconnectSource }) {
+  const config = { ...defaultConnectorConfig(), ...(connectorConfig || {}) };
+  const update = (key, value) => setConnectorConfig({ ...connectorConfig, [key]: value });
+  return (
+    <div className="space-y-4 py-3">
+      <div className="rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4 text-sm leading-6 text-[var(--lr-text-2)]">
+        <div className="font-semibold text-[var(--lr-text)]">App-user OAuth connectors</div>
+        <p className="mt-1">Create GitHub and Google Drive app-user connectors in Base44, paste their connector IDs here, then each signed-in user can connect their own account.</p>
+      </div>
+      <Field label="GitHub connector ID" value={config.githubConnectorId || ""} onChange={(value) => update("githubConnectorId", value)} help="Base44 app-user connector ID for GitHub." />
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={() => onConnectSource("github")} disabled={!config.githubConnectorId} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">Connect GitHub account</Button>
+        <Button onClick={() => onDisconnectSource("github")} disabled={!config.githubConnectorId} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Disconnect GitHub</Button>
+      </div>
+      <Field label="Google Drive connector ID" value={config.googleDriveConnectorId || ""} onChange={(value) => update("googleDriveConnectorId", value)} help="Base44 app-user connector ID for Google Drive with Drive read-only scope." />
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={() => onConnectSource("google_drive")} disabled={!config.googleDriveConnectorId} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">Connect Google Drive</Button>
+        <Button onClick={() => onDisconnectSource("google_drive")} disabled={!config.googleDriveConnectorId} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Disconnect Google Drive</Button>
+      </div>
+    </div>
+  );
+}
+
 function SettingsCard({ title, children }) {
   return <section className="rounded-3xl border border-[var(--lr-border)] bg-white p-5 shadow-sm"><h2 className="mb-3 text-[17px] font-semibold tracking-[-0.018em] text-[var(--lr-text)]">{title}</h2><div className="divide-y divide-[var(--lr-border)]">{children}</div></section>;
 }
@@ -1583,13 +1722,13 @@ function SettingsRow({ label, value, action }) {
   );
 }
 
-function SourceSetupFlow({ workspace, setWorkspace, onSave, sourceTab, setSourceTab, activityText, setActivityText, manualNotes, setManualNotes, githubRepoInput, setGithubRepoInput, activities, importPhase, isBusy, onImport, onGitHubImport, onDetect }) {
+function SourceSetupFlow({ workspace, setWorkspace, onSave, sourceTab, setSourceTab, activityText, setActivityText, manualNotes, setManualNotes, githubRepoInput, setGithubRepoInput, activities, importPhase, isBusy, onImport, onGitHubImport, onGoogleDriveImport, connectorConfig, onConnectSource, onDisconnectSource, onDetect }) {
   const currentStep = sourceTab === "profile" ? "profile" : sourceTab === "continue" ? "continue" : activities.length > 0 && sourceTab === "context" ? "continue" : sourceTab === "context" ? "profile" : "activity";
   return (
     <div className="w-full space-y-5">
       <SourceStepIndicator currentStep={currentStep} setSourceTab={setSourceTab} activities={activities} />
       {currentStep === "profile" && <ProductProfileStep workspace={workspace} setWorkspace={setWorkspace} onSave={onSave} isBusy={isBusy} onNext={() => setSourceTab("connections")} />}
-      {currentStep === "activity" && <SourceActivityStep githubRepoInput={githubRepoInput} setGithubRepoInput={setGithubRepoInput} importPhase={importPhase} isBusy={isBusy} onGitHubImport={onGitHubImport} activityText={activityText} setActivityText={setActivityText} manualNotes={manualNotes} setManualNotes={setManualNotes} activities={activities} onImport={onImport} />}
+      {currentStep === "activity" && <SourceActivityStep githubRepoInput={githubRepoInput} setGithubRepoInput={setGithubRepoInput} importPhase={importPhase} isBusy={isBusy} onGitHubImport={onGitHubImport} onGoogleDriveImport={onGoogleDriveImport} connectorConfig={connectorConfig} onConnectSource={onConnectSource} onDisconnectSource={onDisconnectSource} activityText={activityText} setActivityText={setActivityText} manualNotes={manualNotes} setManualNotes={setManualNotes} activities={activities} onImport={onImport} />}
       {activities.length > 0 && currentStep === "continue" && <ContinueToMomentsStep activities={activities} onDetect={onDetect} isBusy={isBusy} onAddMore={() => setSourceTab("connections")} />}
     </div>
   );
@@ -1626,15 +1765,34 @@ function ProductProfileStep({ workspace, setWorkspace, onSave, isBusy, onNext })
   );
 }
 
-function SourceActivityStep({ githubRepoInput, setGithubRepoInput, importPhase, isBusy, onGitHubImport, activityText, setActivityText, manualNotes, setManualNotes, activities, onImport }) {
+function SourceActivityStep({ githubRepoInput, setGithubRepoInput, importPhase, isBusy, onGitHubImport, onGoogleDriveImport, connectorConfig, onConnectSource, onDisconnectSource, activityText, setActivityText, manualNotes, setManualNotes, activities, onImport }) {
+  const githubReady = Boolean(connectorConfig?.githubConnectorId);
+  const driveReady = Boolean(connectorConfig?.googleDriveConnectorId);
   return (
-    <SectionCard title="Step 2: Add Source Activity" description="Choose one way to add activity. GitHub and manual notes feed the same source trail.">
-      <div className="grid gap-5 lg:grid-cols-2">
+    <SectionCard title="Step 2: Add Source Activity" description="Choose one way to add activity. GitHub, Google Drive, and manual notes feed the same source trail.">
+      <div className="grid gap-5 xl:grid-cols-3">
         <div className="rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4">
           <h3 className="font-semibold text-[var(--lr-text)]">GitHub repository</h3>
-          <Field label="Repository URL or owner/repo" help="Public GitHub URL or owner/repo." value={githubRepoInput} onChange={setGithubRepoInput} />
-          <Button onClick={onGitHubImport} disabled={isBusy} className="mt-4 rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">Import GitHub activity</Button>
+          <p className="mt-1 text-sm leading-6 text-[var(--lr-text-2)]">Connect GitHub for private repos, or keep using a public repo URL.</p>
+          <Field label="Repository URL or owner/repo" help="Public GitHub URL or owner/repo. Connected GitHub uses the user's OAuth token when available." value={githubRepoInput} onChange={setGithubRepoInput} />
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button onClick={() => onConnectSource("github")} disabled={isBusy || !githubReady} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Connect GitHub account</Button>
+            <Button onClick={onGitHubImport} disabled={isBusy} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">{githubReady ? "Import with connected GitHub" : "Import GitHub activity"}</Button>
+          </div>
+          {!githubReady && <p className="mt-3 text-xs leading-5 text-[var(--lr-muted)]">Add the GitHub app-user connector ID in Settings to enable OAuth/private repo import.</p>}
+          {githubReady && <button type="button" onClick={() => onDisconnectSource("github")} className="mt-3 text-xs font-medium text-[var(--lr-muted)] underline">Disconnect GitHub for this user</button>}
           <ImportProgress phase={importPhase} />
+        </div>
+        <div className="rounded-2xl border border-[var(--lr-border)] bg-white p-4">
+          <h3 className="font-semibold text-[var(--lr-text)]">Google Drive</h3>
+          <p className="mt-1 text-sm leading-6 text-[var(--lr-text-2)]">Import recent Google Docs or text docs as product truth and launch context.</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button onClick={() => onConnectSource("google_drive")} disabled={isBusy || !driveReady} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Connect Google Drive</Button>
+            <Button onClick={onGoogleDriveImport} disabled={isBusy || !driveReady} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">Import Google Drive docs</Button>
+          </div>
+          {!driveReady && <p className="mt-3 text-xs leading-5 text-[var(--lr-muted)]">Add the Google Drive app-user connector ID in Settings before importing docs.</p>}
+          {driveReady && <button type="button" onClick={() => onDisconnectSource("google_drive")} className="mt-3 text-xs font-medium text-[var(--lr-muted)] underline">Disconnect Google Drive for this user</button>}
+          <p className="mt-4 text-xs leading-5 text-[var(--lr-muted)]">Later, based on demand: Linear · Notion · Slack.</p>
         </div>
         <div className="rounded-2xl border border-[var(--lr-border)] bg-white p-4">
           <h3 className="font-semibold text-[var(--lr-text)]">Manual notes</h3>
@@ -2216,6 +2374,33 @@ function compileManualNotes(manualNotes = [], fallbackText = "") {
 
 function defaultAiConnection() {
   return { provider: "openai", model: "gpt-4o-mini", endpointUrl: "", apiKey: "", keyMasked: "" };
+}
+
+function defaultConnectorConfig() {
+  return {
+    githubConnectorId: "",
+    googleDriveConnectorId: "",
+  };
+}
+
+function loadConnectorConfig() {
+  if (typeof window === "undefined") return defaultConnectorConfig();
+  try {
+    return { ...defaultConnectorConfig(), ...JSON.parse(window.localStorage.getItem("launchrelay_source_connectors") || "{}") };
+  } catch (_error) {
+    return defaultConnectorConfig();
+  }
+}
+
+function saveConnectorConfig(config) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem("launchrelay_source_connectors", JSON.stringify({ ...defaultConnectorConfig(), ...config }));
+}
+
+function getConnectorId(config, source) {
+  if (source === "github") return config?.githubConnectorId?.trim() || "";
+  if (source === "google_drive") return config?.googleDriveConnectorId?.trim() || "";
+  return "";
 }
 
 function defaultModelForProvider(provider) {

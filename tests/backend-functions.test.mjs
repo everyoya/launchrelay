@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import { handler as normalizeActivity } from '../base44/functions/normalizeActivity/entry.js';
 import { handler as importPublicGitHubActivity } from '../base44/functions/importPublicGitHubActivity/entry.js';
+import { handler as importConnectedGoogleDriveActivity } from '../base44/functions/importConnectedGoogleDriveActivity/entry.js';
 import { handler as detectLaunchMoments } from '../base44/functions/detectLaunchMoments/entry.js';
 import { handler as expandOpportunities } from '../base44/functions/expandOpportunities/entry.js';
 import { handler as runUserAiGeneration } from '../base44/functions/runUserAiGeneration/entry.js';
@@ -81,6 +82,60 @@ test('importPublicGitHubActivity uses backend GitHub token secret for server fet
     if (originalToken === undefined) delete process.env[tokenEnvName];
     else process.env[tokenEnvName] = originalToken;
   }
+});
+
+test('importPublicGitHubActivity can use a connected app-user GitHub token without backend owner secret', async () => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url, options = {}) => {
+    calls.push({ url: String(url), headers: options.headers || {} });
+    const path = String(url).replace('https://api.github.com', '');
+    const payload = path.includes('/pulls') || path.includes('/commits') || path.includes('/releases')
+      ? []
+      : { description: 'Private repo', default_branch: 'main', stargazers_count: 0, open_issues_count: 0 };
+    return new Response(JSON.stringify(payload), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  };
+
+  try {
+    const result = await importPublicGitHubActivity({
+      workspaceId: 'workspace_1',
+      repoInput: 'private/repo',
+      githubAccessToken: 'fixture-user-token',
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.authMode, 'app_user_connector_token');
+    assert.ok(calls.every((call) => call.headers.Authorization === 'Bearer fixture-user-token'));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('importConnectedGoogleDriveActivity normalizes Google Drive docs into activity items', async () => {
+  const result = await importConnectedGoogleDriveActivity({
+    workspaceId: 'workspace_1',
+    sourceConnectionId: 'connection_drive',
+    drivePayloads: {
+      files: [
+        {
+          id: 'doc_1',
+          name: 'Release notes draft',
+          mimeType: 'application/vnd.google-apps.document',
+          modifiedTime: '2026-07-28T12:00:00.000Z',
+          webViewLink: 'https://docs.google.com/document/d/doc_1',
+          text: 'Added onboarding guardrails and clearer launch moment review copy.',
+        },
+      ],
+    },
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.source, 'google_drive');
+  assert.equal(result.activityItems.length, 1);
+  assert.equal(result.activityItems[0].source_type, 'google_drive_doc');
+  assert.match(result.activityItems[0].body, /onboarding guardrails/);
 });
 
 test('detectLaunchMoments backend function creates launch clusters from normalized activity', async () => {

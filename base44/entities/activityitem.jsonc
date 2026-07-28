@@ -4,7 +4,7 @@
   "properties": {
     "workspace_id": { "type": "string" },
     "source_connection_id": { "type": "string" },
-    "source_type": { "type": "string", "enum": ["github_pr", "github_commit", "manual_note", "manual_release_note", "asset_note", "sample"] },
+    "source_type": { "type": "string", "enum": ["github_pr", "github_commit", "manual_note", "manual_release_note", "asset_note", "google_drive_doc", "sample"] },
     "source_id": { "type": "string" },
     "source_url": { "type": "string" },
     "title": { "type": "string" },

@@ -20,7 +20,9 @@ export async function handler(payload = {}) {
 
   const { repoOwner, repoName, repoUrl } = parsed;
   const injectedPayloads = payload.githubPayloads;
-  const githubAuth = getGitHubAuth();
+  const githubAuth = payload.githubAccessToken
+    ? { mode: 'app_user_connector_token', token: payload.githubAccessToken }
+    : getGitHubAuth();
   const githubPayloads = injectedPayloads || await fetchPublicGitHubPayloads(repoOwner, repoName, githubAuth);
   const activityItems = createGitHubActivityItemsFromPayloads(githubPayloads, {
     workspaceId,
@@ -56,7 +58,11 @@ export async function handler(payload = {}) {
 export async function handleRequest(req) {
   try {
     const payload = await req.json().catch(() => ({}));
-    return Response.json(await handler(payload));
+    let githubAccessToken = payload.githubAccessToken || null;
+    if (!githubAccessToken && payload.githubConnectorId) {
+      githubAccessToken = await getCurrentAppUserAccessToken(req, payload.githubConnectorId);
+    }
+    return Response.json(await handler({ ...payload, githubAccessToken }));
   } catch (error) {
     return Response.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 400 });
   }
@@ -132,4 +138,11 @@ function readSecret(names) {
     if (nodeValue) return nodeValue;
   }
   return null;
+}
+
+async function getCurrentAppUserAccessToken(req, connectorId) {
+  const sdk = await import('npm:@base44/sdk');
+  const base44 = sdk.createClientFromRequest(req);
+  const connection = await base44.asServiceRole.connectors.getCurrentAppUserConnection(connectorId);
+  return connection?.accessToken || connection?.access_token || null;
 }
