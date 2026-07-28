@@ -130,6 +130,24 @@
     background-repeat: no-repeat;
     background-size: 1px 100%;
   }
+
+  .lr-hero-object {
+    animation: lr-soft-enter 260ms ease-out both, lr-subtle-float 7s ease-in-out 480ms infinite;
+  }
+
+  .lr-hero-object .bg-\[\#DDE6F6\] {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .lr-hero-object .bg-\[\#DDE6F6\]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.62), transparent);
+    transform: translateX(-100%);
+    animation: lr-skeleton-shine 3.6s ease-in-out 900ms infinite;
+  }
 }
 
 @keyframes lr-soft-enter {
@@ -140,5 +158,23 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes lr-subtle-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes lr-skeleton-shine {
+  0% {
+    transform: translateX(-110%);
+  }
+  42%, 100% {
+    transform: translateX(110%);
   }
 }

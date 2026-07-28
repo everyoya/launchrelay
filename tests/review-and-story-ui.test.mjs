@@ -18,7 +18,7 @@ test('review is a single-highlight page without hero filters or queue', () => {
 
 test('review uses Highlight terminology and reordered content', () => {
   assert.match(appSource, /Based on/);
-  assert.match(appSource, /Continue to Draft →/);
+  assert.match(appSource, /Accept and draft →/);
   assert.match(appSource, /visibleEvidence = sources\.slice\(0, 4\)/);
   assert.match(appSource, /moreEvidenceCount > 0/);
   assert.doesNotMatch(appSource, /Accepted moment candidate/);

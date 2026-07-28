@@ -31,10 +31,10 @@ test('library uses Drafts Suggested Highlights and Published without saved-work 
 
 test('settings is a lightweight control panel, not a tabbed configuration dashboard', () => {
   assert.match(appSource, /function SettingsScreen/);
-  assert.match(appSource, /Connected Sources/);
-  assert.match(appSource, /Bring your own AI/);
-  assert.match(appSource, /No LaunchRelay-owned AI key is used for generation/);
-  assert.match(appSource, /Publishing/);
+  assert.match(appSource, /Source setup/);
+  assert.match(appSource, /AI generation/);
+  assert.match(appSource, /Optional: use your own AI key for generation/);
+  assert.match(appSource, /Publishing connections/);
   assert.match(appSource, /Notifications/);
   assert.match(appSource, /Sign Out/);
   assert.match(appSource, /function SettingsRow/);

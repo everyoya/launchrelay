@@ -28,7 +28,7 @@ test('app shell keeps four workflow destinations primary and settings secondary'
 
 test('workspace replaces overview next-step framing', () => {
   assert.match(appSource, /function WorkspaceScreen/);
-  assert.match(appSource, /Needs Review/);
+  assert.match(appSource, /Highlights to review/);
   assert.match(appSource, /Recently Completed/);
   assert.match(appSource, /You're all caught up\./);
   assert.doesNotMatch(appSource, /function ContinueWhereLeftOff/);

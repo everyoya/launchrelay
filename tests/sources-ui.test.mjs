@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const appSource = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8');
+const sourceSetupSource = appSource.slice(appSource.indexOf('function SourceSetupFlow'), appSource.indexOf('function ProductProfileStep'));
 
 test('sources is a guided setup flow with one active job, not tabs and rails', () => {
   assert.match(appSource, /function SourceSetupFlow/);
@@ -35,9 +36,9 @@ test('source receipts are hidden until requested and detection is gated', () => 
   assert.match(appSource, /View imported activity/);
   assert.match(appSource, /<details/);
   assert.match(appSource, /activities\.length > 0 && currentStep === "continue" && <ContinueToMomentsStep/);
-  assert.doesNotMatch(appSource, /Recent receipts/);
-  assert.doesNotMatch(appSource, /Source setup/);
-  assert.doesNotMatch(appSource, /Sources review pass later/);
+  assert.doesNotMatch(sourceSetupSource, /Recent receipts/);
+  assert.doesNotMatch(sourceSetupSource, /Source setup/);
+  assert.doesNotMatch(sourceSetupSource, /Sources review pass later/);
 });
 
 test('sources supports app-user connectors for GitHub and Google Drive', () => {

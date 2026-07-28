@@ -41,9 +41,9 @@ test('library cards are simplified and suggested highlights open Review', () => 
 test('settings is a lightweight control panel with ordered card sections and BYO AI', () => {
   assert.match(settingsSource, /function SettingsScreen/);
   assert.match(settingsSource, /Profile/);
-  assert.match(settingsSource, /Connected Sources/);
-  assert.match(settingsSource, /Bring your own AI/);
-  assert.match(settingsSource, /Publishing/);
+  assert.match(settingsSource, /Source setup/);
+  assert.match(settingsSource, /AI generation/);
+  assert.match(settingsSource, /Publishing connections/);
   assert.match(settingsSource, /Workspace/);
   assert.match(settingsSource, /Notifications/);
   assert.match(settingsSource, /Account/);
@@ -51,13 +51,13 @@ test('settings is a lightweight control panel with ordered card sections and BYO
   assert.match(settingsSource, /Provider/);
   assert.match(settingsSource, /Model/);
   assert.match(settingsSource, /API key/);
-  assert.match(settingsSource, /Your key is only sent to the Base44 backend when you click Generate/);
+  assert.match(settingsSource, /V1 works with source import, review, and deterministic drafts/);
   assert.doesNotMatch(settingsSource, /Account & billing/);
 });
 
 test('settings rows keep AI cost under the user provider key, not app secrets', () => {
   assert.match(settingsSource, /function SettingsRow/);
-  assert.match(settingsSource, /No LaunchRelay-owned AI key is used for generation/);
+  assert.match(settingsSource, /Optional: use your own AI key for generation/);
   assert.match(settingsSource, /Session only/);
   assert.match(settingsSource, /Theme/);
   assert.match(settingsSource, /Start on/);

@@ -937,7 +937,7 @@ function PublicSite({ view, currentUser, goPublic, goApp, onLogout, onSample, on
             ) : (
               <>
                 <Button variant="ghost" onClick={() => goPublic("sign-in")} className="rounded-xl text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]">Sign in</Button>
-                {!isAuth && <Button onClick={() => goPublic("sign-in")} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">Get Started</Button>}
+                {!isAuth && <Button onClick={() => goPublic("sign-in")} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">Start with your product</Button>}
               </>
             )}
           </div>
@@ -952,16 +952,16 @@ function MarketingHome({ currentUser, onSample, goPublic, goApp }) {
   return (
     <main className="overflow-hidden">
       <section className="relative overflow-hidden bg-[radial-gradient(circle_at_72%_12%,rgba(217,229,255,0.95),transparent_28rem),radial-gradient(circle_at_92%_34%,rgba(184,240,210,0.72),transparent_22rem),linear-gradient(180deg,#F8FBFF_0%,#FFFFFF_72%)]">
-        <div className="mx-auto grid max-w-7xl items-center gap-14 px-5 py-20 lg:grid-cols-[0.86fr_1.14fr] lg:px-11 lg:py-28">
+        <div className="mx-auto grid max-w-7xl items-center gap-14 px-5 py-24 lg:grid-cols-[0.86fr_1.14fr] lg:px-11 lg:py-32">
           <div>
-            <h1 className="max-w-4xl font-display text-6xl font-bold leading-[0.95] tracking-[-0.055em] text-[var(--lr-text)] md:text-[84px] lg:text-[92px]">
+            <h1 className="max-w-3xl font-display text-5xl font-bold leading-[0.98] tracking-[-0.045em] text-[var(--lr-text)] sm:text-6xl lg:text-[72px]">
               You built a great app. We help users understand it.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-[1.45] text-[var(--lr-text-2)]">
-              LaunchRelay discovers the Highlights hidden in your shipped work and turns them into clear, source-grounded product stories your users actually care about.
+              Your team already ships valuable work. LaunchRelay helps you find what matters and communicate it clearly.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Button onClick={onSample} className="h-12 min-h-12 items-center rounded-[14px] bg-[var(--lr-text)] px-5 py-0 text-sm font-semibold leading-none text-white shadow-none hover:bg-slate-900">Get Started <ArrowRight className="ml-2 h-4 w-4" /></Button>
+              <Button onClick={onSample} className="h-12 min-h-12 items-center rounded-[14px] bg-[var(--lr-text)] px-5 py-0 text-sm font-semibold leading-none text-white shadow-none hover:bg-slate-900">Start with your product <ArrowRight className="ml-2 h-4 w-4" /></Button>
               <button type="button" onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="inline-flex h-12 min-h-12 items-center justify-center rounded-[14px] border border-[var(--lr-border)] bg-[var(--lr-blue-tint)] px-5 py-0 text-sm font-semibold leading-none text-[var(--lr-blue-strong)] transition-colors hover:bg-white">See How It Works</button>
             </div>
           </div>
@@ -969,73 +969,76 @@ function MarketingHome({ currentUser, onSample, goPublic, goApp }) {
         </div>
       </section>
 
-      <section id="product" className="mx-auto grid max-w-7xl gap-10 px-5 py-20 lg:grid-cols-[0.78fr_1.22fr] lg:px-11 lg:py-28">
+      <section id="product" className="mx-auto grid max-w-7xl gap-10 px-5 py-24 lg:grid-cols-[0.78fr_1.22fr] lg:px-11 lg:pt-32 lg:pb-36">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--lr-blue-strong)]">The problem</p>
-          <h2 className="mt-5 font-display text-5xl font-bold leading-[0.98] tracking-[-0.045em] text-[var(--lr-text)] md:text-6xl">Shipping is only half the job.</h2>
+          <h2 className="mt-5 font-display text-4xl font-bold leading-[1.02] tracking-[-0.04em] text-[var(--lr-text)] md:text-5xl lg:text-[56px]">Shipping is only half the job.</h2>
         </div>
         <div className="max-w-3xl space-y-5 text-lg leading-[1.55] text-[var(--lr-text-2)] md:text-xl">
-          <p>Every sprint, your team ships valuable improvements.</p>
-          <p>Bug fixes. Performance gains. Quality-of-life updates. New capabilities.</p>
-          <p>Most of them never become stories.</p>
-          <p>Users miss the value because nobody has time to explain what changed or why it matters.</p>
-          <p className="font-semibold text-[var(--lr-text)]">LaunchRelay exists to close that gap.</p>
+          <p>Every sprint, your team ships valuable work.</p>
+          <p>Most of it quietly disappears.</p>
+          <p>Not because it isn't important.</p>
+          <p>Because communicating product improvements takes time.</p>
+          <p className="font-semibold text-[var(--lr-text)]">LaunchRelay helps every meaningful improvement become a story users understand.</p>
         </div>
       </section>
 
-      <section id="how-it-works" className="bg-[linear-gradient(180deg,#FFFFFF,#F8FBFF)] py-20 lg:py-28">
+      <section id="how-it-works" className="bg-[linear-gradient(180deg,#FFFFFF,#F8FBFF)] py-24 lg:pt-32 lg:pb-36">
         <div className="mx-auto max-w-7xl px-5 lg:px-11">
           <div className="max-w-3xl">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--lr-blue-strong)]">How LaunchRelay works</p>
-            <h2 className="mt-5 font-display text-5xl font-bold leading-[0.98] tracking-[-0.045em] text-[var(--lr-text)] md:text-6xl">From shipped work to clear product stories.</h2>
+            <h2 className="mt-5 font-display text-4xl font-bold leading-[1.02] tracking-[-0.04em] text-[var(--lr-text)] md:text-5xl lg:text-[56px]">Helping users understand what you ship is the other half.</h2>
           </div>
           <div className="mt-12 grid gap-4 md:grid-cols-3">
-            <LandingStep icon={GitBranch} number="01" title="Connect your work" body="Bring in GitHub, Notion, Linear, documents, or manual updates." />
-            <LandingStep icon={Lightbulb} number="02" title="Discover Highlights" body="LaunchRelay identifies meaningful work worth communicating." />
-            <LandingStep icon={CheckCircle2} number="03" title="Review and publish" body="Review the strongest Highlights and create source-grounded drafts with confidence." />
+            <LandingStep icon={GitBranch} number="01" title="Bring in your work" body="Connect GitHub or add updates manually." />
+            <LandingStep icon={Lightbulb} number="02" title="Find stories worth sharing." body="LaunchRelay identifies meaningful work worth communicating." />
+            <LandingStep icon={CheckCircle2} number="03" title="Tell the story." body="Create a clear story ready to review and share." />
           </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-5 py-20 lg:px-11 lg:py-28">
+      <section className="mx-auto max-w-7xl px-5 py-24 lg:px-11 lg:pt-32 lg:pb-36">
         <div className="mb-10 max-w-3xl">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--lr-blue-strong)]">Product preview</p>
-          <h2 className="mt-5 font-display text-5xl font-bold leading-[0.98] tracking-[-0.045em] text-[var(--lr-text)] md:text-6xl">See the workflow, not a fake dashboard.</h2>
+          <h2 className="mt-5 font-display text-4xl font-bold leading-[1.02] tracking-[-0.04em] text-[var(--lr-text)] md:text-5xl lg:text-[56px]">Every product has stories waiting to be told.</h2>
         </div>
         <LandingVisualPlaceholder label="Large LaunchRelay screenshot placeholder" large />
       </section>
 
-      <section className="border-y border-[var(--lr-border)] bg-white py-20 lg:py-28">
+      <section className="border-y border-[var(--lr-border)] bg-white py-24 lg:pt-32 lg:pb-36">
         <div className="mx-auto max-w-7xl px-5 lg:px-11">
           <div className="mb-10 max-w-3xl">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--lr-blue-strong)]">Why LaunchRelay</p>
-            <h2 className="mt-5 font-display text-5xl font-bold leading-[0.98] tracking-[-0.045em] text-[var(--lr-text)] md:text-6xl">Designed around the work your users should notice.</h2>
+            <h2 className="mt-5 font-display text-4xl font-bold leading-[1.02] tracking-[-0.04em] text-[var(--lr-text)] md:text-5xl lg:text-[56px]">Your best work deserves to be noticed.</h2>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
-            <PrincipleCard title="Never miss important work" body="Discover launch-worthy Highlights automatically." />
-            <PrincipleCard title="Stay grounded" body="Every draft links back to the work that inspired it." />
-            <PrincipleCard title="Keep your team aligned" body="One place to discover, review, and communicate product updates." />
+            <PrincipleCard title="Never miss work worth sharing." body="Spot launch-worthy work without starting from a blank page." />
+            <PrincipleCard title="Trust every story." body="Every draft links back to the work that inspired it." />
+            <PrincipleCard title="Keep everyone aligned" body="One place to discover, review, and communicate product updates." />
           </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-5 py-20 text-center lg:px-11 lg:py-28">
+      <section className="mx-auto max-w-7xl px-5 py-24 text-center lg:px-11 lg:pt-32 lg:pb-36">
         <div className="mx-auto max-w-3xl">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--lr-blue-strong)]">FAQ</p>
-          <p className="mx-auto mt-5 max-w-2xl text-lg leading-[1.5] text-[var(--lr-text-2)]">Everything you need to know about LaunchRelay's source-grounded workflow.</p>
+          <p className="mx-auto mt-5 max-w-2xl text-lg leading-[1.5] text-[var(--lr-text-2)]">Questions we hear most often.</p>
         </div>
         <div className="mx-auto mt-10 max-w-6xl space-y-3 text-left">
-          <FAQRow question="How is this different from an AI writer?" answer="LaunchRelay starts with source activity and human review, not a blank prompt." />
-          <FAQRow question="Does it publish automatically?" answer="No. The product keeps a review step between source discovery and user-facing output." />
-          <FAQRow question="What is real today?" answer="Source import, highlight review, deterministic drafts, opportunities, and a library workflow." />
+          <FAQRow question="Why not just use ChatGPT?" answer="ChatGPT can help write. LaunchRelay helps you decide what to write about. It finds product improvements worth communicating, keeps them connected to the work behind them, and helps you turn them into clear stories your users understand." />
+          <FAQRow question="How does LaunchRelay know what's worth sharing?" answer="LaunchRelay reviews your product work — GitHub, docs, release notes, and manual updates — to identify changes that are likely to matter to users. You stay in control of what gets turned into a story." />
+          <FAQRow question="Does it publish automatically?" answer="No. Every story is reviewed by a human before it's shared. LaunchRelay helps you move faster, not give up control." />
+          <FAQRow question="What if we don't use GitHub?" answer="That's okay. You can add updates manually, paste release notes, upload documents, or connect other sources. LaunchRelay works with the product knowledge you already have." />
+          <FAQRow question="Who is LaunchRelay for?" answer="LaunchRelay is built for product teams that ship continuously and want users to understand the value behind every improvement, not just major releases." />
+          <FAQRow question="Why is every story linked back to its source?" answer="Because trust matters. Every story can be traced back to the product work that inspired it, making it easier to review, verify, and communicate with confidence." />
         </div>
       </section>
 
-      <section id="pricing" className="mx-auto max-w-4xl px-5 py-20 text-center lg:py-28">
-        <h2 className="font-display text-5xl font-bold leading-[0.98] tracking-[-0.045em] text-[var(--lr-text)] md:text-6xl">Great products deserve great communication.</h2>
+      <section id="pricing" className="mx-auto max-w-4xl px-5 py-24 text-center lg:py-32">
+        <h2 className="font-display text-4xl font-bold leading-[1.02] tracking-[-0.04em] text-[var(--lr-text)] md:text-5xl lg:text-[56px]">Great products deserve great communication.</h2>
         <p className="mx-auto mt-5 max-w-2xl text-lg leading-[1.45] text-[var(--lr-text-2)]">Start discovering the stories already hidden inside your product work.</p>
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-          <Button onClick={onSample} className="h-12 min-h-12 items-center rounded-[14px] bg-[var(--lr-text)] px-5 py-0 text-sm font-semibold leading-none text-white shadow-none hover:bg-slate-900">Get Started <ArrowRight className="ml-2 h-4 w-4" /></Button>
+          <Button onClick={onSample} className="h-12 min-h-12 items-center rounded-[14px] bg-[var(--lr-text)] px-5 py-0 text-sm font-semibold leading-none text-white shadow-none hover:bg-slate-900">Start with your product <ArrowRight className="ml-2 h-4 w-4" /></Button>
           <button type="button" onClick={() => goApp("workspace")} className="inline-flex h-12 min-h-12 items-center justify-center rounded-[14px] border border-[var(--lr-border)] bg-[var(--lr-blue-tint)] px-5 py-0 text-sm font-semibold leading-none text-[var(--lr-blue-strong)] transition-colors hover:bg-white">Open Workspace</button>
         </div>
       </section>
@@ -1055,7 +1058,7 @@ function MarketingHome({ currentUser, onSample, goPublic, goApp }) {
 function LandingVisualPlaceholder({ label, large = false }) {
   const isLarge = large;
   return (
-    <div className={`relative rounded-[30px] border border-[var(--lr-border)] bg-white p-4 shadow-[var(--lr-shadow)] ${isLarge ? "min-h-[500px]" : "min-h-[520px]"}`} aria-label={label}>
+    <div className={`lr-hero-object relative rounded-[30px] border border-[var(--lr-border)] bg-white p-4 shadow-[var(--lr-shadow)] ${isLarge ? "min-h-[500px]" : "min-h-[520px]"}`} aria-label={label}>
       <div className={`grid h-full min-h-[inherit] overflow-hidden rounded-[22px] border border-[var(--lr-border)] bg-[linear-gradient(180deg,#FFFFFF,#F9FBFF)] ${isLarge ? "grid-cols-[245px_1fr]" : "grid-cols-[172px_1fr]"}`}>
         <aside className="hidden border-r border-[var(--lr-border)] bg-[#F6F9FF] p-4 sm:block">
           <div className="flex items-center gap-2 font-display text-sm font-bold text-[var(--lr-text)]"><span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[var(--lr-text)] text-xs text-white">LR</span>{isLarge ? "Sources" : "Workspace"}</div>
@@ -1071,7 +1074,7 @@ function LandingVisualPlaceholder({ label, large = false }) {
             <div>
               <Badge tone="blue">{isLarge ? "Source trail" : "Needs review"}</Badge>
               <h3 className="mt-4 font-display text-[28px] font-bold leading-[0.98] tracking-[-0.04em] text-[var(--lr-text)] md:text-[34px]">{isLarge ? "Review evidence before writing" : "Launch-worthy highlights"}</h3>
-              {isLarge && <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--lr-text-2)]">Flat, software-like product preview: thin borders, white panels, blue operational labels, and no decorative illustration replacing the product.</p>}
+              {isLarge && <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--lr-text-2)]">Each draft keeps the why, the source receipts, and the user-facing story in one place.</p>}
             </div>
             <div className="hidden h-10 w-36 rounded-xl border border-[var(--lr-border)] bg-white md:block" />
           </div>
@@ -1091,7 +1094,7 @@ function LandingVisualPlaceholder({ label, large = false }) {
           </div>
         </div>
       </div>
-      {!isLarge && <div className="absolute -right-5 bottom-16 hidden w-64 rounded-[22px] border border-[var(--lr-border)] bg-white p-5 shadow-[var(--lr-shadow)] lg:block"><Badge tone="blue">Proof card</Badge><div className="mt-4 font-display text-3xl font-bold tracking-[-0.04em] text-[var(--lr-text)]">4 ready <span className="font-ui text-sm font-semibold text-[var(--lr-text-2)]">stories</span></div><SkeletonLines compact /></div>}
+      {!isLarge && <div className="absolute -right-5 bottom-16 hidden w-64 rounded-[22px] border border-[var(--lr-border)] bg-white p-5 shadow-[var(--lr-shadow)] lg:block"><Badge tone="blue">Source-backed</Badge><div className="mt-4 font-display text-3xl font-bold tracking-[-0.04em] text-[var(--lr-text)]">4 drafts <span className="font-ui text-sm font-semibold text-[var(--lr-text-2)]">ready</span></div><SkeletonLines compact /></div>}
     </div>
   );
 }
@@ -1111,7 +1114,7 @@ function PrincipleCard({ title, body }) {
 function FAQRow({ question, answer }) {
   return (
     <details className="group rounded-[22px] border border-[var(--lr-border)] bg-white shadow-[var(--lr-shadow-object)] transition-all duration-200 open:shadow-[var(--lr-shadow-tight)] hover:border-[#BFD0F5]">
-      <summary className="flex min-h-[80px] cursor-pointer list-none items-center justify-between gap-6 px-6 py-5 font-display text-2xl font-bold tracking-[-0.035em] text-[var(--lr-text)] marker:hidden md:px-8 [&::-webkit-details-marker]:hidden">
+      <summary className="flex min-h-[76px] cursor-pointer list-none items-center justify-between gap-6 px-6 py-5 font-display text-xl font-bold tracking-[-0.03em] text-[var(--lr-text)] marker:hidden md:px-8 md:text-[22px] [&::-webkit-details-marker]:hidden">
         <span>{question}</span>
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[var(--lr-border)] bg-[var(--lr-blue-tint)] text-[var(--lr-blue-strong)] transition-transform duration-200 group-open:rotate-180">
           <ChevronDown className="h-5 w-5" aria-hidden="true" />
@@ -1390,11 +1393,11 @@ function WorkspaceScreen({ activities, clusters, draftRows, onReview, onNewIniti
   const waitingImprovements = clusters.filter((cluster) => cluster.status !== "accepted" && cluster.status !== "edited");
   const completedDrafts = draftRows.filter((item) => item.status === "ready" || item.status === "published");
   return (
-    <Page title="Workspace" eyebrow="Workspace" description="Here's what needs your attention today.">
+    <Page title="Workspace" eyebrow="Workspace" description="Review the shipped work LaunchRelay found before anything becomes a draft.">
       <div className="space-y-6">
         <section>
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold tracking-[-0.02em] text-[var(--lr-text)]">Needs Review</h2>
+            <h2 className="text-lg font-semibold tracking-[-0.02em] text-[var(--lr-text)]">Highlights to review</h2>
           </div>
           {waitingImprovements.length ? (
             <div className="grid gap-4">
@@ -1408,12 +1411,12 @@ function WorkspaceScreen({ activities, clusters, draftRows, onReview, onNewIniti
         <section>
           <h2 className="mb-3 text-lg font-semibold tracking-[-0.02em] text-[var(--lr-text)]">Recently Completed</h2>
           <div className="grid gap-3 md:grid-cols-2">
-            {completedDrafts.length ? completedDrafts.map((item) => <article key={item.id || item.title} className="rounded-2xl border border-[var(--lr-border)] bg-white p-4 text-left shadow-sm"><div className="font-semibold text-[var(--lr-text)]">✓ {item.title}</div><div className="mt-2 text-sm text-[var(--lr-muted)]">{item.status === "published" ? "Published" : "Approved"}</div></article>) : <div className="rounded-2xl border border-dashed border-[var(--lr-border)] bg-white p-5 text-sm text-[var(--lr-muted)]">Approved drafts will appear here.</div>}
+            {completedDrafts.length ? completedDrafts.map((item) => <article key={item.id || item.title} className="rounded-2xl border border-[var(--lr-border)] bg-white p-4 text-left shadow-sm"><div className="font-semibold text-[var(--lr-text)]">✓ {item.title}</div><div className="mt-2 text-sm text-[var(--lr-muted)]">{item.status === "published" ? "Published" : "Approved"}</div></article>) : <div className="rounded-2xl border border-dashed border-[var(--lr-border)] bg-white p-5 text-sm text-[var(--lr-muted)]">Drafts you mark ready or publish will appear here as your launch record.</div>}
           </div>
         </section>
 
         <div className="border-t border-[var(--lr-border)] pt-5">
-          <Button onClick={onNewInitiative} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">+ New Initiative</Button>
+          <Button onClick={onNewInitiative} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Add source activity</Button>
         </div>
       </div>
     </Page>
@@ -1432,7 +1435,7 @@ function ImprovementCard({ cluster, activities, onReview }) {
           <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--lr-text-2)]">{cluster.user_value || cluster.summary}</p>
           <div className="mt-4 text-sm font-semibold text-[var(--lr-text)]">Based on</div>
           <ul className="mt-2 space-y-1 text-sm text-[var(--lr-text-2)]">
-            {evidence.map((item) => <li key={item.id || item.title}>• {item.title || item.summary || "Evidence item"}</li>)}
+            {evidence.map((item) => <li key={item.id || item.title}>• {sentenceCase(item.title || item.summary || "Evidence item")}</li>)}
             {extraCount > 0 && <li>• {extraCount} additional changes</li>}
           </ul>
         </div>
@@ -1604,26 +1607,26 @@ function SettingsScreen({ workspace, currentUser, demoMode, onLogout, githubRepo
     <Page title="Settings">
       <div className="space-y-5">
         <SettingsCard title="Profile">
-          <SettingsRow label="Name" value={currentUser?.full_name || currentUser?.name || workspace.name || "Not set"} action="Edit Profile" />
+          <SettingsRow label="Name" value={currentUser?.full_name || currentUser?.name || workspace.name || "Not set"} action="Edit later" />
           <SettingsRow label="Email" value={currentUser?.email || (demoMode ? "Demo workspace" : "Not set")} />
         </SettingsCard>
 
-        <SettingsCard title="Connected Sources">
+        <SettingsCard title="Source setup">
           <ConnectorSettingsPanel
             connectorConfig={connectorConfig}
             setConnectorConfig={setConnectorConfig}
             onConnectSource={onConnectSource}
             onDisconnectSource={onDisconnectSource}
           />
-          <SettingsRow label="Manual Uploads" value={activities.length ? "Available" : "Available"} action="Upload →" />
+          <SettingsRow label="Manual Uploads" value={activities.length ? "Available" : "Available"} action="Use Sources" />
           <SettingsRow label="Later" value="Linear · Notion · Slack" action="Coming soon" />
         </SettingsCard>
 
-        <SettingsCard title="Bring your own AI">
+        <SettingsCard title="AI generation">
           <div className="space-y-4 py-3">
             <div className="rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4 text-sm leading-6 text-[var(--lr-text-2)]">
-              <div className="font-semibold text-[var(--lr-text)]">No LaunchRelay-owned AI key is used for generation.</div>
-              <p className="mt-1">Your key is only sent to the Base44 backend when you click Generate. The backend uses it once for that request, so AI usage is billed to your provider account, not LaunchRelay.</p>
+              <div className="font-semibold text-[var(--lr-text)]">Optional: use your own AI key for generation.</div>
+              <p className="mt-1">V1 works with source import, review, and deterministic drafts. If you add a provider key, LaunchRelay can use it only when you choose to generate.</p>
             </div>
             <label className="block">
               <span className="mb-2 block text-sm font-medium text-[var(--lr-text)]">Provider</span>
@@ -1653,15 +1656,15 @@ function SettingsScreen({ workspace, currentUser, demoMode, onLogout, githubRepo
           </div>
         </SettingsCard>
 
-        <SettingsCard title="Publishing">
-          <SettingsRow label="LinkedIn" value="Not Connected" action="Connect →" />
-          <SettingsRow label="X" value="Not Connected" action="Connect →" />
-          <SettingsRow label="Website" value="Coming Soon" />
+        <SettingsCard title="Publishing connections">
+          <SettingsRow label="LinkedIn / X" value="Coming later" action="Not in V1" />
+          <SettingsRow label="X" value="Coming later" action="Not in V1" />
+          <SettingsRow label="Website / changelog" value="Coming later" />
         </SettingsCard>
 
         <SettingsCard title="Workspace">
-          <SettingsRow label="Theme" value="System" action="Change →" />
-          <SettingsRow label="Start on" value="Workspace" action="Change →" />
+          <SettingsRow label="Theme" value="System" action="Fixed for V1" />
+          <SettingsRow label="Start on" value="Workspace" action="Fixed for V1" />
         </SettingsCard>
 
         <SettingsCard title="Notifications">
@@ -1672,7 +1675,7 @@ function SettingsScreen({ workspace, currentUser, demoMode, onLogout, githubRepo
 
         <SettingsCard title="Account">
           <SettingsRow label="Plan" value="Free" />
-          <SettingsRow label="Billing" value="Not connected" action="Manage Subscription →" />
+          <SettingsRow label="Billing" value="Not connected" action="Not in V1" />
           <button onClick={onLogout} className="mt-2 flex w-full items-center justify-between rounded-2xl border border-[var(--lr-border)] bg-white px-4 py-3 text-left text-sm font-medium text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">
             <span>Sign Out</span>
             <ArrowRight className="h-4 w-4 text-[var(--lr-muted)]" />
@@ -1689,8 +1692,8 @@ function ConnectorSettingsPanel({ connectorConfig, setConnectorConfig, onConnect
   return (
     <div className="space-y-4 py-3">
       <div className="rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4 text-sm leading-6 text-[var(--lr-text-2)]">
-        <div className="font-semibold text-[var(--lr-text)]">App-user OAuth connectors</div>
-        <p className="mt-1">Create GitHub and Google Drive app-user connectors in Base44, paste their connector IDs here, then each signed-in user can connect their own account.</p>
+        <div className="font-semibold text-[var(--lr-text)]">Private source connectors</div>
+        <p className="mt-1">Public GitHub import and manual notes are ready today. Private GitHub and Drive connectors are prepared for V1.1 when connector IDs are configured.</p>
       </div>
       <Field label="GitHub connector ID" value={config.githubConnectorId || ""} onChange={(value) => update("githubConnectorId", value)} help="Base44 app-user connector ID for GitHub." />
       <div className="flex flex-wrap gap-2">
@@ -1779,7 +1782,7 @@ function SourceActivityStep({ githubRepoInput, setGithubRepoInput, importPhase, 
             <Button onClick={() => onConnectSource("github")} disabled={isBusy || !githubReady} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Connect GitHub account</Button>
             <Button onClick={onGitHubImport} disabled={isBusy} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">{githubReady ? "Import with connected GitHub" : "Import GitHub activity"}</Button>
           </div>
-          {!githubReady && <p className="mt-3 text-xs leading-5 text-[var(--lr-muted)]">Add the GitHub app-user connector ID in Settings to enable OAuth/private repo import.</p>}
+          {!githubReady && <p className="mt-3 text-xs leading-5 text-[var(--lr-muted)]">Public repo import works now. Private GitHub import can be enabled later from Settings.</p>}
           {githubReady && <button type="button" onClick={() => onDisconnectSource("github")} className="mt-3 text-xs font-medium text-[var(--lr-muted)] underline">Disconnect GitHub for this user</button>}
           <ImportProgress phase={importPhase} />
         </div>
@@ -1790,9 +1793,9 @@ function SourceActivityStep({ githubRepoInput, setGithubRepoInput, importPhase, 
             <Button onClick={() => onConnectSource("google_drive")} disabled={isBusy || !driveReady} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Connect Google Drive</Button>
             <Button onClick={onGoogleDriveImport} disabled={isBusy || !driveReady} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">Import Google Drive docs</Button>
           </div>
-          {!driveReady && <p className="mt-3 text-xs leading-5 text-[var(--lr-muted)]">Add the Google Drive app-user connector ID in Settings before importing docs.</p>}
+          {!driveReady && <p className="mt-3 text-xs leading-5 text-[var(--lr-muted)]">Google Drive import is prepared for later; manual notes are the reliable V1 path today.</p>}
           {driveReady && <button type="button" onClick={() => onDisconnectSource("google_drive")} className="mt-3 text-xs font-medium text-[var(--lr-muted)] underline">Disconnect Google Drive for this user</button>}
-          <p className="mt-4 text-xs leading-5 text-[var(--lr-muted)]">Later, based on demand: Linear · Notion · Slack.</p>
+          <p className="mt-4 text-xs leading-5 text-[var(--lr-muted)]">Later: Linear, Notion, and Slack once the source workflow is validated.</p>
         </div>
         <div className="rounded-2xl border border-[var(--lr-border)] bg-white p-4">
           <h3 className="font-semibold text-[var(--lr-text)]">Manual notes</h3>
@@ -1944,10 +1947,11 @@ function ActivityList({ activities }) {
 
 function SourceReceiptTooltip({ item }) {
   const sourceLabel = sourceTypeLabel(item.source_type);
+  const title = sentenceCase(item.title || "Source receipt");
   return (
     <details className="group relative">
       <summary className="flex w-full cursor-pointer list-none items-center justify-between gap-3 rounded-xl border border-[var(--lr-border)] bg-white px-3 py-2 text-left text-sm transition hover:border-[var(--lr-blue)] focus:border-[var(--lr-blue)]">
-        <span className="min-w-0 truncate font-medium text-[var(--lr-text)]">{item.title}</span>
+        <span className="min-w-0 truncate font-medium text-[var(--lr-text)]">{title}</span>
         <span className="shrink-0 text-xs text-[var(--lr-blue)]">View receipt</span>
       </summary>
       <div className="absolute right-0 top-[calc(100%+8px)] z-20 w-80 rounded-2xl border border-[var(--lr-border)] bg-white p-4 shadow-[var(--lr-shadow)]">
@@ -1974,7 +1978,7 @@ function SourceReceipt({ item, compact = false }) {
         {item.occurred_at && <span className="text-[var(--lr-muted)]">{formatDate(item.occurred_at)}</span>}
         {item.author && <span className="text-[var(--lr-muted)]">by {item.author}</span>}
       </div>
-      <h4 className="font-semibold leading-snug text-[var(--lr-text)]">{item.title}</h4>
+      <h4 className="font-semibold leading-snug text-[var(--lr-text)]">{sentenceCase(item.title)}</h4>
       <p className="mt-1 text-sm leading-6 text-[var(--lr-text-2)]">{item.impact_hint || item.body}</p>
       {item.source_url && <a href={item.source_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-[var(--lr-blue)] underline-offset-4 hover:underline">View source <ExternalLink className="h-3 w-3" /></a>}
     </article>
@@ -2014,7 +2018,7 @@ function HighlightReview({ cluster, sources, onContinue }) {
           </div>
         </section>
 
-        <Button onClick={() => onContinue(cluster)} className="mt-8 rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">Continue to Draft →</Button>
+        <Button onClick={() => onContinue(cluster)} className="mt-8 rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">Accept and draft →</Button>
       </article>
     </div>
   );
@@ -2070,7 +2074,7 @@ function StoryEditorWorkspace({ draft, setDraft, onSaveDraft, onPublishDraft, on
           </div>
         </div>
       ) : (
-        <EmptyState icon={FileText} eyebrow="Draft from Highlight" title="No draft yet" body="Create a first draft from this reviewed Highlight, then edit it here." actionLabel="Create Draft" onAction={onCreateDraft} disabled={isBusy} />
+        <EmptyState icon={FileText} eyebrow="Draft from Highlight" title="No draft created yet" body="Use the reviewed Highlight and attached source receipts to create a first draft." actionLabel="Create first draft" onAction={onCreateDraft} disabled={isBusy} />
       )}
     </section>
   );
@@ -2334,6 +2338,12 @@ function sourceTypeLabel(sourceType) {
   if (/release/i.test(sourceType || "")) return "Release";
   if (/note/i.test(sourceType || "")) return "Note";
   return "Source";
+}
+
+function sentenceCase(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 function formatDate(value) {

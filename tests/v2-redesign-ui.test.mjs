@@ -29,10 +29,10 @@ test('v2 onboarding is a centered no-sidebar flow with separate welcome step', (
 
 test('v2 workspace is an inbox, not overview/dashboard', () => {
   assert.match(appSource, /function WorkspaceScreen/);
-  assert.match(appSource, /Here's what needs your attention today\./);
-  assert.match(appSource, /Needs Review/);
+  assert.match(appSource, /Review the shipped work LaunchRelay found before anything becomes a draft\./);
+  assert.match(appSource, /Highlights to review/);
   assert.match(appSource, /Recently Completed/);
-  assert.match(appSource, /\+ New Initiative/);
+  assert.match(appSource, /Add source activity/);
   assert.match(appSource, /You're all caught up\./);
   assert.doesNotMatch(appSource, /function Overview/);
   assert.doesNotMatch(appSource, /Continue where you left off/);
