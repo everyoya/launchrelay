@@ -9,8 +9,8 @@ test('opportunities is an extremely simple accepted-moment to ideas flow', () =>
   assert.match(appSource, /Selected accepted moment/);
   assert.match(appSource, /Generate ideas/);
   assert.match(appSource, /Save useful ideas/);
-  assert.doesNotMatch(appSource, /Promote to draft/);
-  assert.doesNotMatch(appSource, /Ignore<\/Button>/);
+  assert.match(appSource, /Promote to Draft/);
+  assert.match(appSource, /Ignore<\/Button>/);
 });
 
 test('library uses Drafts Suggested Highlights and Published without saved-work metadata', () => {
@@ -21,7 +21,7 @@ test('library uses Drafts Suggested Highlights and Published without saved-work 
   assert.match(appSource, /Search Library/);
   assert.match(appSource, /Continue Editing →/);
   assert.match(appSource, /Review Highlight →/);
-  assert.match(appSource, /View →/);
+  assert.match(appSource, /Published content stays here as a receipt/);
   assert.doesNotMatch(appSource, /const tabs = \["Drafts", "Ready", "Published", "Opportunities", "Moments"\]/);
   assert.doesNotMatch(appSource, /Moments: clusters\.map/);
   assert.doesNotMatch(appSource, /Source trail preserved:/);

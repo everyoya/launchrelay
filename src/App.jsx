@@ -120,6 +120,7 @@ export default function App() {
   const [libraryTab, setLibraryTab] = useState("Drafts");
   const [launchFilter, setLaunchFilter] = useState("all");
   const [librarySearch, setLibrarySearch] = useState("");
+  const [workspaceSearch, setWorkspaceSearch] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -202,6 +203,19 @@ export default function App() {
   const visibleOpportunities = opportunities.filter((item) => item.status !== "ignored");
   const draftRows = draft ? [draft] : [];
 
+  const workspaceSearchTargets = useMemo(() => buildWorkspaceSearchTargets({
+    clusters,
+    activities,
+    draftRows,
+    opportunities: visibleOpportunities,
+  }), [clusters, activities, draftRows, visibleOpportunities]);
+
+  const workspaceSearchMatches = useMemo(() => {
+    const query = workspaceSearch.trim().toLowerCase();
+    if (!query) return [];
+    return workspaceSearchTargets.filter((target) => target.searchText.includes(query)).slice(0, 6);
+  }, [workspaceSearch, workspaceSearchTargets]);
+
   function goApp(nextView, options = {}) {
     const normalizedView = normalizeAppRoute(nextView);
     setView(normalizedView);
@@ -221,6 +235,14 @@ export default function App() {
     goApp(nextView);
   }
 
+  function openWorkspaceSearchResult(target) {
+    if (!target) return;
+    if (target.cluster) setSelectedCluster(target.cluster);
+    if (target.view === "library" && target.libraryTab) setLibraryTab(target.libraryTab);
+    setWorkspaceSearch("");
+    goApp(target.view);
+  }
+
   function startAuthProviderLogin(provider) {
     rememberPostLoginView("workspace");
     base44.auth.loginWithProvider(provider, `${window.location.origin}${window.location.pathname}#/workspace`);
@@ -232,7 +254,7 @@ export default function App() {
     resetWorkspaceState({ setWorkspace, setWorkspaceRecord, setActivities, setClusters, setSelectedCluster, setDraft, setOpportunities });
     setCurrentUser(user);
     setStatus({ tone: "loading", message: "Opening your workspace..." });
-    await loadUserWorkspaceData({ setWorkspace, setWorkspaceRecord, setActivities, setClusters, setSelectedCluster, setDraft, setOpportunities }, user);
+    await loadUserWorkspaceData(user, { setWorkspace, setWorkspaceRecord, setActivities, setClusters, setSelectedCluster, setDraft, setOpportunities });
     setStatus({ tone: "success", message: "Workspace opened." });
     goApp("workspace", { replace: true });
   }
@@ -730,7 +752,7 @@ export default function App() {
           <Topbar view={renderedView} goApp={goApp} workspace={workspace} currentUser={currentUser} demoMode={demoMode} onLogout={logout} userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen} setSidebarOpen={setSidebarOpen} />
           <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8">
             <StatusNotice status={status} isBusy={isBusy} />
-            {renderedView === "workspace" && <WorkspaceScreen activities={activities} clusters={clusters} draftRows={draftRows} onReview={(cluster) => { setSelectedCluster(cluster); goApp("review"); }} onNewInitiative={() => goApp("sources")} />}
+            {renderedView === "workspace" && <WorkspaceScreen activities={activities} clusters={clusters} draftRows={draftRows} onReview={(cluster) => { setSelectedCluster(cluster); goApp("review"); }} onNewInitiative={() => goApp("sources")} workspaceSearch={workspaceSearch} setWorkspaceSearch={setWorkspaceSearch} workspaceSearchMatches={workspaceSearchMatches} onWorkspaceSearchResult={openWorkspaceSearchResult} />}
             {renderedView === "sources" && <Sources workspace={workspace} setWorkspace={setWorkspace} onSave={saveWorkspace} sourceTab={sourceTab} setSourceTab={setSourceTab} activityText={activityText} setActivityText={setActivityText} manualNotes={manualNotes} setManualNotes={setManualNotes} githubRepoInput={githubRepoInput} setGithubRepoInput={setGithubRepoInput} activities={activities} importPhase={importPhase} isBusy={isBusy} onImport={importManualActivity} onGitHubImport={importGitHubActivity} onDetect={detectLaunchMoments} />}
             {renderedView === "review" && <LaunchMoments clusters={clusters} activities={activities} selectedCluster={selectedCluster} selectedSources={selectedSources} setSelectedCluster={setSelectedCluster} onAccept={acceptCluster} onDetect={detectLaunchMoments} isBusy={isBusy} launchFilter={launchFilter} setLaunchFilter={setLaunchFilter} />}
             {renderedView === "draft" && <DraftScreen cluster={acceptedCluster} sourceItems={acceptedSources} draft={draft} setDraft={setDraft} onSaveDraft={saveDraft} onPublishDraft={publishDraft} onCreateDraft={createDraft} isBusy={isBusy} onBack={() => goApp("review")} />}
@@ -1182,11 +1204,11 @@ function StatusNotice({ status, isBusy }) {
   );
 }
 
-function WorkspaceScreen({ activities, clusters, draftRows, onReview, onNewInitiative }) {
+function WorkspaceScreen({ activities, clusters, draftRows, onReview, onNewInitiative, workspaceSearch, setWorkspaceSearch, workspaceSearchMatches, onWorkspaceSearchResult }) {
   const waitingImprovements = clusters.filter((cluster) => cluster.status !== "accepted" && cluster.status !== "edited");
   const completedDrafts = draftRows.filter((item) => item.status === "ready" || item.status === "published");
   return (
-    <Page title="Workspace" eyebrow="Workspace" description="Here's what needs your attention today." action={<WorkspaceHeaderActions />}>
+    <Page title="Workspace" eyebrow="Workspace" description="Here's what needs your attention today." action={<WorkspaceHeaderActions searchValue={workspaceSearch} setSearchValue={setWorkspaceSearch} matches={workspaceSearchMatches} onOpenResult={onWorkspaceSearchResult} />}>
       <div className="space-y-6">
         <section>
           <div className="mb-3 flex items-center justify-between gap-3">
@@ -1204,7 +1226,7 @@ function WorkspaceScreen({ activities, clusters, draftRows, onReview, onNewIniti
         <section>
           <h2 className="mb-3 text-lg font-semibold tracking-[-0.02em] text-[var(--lr-text)]">Recently Completed</h2>
           <div className="grid gap-3 md:grid-cols-2">
-            {completedDrafts.length ? completedDrafts.map((item) => <button key={item.id || item.title} className="rounded-2xl border border-[var(--lr-border)] bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"><div className="font-semibold text-[var(--lr-text)]">✓ {item.title}</div><div className="mt-2 text-sm text-[var(--lr-muted)]">{item.status === "published" ? "Published" : "Approved"}</div></button>) : <div className="rounded-2xl border border-dashed border-[var(--lr-border)] bg-white p-5 text-sm text-[var(--lr-muted)]">Approved drafts will appear here.</div>}
+            {completedDrafts.length ? completedDrafts.map((item) => <article key={item.id || item.title} className="rounded-2xl border border-[var(--lr-border)] bg-white p-4 text-left shadow-sm"><div className="font-semibold text-[var(--lr-text)]">✓ {item.title}</div><div className="mt-2 text-sm text-[var(--lr-muted)]">{item.status === "published" ? "Published" : "Approved"}</div></article>) : <div className="rounded-2xl border border-dashed border-[var(--lr-border)] bg-white p-5 text-sm text-[var(--lr-muted)]">Approved drafts will appear here.</div>}
           </div>
         </section>
 
@@ -1216,11 +1238,24 @@ function WorkspaceScreen({ activities, clusters, draftRows, onReview, onNewIniti
   );
 }
 
-function WorkspaceHeaderActions() {
+function WorkspaceHeaderActions({ searchValue, setSearchValue, matches, onOpenResult }) {
+  const hasQuery = searchValue.trim().length > 0;
   return (
-    <div className="flex items-center gap-2">
-      <label className="hidden items-center gap-2 rounded-xl border border-[var(--lr-border)] bg-white px-3 py-2 text-sm text-[var(--lr-muted)] md:flex"><Search className="h-4 w-4" /><input aria-label="Search workspace" placeholder="Search" className="w-28 bg-transparent outline-none placeholder:text-[var(--lr-muted)]" /></label>
-      <button className="rounded-xl border border-[var(--lr-border)] bg-white p-2 text-[var(--lr-text-2)] hover:bg-[var(--lr-surface-2)]" aria-label="Notifications"><AlertCircle className="h-4 w-4" /></button>
+    <div className="relative flex items-center gap-2">
+      <label className="hidden items-center gap-2 rounded-xl border border-[var(--lr-border)] bg-white px-3 py-2 text-sm text-[var(--lr-muted)] shadow-sm md:flex">
+        <Search className="h-4 w-4" />
+        <input aria-label="Search workspace" value={searchValue} onChange={(event) => setSearchValue(event.target.value)} placeholder="Search workflow" className="w-40 bg-transparent text-[var(--lr-text)] outline-none placeholder:text-[var(--lr-muted)]" />
+      </label>
+      {hasQuery && (
+        <div className="absolute right-0 top-[calc(100%+8px)] z-30 hidden w-80 rounded-2xl border border-[var(--lr-border)] bg-white p-2 shadow-[var(--lr-shadow)] md:block">
+          {matches.length ? matches.map((match) => (
+            <button key={`${match.view}-${match.label}`} type="button" onClick={() => onOpenResult(match)} className="flex w-full flex-col rounded-xl px-3 py-2 text-left hover:bg-[var(--lr-surface-2)]">
+              <span className="text-sm font-medium text-[var(--lr-text)]">{match.label}</span>
+              <span className="text-xs text-[var(--lr-muted)]">{match.type}</span>
+            </button>
+          )) : <div className="px-3 py-2 text-sm text-[var(--lr-muted)]">No workspace results.</div>}
+        </div>
+      )}
     </div>
   );
 }
@@ -1294,7 +1329,7 @@ function DraftScreen({ cluster, sourceItems, draft, setDraft, onSaveDraft, onPub
   );
 }
 
-function Opportunities({ opportunities, cluster, onCreateOpportunities, onSaveOpportunity, isBusy }) {
+function Opportunities({ opportunities, cluster, onCreateOpportunities, onSaveOpportunity, onPromote, onIgnore, isBusy }) {
   return (
     <Page title="Opportunities" eyebrow="Simple expansion" description="Selected accepted moment → generate ideas → save useful ideas." action={<Button onClick={onCreateOpportunities} disabled={isBusy || !cluster} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">Generate ideas</Button>}>
       {!cluster ? <EmptyState icon={Lightbulb} eyebrow="Accepted moment required" title="No accepted moment yet" body="Accept a launch moment first. Opportunities expand one reviewed story into useful follow-up ideas." /> : (
@@ -1308,7 +1343,7 @@ function Opportunities({ opportunities, cluster, onCreateOpportunities, onSaveOp
           {opportunities.length === 0 ? <EmptyState icon={Lightbulb} eyebrow="Generate ideas" title="No ideas generated yet" body="Generate follow-up ideas from this accepted moment, then save the useful ones." actionLabel="Generate ideas" onAction={onCreateOpportunities} disabled={isBusy} /> : (
             <SectionCard title="Save useful ideas" description="Keep only ideas worth returning to later.">
               <div className="grid gap-4 md:grid-cols-2">
-                {opportunities.map((item) => <OpportunityCard key={item.id || item.title} item={item} onSave={() => onSaveOpportunity(item)} />)}
+                {opportunities.map((item) => <OpportunityCard key={item.id || item.title} item={item} onSave={() => onSaveOpportunity(item)} onPromote={() => onPromote(item)} onIgnore={() => onIgnore(item)} />)}
               </div>
             </SectionCard>
           )}
@@ -1436,7 +1471,7 @@ function SettingsRow({ label, value, action }) {
         <div className="text-sm font-medium text-[var(--lr-text)]">{label}</div>
         <div className="mt-1 text-sm text-[var(--lr-text-2)]">{value}</div>
       </div>
-      {action && <button type="button" className="text-left text-sm font-medium text-[var(--lr-orange)] sm:text-right">{action}</button>}
+      {action && <span className="text-left text-sm font-medium text-[var(--lr-muted)] sm:text-right">{action}</span>}
     </div>
   );
 }
@@ -1645,12 +1680,12 @@ function ActivityList({ activities }) {
 function SourceReceiptTooltip({ item }) {
   const sourceLabel = sourceTypeLabel(item.source_type);
   return (
-    <div className="group relative">
-      <button type="button" className="flex w-full items-center justify-between gap-3 rounded-xl border border-[var(--lr-border)] bg-white px-3 py-2 text-left text-sm transition hover:border-[var(--lr-blue)] focus:border-[var(--lr-blue)]">
+    <details className="group relative">
+      <summary className="flex w-full cursor-pointer list-none items-center justify-between gap-3 rounded-xl border border-[var(--lr-border)] bg-white px-3 py-2 text-left text-sm transition hover:border-[var(--lr-blue)] focus:border-[var(--lr-blue)]">
         <span className="min-w-0 truncate font-medium text-[var(--lr-text)]">{item.title}</span>
         <span className="shrink-0 text-xs text-[var(--lr-blue)]">View receipt</span>
-      </button>
-      <div className="invisible absolute right-0 top-[calc(100%+8px)] z-20 w-80 rounded-2xl border border-[var(--lr-border)] bg-white p-4 opacity-0 shadow-[var(--lr-shadow)] transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+      </summary>
+      <div className="absolute right-0 top-[calc(100%+8px)] z-20 w-80 rounded-2xl border border-[var(--lr-border)] bg-white p-4 shadow-[var(--lr-shadow)]">
         <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
           <Badge tone="blue">{sourceLabel}</Badge>
           {item.product_area && <Badge tone="orange">{item.product_area}</Badge>}
@@ -1660,7 +1695,7 @@ function SourceReceiptTooltip({ item }) {
         <p className="mt-2 text-sm leading-6 text-[var(--lr-text-2)]">{item.impact_hint || item.body}</p>
         {item.source_url && <a href={item.source_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-[var(--lr-blue)] underline-offset-4 hover:underline">Open source <ExternalLink className="h-3 w-3" /></a>}
       </div>
-    </div>
+    </details>
   );
 }
 
@@ -1776,7 +1811,7 @@ function StoryEditorWorkspace({ draft, setDraft, onSaveDraft, onPublishDraft, on
   );
 }
 
-function OpportunityCard({ item, onSave }) {
+function OpportunityCard({ item, onSave, onPromote, onIgnore }) {
   return (
     <article className="rounded-2xl border border-[var(--lr-border)] bg-white p-5 shadow-sm">
       <div className="flex items-start justify-between gap-3">
@@ -1790,8 +1825,10 @@ function OpportunityCard({ item, onSave }) {
         <InfoLine label="Audience" value={item.audience || "Product education"} />
         <InfoLine label="Why it matters" value={item.why_it_matters} />
       </dl>
-      <div className="mt-5">
+      <div className="mt-5 flex flex-wrap gap-2">
         <Button onClick={onSave} disabled={item.status === "saved"} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#d95a2e]">{item.status === "saved" ? "Saved" : "Save idea"}</Button>
+        <Button onClick={onPromote} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Promote to Draft</Button>
+        <Button onClick={onIgnore} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-muted)] hover:bg-[var(--lr-surface-2)]">Ignore</Button>
       </div>
     </article>
   );
@@ -1830,7 +1867,7 @@ function PublishedCard({ draft }) {
       <div className="mt-4 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--lr-muted)]">Published</div>
       <p className="mt-1 text-sm text-[var(--lr-text-2)]">{formatRelativeDate(draft.updated_at || draft.created_at)}</p>
       <div className="mt-4"><Badge tone="green">Published</Badge></div>
-      <Button variant="ghost" className="mt-5 rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">View →</Button>
+      <p className="mt-4 text-sm leading-6 text-[var(--lr-text-2)]">Published content stays here as a receipt for the walkthrough.</p>
     </article>
   );
 }
@@ -2063,6 +2100,53 @@ function buildWorkflowProgress({ workspace, activities, clusters, acceptedMoment
 function sameOpportunity(left, right) {
   if (left.id && right.id) return left.id === right.id;
   return left.title === right.title && left.format === right.format;
+}
+
+function buildWorkspaceSearchTargets({ clusters = [], activities = [], draftRows = [], opportunities = [] }) {
+  const targets = [
+    { type: "Screen", label: "Workspace", view: "workspace", text: "workspace overview needs review" },
+    { type: "Screen", label: "Sources", view: "sources", text: "sources import github manual notes activity" },
+    { type: "Screen", label: "Review", view: "review", text: "review highlights launch moments" },
+    { type: "Screen", label: "Draft", view: "draft", text: "draft story editor publish save" },
+    { type: "Screen", label: "Opportunities", view: "opportunities", text: "opportunities ideas follow up" },
+    { type: "Screen", label: "Library", view: "library", text: "library drafts highlights published" },
+    { type: "Screen", label: "Settings", view: "settings", text: "settings account sources preferences" },
+  ];
+
+  clusters.forEach((cluster) => targets.push({
+    type: "Highlight",
+    label: cluster.title || "Untitled Highlight",
+    view: "review",
+    cluster,
+    text: `${cluster.title || ""} ${cluster.summary || ""} ${cluster.user_value || ""} ${cluster.why_it_matters || ""}`,
+  }));
+
+  activities.slice(0, 12).forEach((item) => targets.push({
+    type: "Source receipt",
+    label: item.title || item.body || "Source receipt",
+    view: "sources",
+    text: `${item.title || ""} ${item.body || ""} ${item.impact_hint || ""} ${item.source_type || ""}`,
+  }));
+
+  draftRows.forEach((item) => targets.push({
+    type: "Draft",
+    label: item.title || "Untitled draft",
+    view: "library",
+    libraryTab: item.status === "published" ? "Published" : "Drafts",
+    text: `${item.title || ""} ${item.body || ""} ${item.status || "draft"}`,
+  }));
+
+  opportunities.forEach((item) => targets.push({
+    type: "Opportunity",
+    label: item.title || "Opportunity idea",
+    view: "opportunities",
+    text: `${item.title || ""} ${item.summary || ""} ${item.angle || ""} ${item.why_it_matters || ""}`,
+  }));
+
+  return targets.map((target) => ({
+    ...target,
+    searchText: `${target.label || ""} ${target.text || ""} ${target.type || ""}`.toLowerCase(),
+  }));
 }
 
 function compileManualNotes(manualNotes = [], fallbackText = "") {

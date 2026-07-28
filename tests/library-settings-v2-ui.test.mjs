@@ -35,7 +35,7 @@ test('library cards are simplified and suggested highlights open Review', () => 
   assert.match(appSource, /Based on \{cluster\.activity_item_ids\?\.length \|\| sources\.length \|\| 0\} sources/);
   assert.match(appSource, /onReview\(cluster\)/);
   assert.match(appSource, /function PublishedCard/);
-  assert.match(appSource, /View →/);
+  assert.match(appSource, /Published content stays here as a receipt/);
 });
 
 test('settings is a lightweight control panel with ordered card sections', () => {
