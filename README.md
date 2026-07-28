@@ -13,7 +13,7 @@ Repository: https://github.com/everyoya/launchrelay
 
 LaunchRelay helps teams move from shipped work to product education:
 
-Workspace → GitHub/manual import → Activity timeline → Launch detection → Human review → Story draft → Follow-up opportunities → Draft library
+Workspace → GitHub/manual/connected-source import → Activity timeline → Highlight detection → Human review → source-grounded draft → Follow-up opportunities → Library
 
 The goal is not “generate a marketing post from a prompt.”
 
@@ -81,9 +81,11 @@ Frontend:
 Backend/data:
 
 - Base44 entities for product workflow records
-- Base44 backend functions for normalization, import, launch detection, and opportunity expansion
+- Base44 backend functions for normalization, import, launch detection, opportunity expansion, connected Google Drive import, and user-owned AI generation
 - public GitHub import path
 - manual pasted activity fallback
+- app-user connector path prepared for GitHub/Google Drive once connector IDs are configured
+- bring-your-own-AI router that only calls providers with a user-supplied key
 
 ## Base44 features used
 
@@ -115,12 +117,14 @@ These entities support the core workflow:
 
 ### Base44 backend functions
 
-The app includes 4 deployed backend functions:
+The app includes 6 deployed backend functions:
 
 1. normalizeActivity
 2. importPublicGitHubActivity
 3. detectLaunchMoments
 4. expandOpportunities
+5. runUserAiGeneration
+6. importConnectedGoogleDriveActivity
 
 The frontend calls backend functions through:
 
@@ -149,6 +153,14 @@ Creates source-linked launch moments from normalized activity.
 ### expandOpportunities
 
 Creates follow-up product education opportunities from a launch moment.
+
+### runUserAiGeneration
+
+Runs optional user-owned AI generation for Highlights, drafts, and opportunities. It refuses to call an AI provider without a user-supplied provider key. Supported provider modes include OpenAI, Anthropic, Gemini, OpenRouter, and custom OpenAI-compatible endpoints.
+
+### importConnectedGoogleDriveActivity
+
+Uses a configured Base44 app-user Google Drive connector to normalize Drive/Docs files into LaunchRelay activity records. The connector code path is implemented, but the production connector ID still needs to be configured in the app settings before this can be treated as a reliable v1 demo path.
 
 ## GitHub import strategy
 
@@ -185,6 +197,10 @@ Secret name: `LAUNCHRELAY_GITHUB_TOKEN`.
 
 Use a minimal GitHub token where possible. For the current public-repo import, read-only public repository metadata is enough; private repo import should be treated as a later OAuth/user-connection feature.
 
+## Connected-source strategy
+
+LaunchRelay now has prepared connector paths for GitHub and Google Drive through Base44 app-user OAuth connector IDs. The source setup UI keeps public GitHub and manual notes reliable for v1 while showing connected GitHub/Drive as the next account-level automation path once valid connector IDs are configured.
+
 ## Manual fallback
 
 If GitHub import is unavailable, the app supports manual pasted activity.
@@ -201,7 +217,8 @@ Current honest status:
 
 - deterministic generation/fallback is implemented for reliability
 - an anti-slop content guardrail harness is implemented for draft generation
-- optional LLM enhancement is planned but not yet active
+- optional bring-your-own-AI generation is implemented through `runUserAiGeneration`
+- no LaunchRelay-owned paid AI key is committed, stored, or used for user generation
 - generated outputs are saved as product workflow records, not regenerated on every page load
 
 The content guardrail harness includes:
@@ -214,7 +231,7 @@ The content guardrail harness includes:
 - psychological driver selection
 - source-trail preservation
 
-This is intentional for product reliability and cost-conscious design. Future LLM output should pass through this same harness before it is saved.
+This is intentional for product reliability and cost-conscious design. AI output should pass through this same harness before it is saved.
 
 ## How to run locally
 
@@ -270,7 +287,7 @@ npm run build
 
 Expected current result:
 
-- 11/11 tests pass
+- 63/63 tests pass
 - secret lint passes with no obvious committed secrets
 - production build completes successfully
 
@@ -280,8 +297,8 @@ Latest local verification:
 
 ```text
 npm test
-- tests: 11
-- pass: 11
+- tests: 63
+- pass: 63
 - fail: 0
 
 npm run lint:secrets
@@ -295,11 +312,11 @@ npm run build
 
 LaunchRelay is a working v1 product, but these limitations should be stated clearly:
 
-1. Optional LLM enhancement is planned but not yet active.
-2. Direct deployed backend GitHub fetch has returned 503, so the reliable current path includes browser-side public GitHub fetch plus deterministic fallback.
-3. Public GitHub import is the v1 path; private repo OAuth is deferred.
+1. The deterministic/sample/manual workflow is still the safest live demo path.
+2. BYO-AI is implemented, but it requires a user-provided provider key and should be used deliberately, not automatically.
+3. Public GitHub import is reliable for the v1 story; private GitHub/Google Drive OAuth needs valid Base44 app-user connector IDs before it should be shown as a guaranteed demo path.
 4. Manual pasted activity remains important for reliability and non-GitHub scenarios.
-5. Launch detection and opportunity expansion are currently deterministic/structured rather than fully AI-personalized.
+5. Launch detection and opportunity expansion always have deterministic structured fallbacks.
 6. Advanced collaboration, approvals, analytics, publishing, and team permissions are future product work.
 7. The app is optimized around the first clear workflow scenario: onboarding-related shipped work.
 
@@ -307,8 +324,8 @@ LaunchRelay is a working v1 product, but these limitations should be stated clea
 
 Near-term product improvements:
 
-1. Investigate and fix deployed backend GitHub fetch 503.
-2. Add optional LLM enhancement for launch detection, story drafts, and opportunities.
+1. Finalize Base44 app-user connector IDs for GitHub and Google Drive.
+2. Harden BYO-AI provider UX with better validation, saved non-secret preferences, and clearer error states.
 3. Improve source traceability in generated drafts.
 4. Add richer manual context fields for positioning, audience, and product area.
 5. Polish onboarding as the first complete product scenario.
@@ -326,7 +343,7 @@ Later roadmap:
 
 ## Suggested submission framing
 
-LaunchRelay is a Base44-built product education workflow that turns real GitHub activity into launch stories, drafts, and follow-up content opportunities. It demonstrates Base44 entities, backend functions, deployed app workflow, external GitHub-source ingestion, and source-grounded product logic.
+LaunchRelay is a Base44-built product education workflow that turns shipped work into launch stories, drafts, and follow-up content opportunities. It demonstrates Base44 entities, backend functions, deployed app workflow, public GitHub/manual source ingestion, prepared GitHub/Google Drive connector paths, bring-your-own-AI generation, and source-grounded product logic.
 
 Avoid saying:
 
@@ -334,4 +351,4 @@ Avoid saying:
 - “One-click content generator.”
 - “Demo app.”
 - “Fully autonomous launch marketing.”
-- “Server-side GitHub import is fully solved” until the 503 caveat is fixed.
+- “Connected GitHub/Google Drive OAuth is guaranteed live” until valid Base44 connector IDs are configured.
