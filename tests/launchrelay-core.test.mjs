@@ -59,7 +59,7 @@ test('createGitHubActivityItemsFromPayloads normalizes PRs, commits, and release
   const items = createGitHubActivityItemsFromPayloads({
     pulls: [{ number: 12, title: 'Improve onboarding setup', body: 'welcome flow', html_url: 'https://github.com/everyoya/launchrelay/pull/12', user: { login: 'everyoya' }, updated_at: '2026-07-23T00:00:00Z' }],
     commits: [{ sha: 'abc123', html_url: 'https://github.com/everyoya/launchrelay/commit/abc123', commit: { message: 'fix signup redirect after account creation', author: { name: 'Yotam', date: '2026-07-23T01:00:00Z' } }, author: { login: 'everyoya' } }],
-    releases: [{ id: 7, tag_name: 'v0.1.0', name: 'LaunchRelay v0.1.0', body: 'First release', html_url: 'https://github.com/everyoya/launchrelay/releases/tag/v0.1.0', author: { login: 'everyoya' }, published_at: '2026-07-23T02:00:00Z' }],
+    releases: [{ id: 7, tag_name: 'v0.1.0', name: 'Product Story v0.1.0', body: 'First release', html_url: 'https://github.com/everyoya/launchrelay/releases/tag/v0.1.0', author: { login: 'everyoya' }, published_at: '2026-07-23T02:00:00Z' }],
   }, {
     workspaceId: 'workspace_1',
     sourceConnectionId: 'connection_1',

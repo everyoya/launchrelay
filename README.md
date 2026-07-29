@@ -1,6 +1,6 @@
-# LaunchRelay
+# Product Story
 
-LaunchRelay turns real GitHub activity into source-grounded product education moments.
+Product Story turns real GitHub activity into source-grounded product education moments.
 
 It is a GitHub-first workflow for product education, devrel, founder-led product marketing, and content teams that want to notice launch-worthy changes, shape the story with human judgment, and turn one shipped feature into a reusable education library.
 
@@ -11,7 +11,7 @@ Repository: https://github.com/everyoya/launchrelay
 
 ## Product promise
 
-LaunchRelay helps teams move from shipped work to product education:
+Product Story helps teams move from shipped work to product education:
 
 Workspace → GitHub/manual/connected-source import → Activity timeline → Highlight detection → Human review → source-grounded draft → Follow-up opportunities → Library
 
@@ -23,7 +23,7 @@ The goal is to connect real product activity, detect the launch-worthy story ins
 
 Product teams ship work constantly, but the educational story behind that work is easy to miss.
 
-LaunchRelay gives product education and devrel teams a system for turning GitHub activity, manual notes, and product context into:
+Product Story gives product education and devrel teams a system for turning GitHub activity, manual notes, and product context into:
 
 - launch-worthy moments
 - source-grounded story drafts
@@ -34,7 +34,7 @@ LaunchRelay gives product education and devrel teams a system for turning GitHub
 
 The first product scenario focuses on onboarding improvements.
 
-LaunchRelay can import activity from its own public GitHub repo and use that shipped work as source material. It also includes a manual onboarding workflow so the first product story remains easy to understand.
+Product Story can import activity from its own public GitHub repo and use that shipped work as source material. It also includes a manual onboarding workflow so the first product story remains easy to understand.
 
 Default repo used in the app:
 
@@ -53,7 +53,7 @@ https://github.com/everyoya/launchrelay
 
 ## What makes it different from a generic AI writer
 
-LaunchRelay does not start from a blank prompt.
+Product Story does not start from a blank prompt.
 
 It starts from source material:
 
@@ -68,7 +68,7 @@ The app is designed around traceability and human curation, not one-click generi
 
 ## Architecture overview
 
-LaunchRelay is a Base44 app with a React/Vite frontend, Base44 entities, and deployed Base44 backend functions.
+Product Story is a Base44 app with a React/Vite frontend, Base44 entities, and deployed Base44 backend functions.
 
 Frontend:
 
@@ -144,7 +144,7 @@ Turns raw/manual activity into normalized ActivityItem-shaped records.
 
 ### importPublicGitHubActivity
 
-Imports recent public GitHub activity from a repo URL or owner/repo input and converts it into LaunchRelay activity records.
+Imports recent public GitHub activity from a repo URL or owner/repo input and converts it into Product Story activity records.
 
 ### detectLaunchMoments
 
@@ -160,11 +160,11 @@ Runs optional user-owned AI generation for Highlights, drafts, and opportunities
 
 ### importConnectedGoogleDriveActivity
 
-Uses a configured Base44 app-user Google Drive connector to normalize Drive/Docs files into LaunchRelay activity records. The connector code path is implemented, but the production connector ID still needs to be configured in the app settings before this can be treated as a reliable v1 demo path.
+Uses a configured Base44 app-user Google Drive connector to normalize Drive/Docs files into Product Story activity records. The connector code path is implemented, but the production connector ID still needs to be configured in the app settings before this can be treated as a reliable v1 demo path.
 
 ## GitHub import strategy
 
-The app supports public GitHub repo import, with LaunchRelay’s own repo as the first real source:
+The app supports public GitHub repo import, with Product Story’s own repo as the first real source:
 
 https://github.com/everyoya/launchrelay
 
@@ -199,26 +199,26 @@ Use a minimal GitHub token where possible. For the current public-repo import, r
 
 ## Connected-source strategy
 
-LaunchRelay now has prepared connector paths for GitHub and Google Drive through Base44 app-user OAuth connector IDs. The source setup UI keeps public GitHub and manual notes reliable for v1 while showing connected GitHub/Drive as the next account-level automation path once valid connector IDs are configured.
+Product Story now has prepared connector paths for GitHub and Google Drive through Base44 app-user OAuth connector IDs. The source setup UI keeps public GitHub and manual notes reliable for v1 while showing connected GitHub/Drive as the next account-level automation path once valid connector IDs are configured.
 
 ## Manual fallback
 
 If GitHub import is unavailable, the app supports manual pasted activity.
 
-Users can paste PR summaries, commit notes, release notes, or product notes. LaunchRelay normalizes that text into activity items and runs the same launch detection/story/opportunity flow.
+Users can paste PR summaries, commit notes, release notes, or product notes. Product Story normalizes that text into activity items and runs the same launch detection/story/opportunity flow.
 
 This keeps the product usable even when public GitHub API access is rate-limited, unavailable, or blocked.
 
 ## AI, deterministic generation, and guardrails
 
-LaunchRelay is structured for AI-assisted launch detection, story coproduction, and opportunity expansion.
+Product Story is structured for AI-assisted launch detection, story coproduction, and opportunity expansion.
 
 Current honest status:
 
 - deterministic generation/fallback is implemented for reliability
 - an anti-slop content guardrail harness is implemented for draft generation
 - optional bring-your-own-AI generation is implemented through `runUserAiGeneration`
-- no LaunchRelay-owned paid AI key is committed, stored, or used for user generation
+- no Product Story-owned paid AI key is committed, stored, or used for user generation
 - generated outputs are saved as product workflow records, not regenerated on every page load
 
 The content guardrail harness includes:
@@ -310,7 +310,7 @@ npm run build
 
 ## Honest limitations
 
-LaunchRelay is a working v1 product, but these limitations should be stated clearly:
+Product Story is a working v1 product, but these limitations should be stated clearly:
 
 1. The deterministic/sample/manual workflow is still the safest live demo path.
 2. BYO-AI is implemented, but it requires a user-provided provider key and should be used deliberately, not automatically.
@@ -343,7 +343,7 @@ Later roadmap:
 
 ## Suggested submission framing
 
-LaunchRelay is a Base44-built product education workflow that turns shipped work into launch stories, drafts, and follow-up content opportunities. It demonstrates Base44 entities, backend functions, deployed app workflow, public GitHub/manual source ingestion, prepared GitHub/Google Drive connector paths, bring-your-own-AI generation, and source-grounded product logic.
+Product Story is a Base44-built product education workflow that turns shipped work into launch stories, drafts, and follow-up content opportunities. It demonstrates Base44 entities, backend functions, deployed app workflow, public GitHub/manual source ingestion, prepared GitHub/Google Drive connector paths, bring-your-own-AI generation, and source-grounded product logic.
 
 Avoid saying:
 

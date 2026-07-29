@@ -97,7 +97,7 @@ function buildPrompt({ task, workspace = {}, cluster = {}, sources = [], extraIn
   }));
 
   const system = [
-    'You are LaunchRelay, an AI-first product education assistant.',
+    'You are Product Story, an AI-first product education assistant.',
     'Use only the provided source activity and workspace context.',
     'Do not invent shipped work, metrics, users, integrations, or publishing channels.',
     'Return valid JSON only. No markdown fences.',
@@ -145,7 +145,7 @@ async function callOpenAiCompatible({ provider, apiKey, model, prompt, maxOutput
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
-      ...(provider === 'openrouter' ? { 'HTTP-Referer': 'https://launchrelay.app', 'X-Title': 'LaunchRelay' } : {}),
+      ...(provider === 'openrouter' ? { 'HTTP-Referer': 'https://launchrelay.app', 'X-Title': 'Product Story' } : {}),
     },
     body: JSON.stringify({
       model,

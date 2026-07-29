@@ -20,14 +20,14 @@ test('public landing uses the Design Option hero and header actions', () => {
 test('public landing includes the Design Option page narrative sections', () => {
   assert.match(appSource, /Shipping is only half the job\./);
   assert.match(appSource, /Most of it quietly disappears\./);
-  assert.match(appSource, /How LaunchRelay works/);
+  assert.match(appSource, /How Product Story works/);
   assert.match(appSource, /Bring in your work/);
   assert.match(appSource, /Find stories worth sharing\./);
-  assert.match(appSource, /LaunchRelay identifies meaningful work worth communicating\./);
+  assert.match(appSource, /Product Story identifies meaningful work worth communicating\./);
   assert.doesNotMatch(appSource, /Pull out the changes users need explained/);
   assert.match(appSource, /Tell the story\./);
   assert.match(appSource, /Every product has stories waiting to be told\./);
-  assert.match(appSource, /Why LaunchRelay/);
+  assert.match(appSource, /Why Product Story/);
   assert.match(appSource, /Never miss work worth sharing\./);
   assert.match(appSource, /Trust every story\./);
   assert.match(appSource, /Keep everyone aligned/);
@@ -35,9 +35,9 @@ test('public landing includes the Design Option page narrative sections', () => 
   assert.match(appSource, /Questions we hear most often\./);
   assert.match(appSource, /ChevronDown/);
   assert.match(appSource, /Why not just use ChatGPT/);
-  assert.match(appSource, /How does LaunchRelay know what\'s worth sharing/);
+  assert.match(appSource, /How does Product Story know what\'s worth sharing/);
   assert.match(appSource, /What if we don\'t use GitHub/);
-  assert.match(appSource, /Who is LaunchRelay for/);
+  assert.match(appSource, /Who is Product Story for/);
   assert.match(appSource, /Why is every story linked back to its source/);
   assert.doesNotMatch(appSource, /Frequently Asked Questions/);
   assert.match(appSource, /summary className="flex min-h-\[76px\].*font-display text-xl font-bold tracking-\[-0\.03em\] text-\[var\(--lr-text\)\]/);
@@ -46,16 +46,16 @@ test('public landing includes the Design Option page narrative sections', () => 
 test('public landing uses product-led hero art and UI preview instead of generic placeholders', () => {
   assert.match(appSource, /function LandingHeroImage/);
   assert.match(appSource, /hero-finished\.png/);
-  assert.match(appSource, /LaunchRelay turns source work into a user-facing product story/);
+  assert.match(appSource, /Product Story turns source work into a user-facing product story/);
   assert.match(appSource, /function LandingVisualPlaceholder/);
-  assert.match(appSource, /Large LaunchRelay screenshot placeholder/);
+  assert.match(appSource, /Large Product Story screenshot placeholder/);
   assert.match(appSource, /Launch-worthy highlights/);
-  assert.match(appSource, /Review evidence before writing/);
-  assert.match(appSource, /Source-backed/);
+  assert.match(appSource, /product-story-review-preview\.png/);
+  assert.match(appSource, /Product Story review workspace showing a highlighted product update with source receipts/);
   assert.doesNotMatch(appSource, /Hero product preview placeholder/);
   assert.doesNotMatch(appSource, /function TransformationPlaceholder/);
   assert.doesNotMatch(appSource, /Future visual/);
-  assert.doesNotMatch(appSource, /Real LaunchRelay screenshot coming soon\./);
+  assert.doesNotMatch(appSource, /Real Product Story screenshot coming soon\./);
   assert.doesNotMatch(appSource, /Source activity → reviewed moment → draft/);
 });
 
@@ -79,13 +79,13 @@ test('public landing removes filler chips and uses text-only section eyebrows', 
   assert.doesNotMatch(appSource, /Works with the tools your team already uses\./);
   assert.doesNotMatch(appSource, /\["GitHub", "Linear", "Notion", "Jira", "Manual Uploads"\]/);
   assert.match(appSource, /text-xs font-bold uppercase tracking-\[0\.18em\] text-\[var\(--lr-blue-strong\)\]">The problem/);
-  assert.match(appSource, /text-xs font-bold uppercase tracking-\[0\.18em\] text-\[var\(--lr-blue-strong\)\]">How LaunchRelay works/);
+  assert.match(appSource, /text-xs font-bold uppercase tracking-\[0\.18em\] text-\[var\(--lr-blue-strong\)\]">How Product Story works/);
   assert.doesNotMatch(appSource, /flex h-11 w-11 items-center justify-center rounded-\[14px\] bg-\[var\(--lr-blue-tint\)\]/);
 });
 
 test('public landing avoids old validation copy and generic AI cliches', () => {
-  assert.doesNotMatch(appSource, /LaunchRelay turns shipped product work into source-grounded product education\./);
-  assert.doesNotMatch(appSource, /Tell LaunchRelay what product this is, add source activity/);
+  assert.doesNotMatch(appSource, /Product Story turns shipped product work into source-grounded product education\./);
+  assert.doesNotMatch(appSource, /Tell Product Story what product this is, add source activity/);
   assert.doesNotMatch(appSource, /AI-powered/);
   assert.doesNotMatch(appSource, /Supercharge/);
   assert.doesNotMatch(appSource, /10x/);

@@ -21,7 +21,7 @@ test('v2 onboarding is a centered no-sidebar flow with separate welcome step', (
   assert.doesNotMatch(appSource, /Placeholder welcome copy/);
   assert.match(appSource, /What are we working on\?/);
   assert.match(appSource, /Tell us about it\./);
-  assert.match(appSource, /Where should LaunchRelay learn from\?/);
+  assert.match(appSource, /Where should Product Story learn from\?/);
   assert.match(appSource, /Understanding your product\.\.\./);
   assert.match(appSource, /We found \$\{improvementCount\} meaningful improvements worth reviewing\./);
   assert.match(appSource, /max-w-\[720px\]/);
@@ -30,7 +30,7 @@ test('v2 onboarding is a centered no-sidebar flow with separate welcome step', (
 test('v2 workspace is an inbox, not overview/dashboard', () => {
   assert.match(appSource, /function WorkspaceScreen/);
   assert.match(appSource, /Your review queue\./);
-  assert.match(appSource, /Check the product changes LaunchRelay found, confirm what matters, and move approved highlights into drafting\./);
+  assert.match(appSource, /Check the product changes Product Story found, confirm what matters, and move approved highlights into drafting\./);
   assert.match(appSource, /Highlights to review/);
   assert.match(appSource, /Recently Completed/);
   assert.match(appSource, /Add another product update\./);

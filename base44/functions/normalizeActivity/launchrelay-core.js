@@ -17,7 +17,7 @@ const USER_VALUE_HINTS = [
     pattern: /integration|api|webhook|sync|connect/i,
     impact: 'Possible integration/workflow automation impact.',
     clusterTitle: 'Smoother connected workflow',
-    why: 'These changes make it easier to connect LaunchRelay with the tools teams already use.',
+    why: 'These changes make it easier to connect Product Story with the tools teams already use.',
     userValue: 'Less manual workflow coordination.',
   },
   {

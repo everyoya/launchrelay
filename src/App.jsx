@@ -14,7 +14,6 @@ import {
   GitBranch,
   HelpCircle,
   Home,
-  Layers3,
   Library,
   Lightbulb,
   Loader2,
@@ -73,7 +72,7 @@ const sampleManualNotes = sampleActivity.split("\n").map((body, index) => ({
 }));
 
 const initialWorkspace = {
-  name: "LaunchRelay",
+  name: "Product Story",
   description: "A GitHub-first product education workflow system for shipped software changes.",
   target_audience: "Product educators, devrel teams, product marketing, and founders",
   product_stage: "MVP",
@@ -302,7 +301,7 @@ export default function App() {
       goApp("sources");
     } catch (error) {
       console.error(error);
-      setStatus({ tone: "warning", message: "Could not save remotely yet. LaunchRelay kept this workspace local so the workflow can continue." });
+      setStatus({ tone: "warning", message: "Could not save remotely yet. Product Story kept this workspace local so the workflow can continue." });
       setWorkspaceRecord({ id: "local_workspace", ...workspace });
       goApp("sources");
     } finally {
@@ -700,7 +699,7 @@ export default function App() {
         aiDraft = response.output;
       } catch (error) {
         console.error(error);
-        setStatus({ tone: "warning", message: "Your AI provider did not return a usable draft. Falling back to LaunchRelay guardrails." });
+        setStatus({ tone: "warning", message: "Your AI provider did not return a usable draft. Falling back to Product Story guardrails." });
       }
     }
     const guardrailed = aiDraft ? null : createGuardrailedDraft({ workspace, cluster: acceptedCluster, sources: sourceItems });
@@ -918,11 +917,8 @@ function PublicSite({ view, currentUser, goPublic, goApp, onLogout, onSample, on
     <div className="min-h-screen bg-[var(--lr-canvas)] text-[var(--lr-text)]">
       <header className="sticky top-0 z-30 border-b border-[var(--lr-border)] bg-white/86 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-5 px-5 py-4">
-          <button onClick={() => goPublic("public-home")} className="flex items-center gap-3 text-left" aria-label="Go to LaunchRelay home">
-            <BrandMark />
-            <div>
-              <div className="font-semibold tracking-tight">LaunchRelay</div>
-            </div>
+          <button onClick={() => goPublic("public-home")} className="flex items-center text-left" aria-label="Go to Product Story home">
+            <BrandLockup />
           </button>
           {!isAuth && <nav className="hidden items-center gap-6 text-sm font-medium text-[var(--lr-text-2)] md:flex" aria-label="Landing page navigation">
             <button onClick={() => scrollToLandingSection("product")} className="hover:text-[var(--lr-text)]">Product</button>
@@ -960,7 +956,7 @@ function MarketingHome({ currentUser, onSample, goPublic, goApp }) {
               You built a great app. We help users understand it.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-[1.45] text-[var(--lr-text-2)]">
-              Your team already ships valuable work. LaunchRelay helps you find what matters and communicate it clearly.
+              Your team already ships valuable work. Product Story helps you find what matters and communicate it clearly.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Button onClick={onSample} className="h-12 min-h-12 items-center rounded-[14px] bg-[var(--lr-text)] px-5 py-0 text-sm font-semibold leading-none text-white shadow-none hover:bg-slate-900">Start with your product <ArrowRight className="ml-2 h-4 w-4" /></Button>
@@ -981,19 +977,19 @@ function MarketingHome({ currentUser, onSample, goPublic, goApp }) {
           <p>Most of it quietly disappears.</p>
           <p>Not because it isn't important.</p>
           <p>Because communicating product improvements takes time.</p>
-          <p className="font-semibold text-[var(--lr-text)]">LaunchRelay helps every meaningful improvement become a story users understand.</p>
+          <p className="font-semibold text-[var(--lr-text)]">Product Story helps every meaningful improvement become a story users understand.</p>
         </div>
       </section>
 
       <section id="how-it-works" className="bg-[linear-gradient(180deg,#FFFFFF,#F8FBFF)] py-24 lg:pt-32 lg:pb-36">
         <div className="mx-auto max-w-7xl px-5 lg:px-11">
           <div className="max-w-3xl">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--lr-blue-strong)]">How LaunchRelay works</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--lr-blue-strong)]">How Product Story works</p>
             <h2 className="mt-5 font-display text-4xl font-bold leading-[1.02] tracking-[-0.04em] text-[var(--lr-text)] md:text-5xl lg:text-[56px]">Helping users understand what you ship is the other half.</h2>
           </div>
           <div className="mt-12 grid gap-4 md:grid-cols-3">
             <LandingStep icon={GitBranch} number="01" title="Bring in your work" body="Connect GitHub or add updates manually." />
-            <LandingStep icon={Lightbulb} number="02" title="Find stories worth sharing." body="LaunchRelay identifies meaningful work worth communicating." />
+            <LandingStep icon={Lightbulb} number="02" title="Find stories worth sharing." body="Product Story identifies meaningful work worth communicating." />
             <LandingStep icon={CheckCircle2} number="03" title="Tell the story." body="Create a clear story ready to review and share." />
           </div>
         </div>
@@ -1004,13 +1000,13 @@ function MarketingHome({ currentUser, onSample, goPublic, goApp }) {
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--lr-blue-strong)]">Product preview</p>
           <h2 className="mt-5 font-display text-4xl font-bold leading-[1.02] tracking-[-0.04em] text-[var(--lr-text)] md:text-5xl lg:text-[56px]">Every product has stories waiting to be told.</h2>
         </div>
-        <LandingVisualPlaceholder label="Large LaunchRelay screenshot placeholder" large />
+        <LandingVisualPlaceholder label="Large Product Story screenshot placeholder" large />
       </section>
 
       <section className="border-y border-[var(--lr-border)] bg-white py-24 lg:pt-32 lg:pb-36">
         <div className="mx-auto max-w-7xl px-5 lg:px-11">
           <div className="mb-10 max-w-3xl">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--lr-blue-strong)]">Why LaunchRelay</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--lr-blue-strong)]">Why Product Story</p>
             <h2 className="mt-5 font-display text-4xl font-bold leading-[1.02] tracking-[-0.04em] text-[var(--lr-text)] md:text-5xl lg:text-[56px]">Your best work deserves to be noticed.</h2>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
@@ -1027,11 +1023,11 @@ function MarketingHome({ currentUser, onSample, goPublic, goApp }) {
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-[1.5] text-[var(--lr-text-2)]">Questions we hear most often.</p>
         </div>
         <div className="mx-auto mt-10 max-w-6xl space-y-3 text-left">
-          <FAQRow question="Why not just use ChatGPT?" answer="ChatGPT can help write. LaunchRelay helps you decide what to write about. It finds product improvements worth communicating, keeps them connected to the work behind them, and helps you turn them into clear stories your users understand." />
-          <FAQRow question="How does LaunchRelay know what's worth sharing?" answer="LaunchRelay reviews your product work — GitHub, docs, release notes, and manual updates — to identify changes that are likely to matter to users. You stay in control of what gets turned into a story." />
-          <FAQRow question="Does it publish automatically?" answer="No. Every story is reviewed by a human before it's shared. LaunchRelay helps you move faster, not give up control." />
-          <FAQRow question="What if we don't use GitHub?" answer="That's okay. You can add updates manually, paste release notes, upload documents, or connect other sources. LaunchRelay works with the product knowledge you already have." />
-          <FAQRow question="Who is LaunchRelay for?" answer="LaunchRelay is built for product teams that ship continuously and want users to understand the value behind every improvement, not just major releases." />
+          <FAQRow question="Why not just use ChatGPT?" answer="ChatGPT can help write. Product Story helps you decide what to write about. It finds product improvements worth communicating, keeps them connected to the work behind them, and helps you turn them into clear stories your users understand." />
+          <FAQRow question="How does Product Story know what's worth sharing?" answer="Product Story reviews your product work — GitHub, docs, release notes, and manual updates — to identify changes that are likely to matter to users. You stay in control of what gets turned into a story." />
+          <FAQRow question="Does it publish automatically?" answer="No. Every story is reviewed by a human before it's shared. Product Story helps you move faster, not give up control." />
+          <FAQRow question="What if we don't use GitHub?" answer="That's okay. You can add updates manually, paste release notes, upload documents, or connect other sources. Product Story works with the product knowledge you already have." />
+          <FAQRow question="Who is Product Story for?" answer="Product Story is built for product teams that ship continuously and want users to understand the value behind every improvement, not just major releases." />
           <FAQRow question="Why is every story linked back to its source?" answer="Because trust matters. Every story can be traced back to the product work that inspired it, making it easier to review, verify, and communicate with confidence." />
         </div>
       </section>
@@ -1047,7 +1043,7 @@ function MarketingHome({ currentUser, onSample, goPublic, goApp }) {
 
       <footer id="docs" className="border-t border-[var(--lr-border)] bg-white/70">
         <div className="mx-auto flex max-w-7xl flex-col gap-5 px-5 py-8 text-sm text-[var(--lr-text-2)] md:flex-row md:items-center md:justify-between lg:px-11">
-          <div className="font-display font-bold text-[var(--lr-text)]">LaunchRelay</div>
+          <div className="font-display font-bold text-[var(--lr-text)]">Product Story</div>
           <div className="flex flex-wrap gap-4">
             {["Product", "Docs", "Privacy", "Terms", "Contact"].map((link) => <span key={link}>{link}</span>)}
           </div>
@@ -1087,7 +1083,7 @@ function LandingHeroImage() {
     <figure
       className="relative z-0 min-h-[460px] overflow-visible lg:min-h-[560px]"
       style={{ perspective: `${tune.perspective}px` }}
-      aria-label="LaunchRelay turns source work into a user-facing product story"
+      aria-label="Product Story turns source work into a user-facing product story"
       onPointerMove={(event) => {
         const rect = event.currentTarget.getBoundingClientRect();
         setPointer({ x: ((event.clientX - rect.left) / rect.width - 0.5) * 2, y: ((event.clientY - rect.top) / rect.height - 0.5) * 2 });
@@ -1150,11 +1146,26 @@ function HeroTunePanel({ tune, stats, updateTune, resetTune, copyStats }) {
 
 function LandingVisualPlaceholder({ label, large = false }) {
   const isLarge = large;
+
+  if (isLarge) {
+    return (
+      <div className="lr-hero-object relative rounded-[30px] border border-[var(--lr-border)] bg-white p-4 shadow-[var(--lr-shadow)]" aria-label={label}>
+        <div className="h-full min-h-[500px] overflow-hidden rounded-[22px] border border-[var(--lr-border)] bg-white">
+          <img
+            src="/assets/product-story-review-preview.png"
+            alt="Product Story review workspace showing a highlighted product update with source receipts"
+            className="h-full min-h-[500px] w-full object-cover object-left-top"
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`lr-hero-object relative rounded-[30px] border border-[var(--lr-border)] bg-white p-4 shadow-[var(--lr-shadow)] ${isLarge ? "min-h-[500px]" : "min-h-[520px]"}`} aria-label={label}>
-      <div className={`grid h-full min-h-[inherit] overflow-hidden rounded-[22px] border border-[var(--lr-border)] bg-[linear-gradient(180deg,#FFFFFF,#F9FBFF)] ${isLarge ? "grid-cols-[245px_1fr]" : "grid-cols-[172px_1fr]"}`}>
+    <div className="lr-hero-object relative min-h-[520px] rounded-[30px] border border-[var(--lr-border)] bg-white p-4 shadow-[var(--lr-shadow)]" aria-label={label}>
+      <div className="grid h-full min-h-[inherit] grid-cols-[172px_1fr] overflow-hidden rounded-[22px] border border-[var(--lr-border)] bg-[linear-gradient(180deg,#FFFFFF,#F9FBFF)]">
         <aside className="hidden border-r border-[var(--lr-border)] bg-[#F6F9FF] p-4 sm:block">
-          <div className="flex items-center gap-2 font-display text-sm font-bold text-[var(--lr-text)]"><span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[var(--lr-text)] text-xs text-white">LR</span>{isLarge ? "Sources" : "Workspace"}</div>
+          <div className="flex items-center gap-2 font-display text-sm font-bold text-[var(--lr-text)]"><span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[var(--lr-text)] text-xs text-white">PS</span>Workspace</div>
           <div className="mt-4 space-y-3">
             <div className="h-9 rounded-xl bg-[#E8F0FF]" />
             <div className="h-9 rounded-xl bg-[#E8F0FF]" />
@@ -1165,15 +1176,14 @@ function LandingVisualPlaceholder({ label, large = false }) {
         <div className="p-5 md:p-7">
           <div className="flex items-start justify-between gap-5">
             <div>
-              <Badge tone="blue">{isLarge ? "Source trail" : "Needs review"}</Badge>
-              <h3 className="mt-4 font-display text-[28px] font-bold leading-[0.98] tracking-[-0.04em] text-[var(--lr-text)] md:text-[34px]">{isLarge ? "Review evidence before writing" : "Launch-worthy highlights"}</h3>
-              {isLarge && <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--lr-text-2)]">Each draft keeps the why, the source receipts, and the user-facing story in one place.</p>}
+              <Badge tone="blue">Needs review</Badge>
+              <h3 className="mt-4 font-display text-[28px] font-bold leading-[0.98] tracking-[-0.04em] text-[var(--lr-text)] md:text-[34px]">Launch-worthy highlights</h3>
             </div>
             <div className="hidden h-10 w-36 rounded-xl border border-[var(--lr-border)] bg-white md:block" />
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-[1fr_190px]">
             <div className="rounded-[20px] border border-[var(--lr-border)] bg-white p-5">
-              <h4 className="font-display text-xl font-bold leading-none tracking-[-0.035em] text-[var(--lr-text)]">{isLarge ? "Manual onboarding flow reduces first-run friction" : "Importer speed improvements"}</h4>
+              <h4 className="font-display text-xl font-bold leading-none tracking-[-0.035em] text-[var(--lr-text)]">Importer speed improvements</h4>
               <SkeletonLines />
             </div>
             <div className="rounded-[20px] border border-[var(--lr-border)] bg-white p-5">
@@ -1182,12 +1192,12 @@ function LandingVisualPlaceholder({ label, large = false }) {
             </div>
           </div>
           <div className="mt-4 rounded-[20px] border border-[var(--lr-border)] bg-white p-5">
-            <h4 className="font-display text-xl font-bold leading-none tracking-[-0.035em] text-[var(--lr-text)]">{isLarge ? "GitHub import now explains why a change matters" : "Draft guardrails"}</h4>
+            <h4 className="font-display text-xl font-bold leading-none tracking-[-0.035em] text-[var(--lr-text)]">Draft guardrails</h4>
             <SkeletonLines />
           </div>
         </div>
       </div>
-      {!isLarge && <div className="absolute -right-5 bottom-16 hidden w-64 rounded-[22px] border border-[var(--lr-border)] bg-white p-5 shadow-[var(--lr-shadow)] lg:block"><Badge tone="blue">Source-backed</Badge><div className="mt-4 font-display text-3xl font-bold tracking-[-0.04em] text-[var(--lr-text)]">4 drafts <span className="font-ui text-sm font-semibold text-[var(--lr-text-2)]">ready</span></div><SkeletonLines compact /></div>}
+      <div className="absolute -right-5 bottom-16 hidden w-64 rounded-[22px] border border-[var(--lr-border)] bg-white p-5 shadow-[var(--lr-shadow)] lg:block"><Badge tone="blue">Source-backed</Badge><div className="mt-4 font-display text-3xl font-bold tracking-[-0.04em] text-[var(--lr-text)]">4 drafts <span className="font-ui text-sm font-semibold text-[var(--lr-text-2)]">ready</span></div><SkeletonLines compact /></div>
     </div>
   );
 }
@@ -1265,7 +1275,7 @@ function SignIn({ currentUser, goPublic, goApp, onAuthProvider, onEmailAuthentic
       <main className="mx-auto grid min-h-[calc(100vh-73px)] max-w-4xl items-center px-5 py-12">
         <section className="lr-work-surface p-8 text-center">
           <Badge tone="green">Signed in</Badge>
-          <h1 className="mt-5 text-4xl font-semibold tracking-[-0.035em]">Welcome back to LaunchRelay.</h1>
+          <h1 className="mt-5 text-4xl font-semibold tracking-[-0.035em]">Welcome back to Product Story.</h1>
           <p className="mx-auto mt-4 max-w-xl leading-7 text-[var(--lr-text-2)]">Your account session is active. Continue into the product workspace.</p>
           <Button onClick={() => goApp("workspace")} className="mt-6 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#1D46B8]">Open workspace</Button>
         </section>
@@ -1276,7 +1286,7 @@ function SignIn({ currentUser, goPublic, goApp, onAuthProvider, onEmailAuthentic
   return (
     <main className="mx-auto grid min-h-[calc(100vh-73px)] max-w-md items-center px-5 py-12">
       <section className="lr-work-surface p-6 md:p-7">
-        <h1 className="text-3xl font-semibold tracking-[-0.035em]">Sign in to LaunchRelay</h1>
+        <h1 className="text-3xl font-semibold tracking-[-0.035em]">Sign in to Product Story</h1>
         <p className="mt-2 text-sm leading-6 text-[var(--lr-text-2)]">Use Google, GitHub, or email.</p>
         <div className="mt-6 grid gap-3">
           <AuthButton icon={GoogleLogo} label="Continue with Google" onClick={() => onAuthProvider("google")} />
@@ -1309,7 +1319,7 @@ function Sidebar({ view, goApp, goPublic, workspace, currentUser, demoMode, onLo
           <button onClick={() => goPublic("public-home")} className={`flex items-center gap-3 text-left ${sidebarCollapsed ? "lg:justify-center" : ""}`} aria-label="Open public home">
             <BrandMark />
             <div className={sidebarCollapsed ? "lg:sr-only" : ""}>
-              <div className="font-semibold">LaunchRelay</div>
+              <div className="font-semibold">Product Story</div>
               <div className="text-xs text-[var(--lr-muted)]">Workspace</div>
             </div>
           </button>
@@ -1340,7 +1350,7 @@ function SidebarNavButton({ item, active, goApp, sidebarCollapsed }) {
 
 function Topbar({ view, goApp, workspace, currentUser, demoMode, onLogout, userMenuOpen, setUserMenuOpen, setSidebarOpen }) {
   const current = viewLabel(view);
-  const userName = currentUser ? displayUserName(currentUser) : "LaunchRelay";
+  const userName = currentUser ? displayUserName(currentUser) : "Product Story";
   const initials = avatarInitials(userName, currentUser?.email);
   return (
     <header className="sticky top-0 z-20 flex min-h-[73px] items-center border-b border-[var(--lr-border)] bg-[var(--lr-canvas)]/88 px-4 py-3 backdrop-blur sm:px-6 lg:px-8">
@@ -1348,7 +1358,7 @@ function Topbar({ view, goApp, workspace, currentUser, demoMode, onLogout, userM
         <button className="rounded-xl border border-[var(--lr-border)] bg-white p-2 text-[var(--lr-text-2)] lg:hidden" onClick={() => setSidebarOpen(true)} aria-label="Open sidebar"><Menu className="h-5 w-5" /></button>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 text-xs text-[var(--lr-muted)]">
-            <span>LaunchRelay / {current}</span>
+            <span>Product Story / {current}</span>
           </div>
         </div>
         {currentUser ? (
@@ -1416,7 +1426,7 @@ function V2Onboarding({ step, setStep, draft, setDraft, onComplete, improvementC
     <main className="flex min-h-screen items-center justify-center bg-[var(--lr-canvas)] px-5 py-10 text-[var(--lr-text)]">
       <section className="w-full max-w-[720px] rounded-[32px] border border-[var(--lr-border)] bg-white p-6 shadow-[var(--lr-shadow)] md:p-9">
         <div className="mb-8 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3"><BrandMark /><div className="font-semibold">LaunchRelay</div></div>
+          <div className="flex items-center gap-3"><BrandMark /><div className="font-semibold">Product Story</div></div>
           <div className="rounded-full bg-[var(--lr-surface-2)] px-3 py-1 text-xs font-medium text-[var(--lr-muted)]">{progressLabel}</div>
         </div>
 
@@ -1424,9 +1434,9 @@ function V2Onboarding({ step, setStep, draft, setDraft, onComplete, improvementC
 
         {step === "initiative" && <OnboardingFrame headline="What are we working on?" support="An Initiative represents one area of your product. Examples: Search, Dashboard, Authentication."><Field label="Initiative Name" value={draft.initiativeName} onChange={(value) => updateDraft("initiativeName", value)} help="Example: AI Assistant" /><Button onClick={() => advance("details")} className="mt-7 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#1D46B8]">Continue</Button></OnboardingFrame>}
 
-        {step === "details" && <OnboardingFrame headline="Tell us about it." support="The answer helps LaunchRelay understand future improvements."><label className="block"><span className="mb-2 block text-sm font-medium text-[var(--lr-text)]">What problem does this solve for users?</span><textarea value={draft.problem} onChange={(event) => updateDraft("problem", event.target.value)} className="min-h-32 w-full rounded-xl border border-[var(--lr-border)] bg-white px-3 py-3 text-sm outline-none focus:border-[var(--lr-orange)] focus:ring-2 focus:ring-[var(--lr-orange-tint)]" /></label><label className="mt-4 block"><span className="mb-2 block text-sm font-medium text-[var(--lr-text)]">Who is this for?</span><select value={draft.audience} onChange={(event) => updateDraft("audience", event.target.value)} className="h-11 w-full rounded-xl border border-[var(--lr-border)] bg-white px-3 text-sm outline-none focus:border-[var(--lr-orange)] focus:ring-2 focus:ring-[var(--lr-orange-tint)]"><option>End Users</option><option>Developers</option><option>Enterprise Admins</option><option>Designers</option><option>Internal Team</option></select></label><Button onClick={() => advance("knowledge")} className="mt-7 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#1D46B8]">Continue</Button></OnboardingFrame>}
+        {step === "details" && <OnboardingFrame headline="Tell us about it." support="The answer helps Product Story understand future improvements."><label className="block"><span className="mb-2 block text-sm font-medium text-[var(--lr-text)]">What problem does this solve for users?</span><textarea value={draft.problem} onChange={(event) => updateDraft("problem", event.target.value)} className="min-h-32 w-full rounded-xl border border-[var(--lr-border)] bg-white px-3 py-3 text-sm outline-none focus:border-[var(--lr-orange)] focus:ring-2 focus:ring-[var(--lr-orange-tint)]" /></label><label className="mt-4 block"><span className="mb-2 block text-sm font-medium text-[var(--lr-text)]">Who is this for?</span><select value={draft.audience} onChange={(event) => updateDraft("audience", event.target.value)} className="h-11 w-full rounded-xl border border-[var(--lr-border)] bg-white px-3 text-sm outline-none focus:border-[var(--lr-orange)] focus:ring-2 focus:ring-[var(--lr-orange-tint)]"><option>End Users</option><option>Developers</option><option>Enterprise Admins</option><option>Designers</option><option>Internal Team</option></select></label><Button onClick={() => advance("knowledge")} className="mt-7 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#1D46B8]">Continue</Button></OnboardingFrame>}
 
-        {step === "knowledge" && <OnboardingFrame headline="Where should LaunchRelay learn from?" support="Choose one starting point. Each option is treated equally."><div className="grid gap-3 sm:grid-cols-3">{["GitHub", "Paste Updates", "Release Notes"].map((choice) => <button key={choice} onClick={() => updateDraft("knowledgeChoice", choice)} className={`rounded-2xl border p-4 text-left text-sm transition hover:-translate-y-0.5 hover:shadow-sm ${draft.knowledgeChoice === choice ? "border-[var(--lr-orange)] bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "border-[var(--lr-border)] bg-white text-[var(--lr-text-2)]"}`}>{choice}</button>)}</div><Button onClick={() => advance("analysis")} className="mt-7 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#1D46B8]">Continue</Button></OnboardingFrame>}
+        {step === "knowledge" && <OnboardingFrame headline="Where should Product Story learn from?" support="Choose one starting point. Each option is treated equally."><div className="grid gap-3 sm:grid-cols-3">{["GitHub", "Paste Updates", "Release Notes"].map((choice) => <button key={choice} onClick={() => updateDraft("knowledgeChoice", choice)} className={`rounded-2xl border p-4 text-left text-sm transition hover:-translate-y-0.5 hover:shadow-sm ${draft.knowledgeChoice === choice ? "border-[var(--lr-orange)] bg-[var(--lr-orange-tint)] text-[var(--lr-orange)]" : "border-[var(--lr-border)] bg-white text-[var(--lr-text-2)]"}`}>{choice}</button>)}</div><Button onClick={() => advance("analysis")} className="mt-7 h-11 rounded-xl bg-[var(--lr-orange)] px-5 text-white shadow-none hover:bg-[#1D46B8]">Continue</Button></OnboardingFrame>}
 
         {step === "analysis" && <OnboardingFrame headline="Understanding your product..." support="Reading recent improvements... Connecting technical work with user value... Looking for meaningful changes..."><div className="mt-7 flex items-center gap-3 rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4 text-sm text-[var(--lr-text-2)]"><Loader2 className="h-4 w-4 animate-spin text-[var(--lr-orange)]" /> Connecting work with user value...</div></OnboardingFrame>}
 
@@ -1486,7 +1496,7 @@ function WorkspaceScreen({ activities, clusters, draftRows, onReview, onNewIniti
   const waitingImprovements = clusters.filter((cluster) => cluster.status !== "accepted" && cluster.status !== "edited");
   const completedDrafts = draftRows.filter((item) => item.status === "ready" || item.status === "published");
   return (
-    <Page title="Your review queue." eyebrow="Workspace" description="Check the product changes LaunchRelay found, confirm what matters, and move approved highlights into drafting.">
+    <Page title="Your review queue." eyebrow="Workspace" description="Check the product changes Product Story found, confirm what matters, and move approved highlights into drafting.">
       <div className="space-y-6">
         <section>
           <div className="mb-3 flex items-center justify-between gap-3">
@@ -1497,7 +1507,7 @@ function WorkspaceScreen({ activities, clusters, draftRows, onReview, onNewIniti
               {waitingImprovements.map((cluster) => <ImprovementCard key={cluster.id || cluster.title} cluster={cluster} activities={activities} onReview={() => onReview(cluster)} />)}
             </div>
           ) : (
-            <EmptyState icon={CheckCircle2} title="You're all caught up." body="LaunchRelay hasn't found any new improvements worth reviewing. Check back after your team ships more work." />
+            <EmptyState icon={CheckCircle2} title="You're all caught up." body="Product Story hasn't found any new improvements worth reviewing. Check back after your team ships more work." />
           )}
         </section>
 
@@ -1514,7 +1524,7 @@ function WorkspaceScreen({ activities, clusters, draftRows, onReview, onNewIniti
               <div className="min-w-0">
                 <div className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--lr-blue-strong)]">Add another</div>
                 <h3 className="mt-1 font-display text-lg font-bold tracking-[-0.035em] text-[var(--lr-text)]">Add another product update.</h3>
-                <p className="mt-1 max-w-xl text-sm leading-6 text-[var(--lr-text-2)]">Add a feature, build, fix, or launch note. LaunchRelay will turn it into another highlight for this queue.</p>
+                <p className="mt-1 max-w-xl text-sm leading-6 text-[var(--lr-text-2)]">Add a feature, build, fix, or launch note. Product Story will turn it into another highlight for this queue.</p>
               </div>
               <span className="shrink-0 rounded-xl bg-[var(--lr-orange)] px-3.5 py-2 text-sm font-medium text-white transition group-hover:bg-[#1D46B8]">Add work →</span>
             </div>
@@ -1651,14 +1661,14 @@ function LibrarySummaryCard({ label, value }) {
 
 function HelpDocsScreen({ goApp }) {
   const guideRows = [
-    ["1. Sources", "Tell LaunchRelay what product this is and add source activity."],
+    ["1. Sources", "Tell Product Story what product this is and add source activity."],
     ["2. Launch Moments", "Review source-backed story candidates and accept the ones worth drafting."],
     ["3. Story Studio", "Edit one draft created from an accepted source moment."],
     ["4. Opportunities", "Generate simple follow-up ideas from the accepted moment."],
     ["5. Library", "Find saved drafts, opportunities, and published work."],
   ];
   return (
-    <Page title="Help & docs" eyebrow="Workflow guide" description="A small safety net for the core LaunchRelay workflow.">
+    <Page title="Help & docs" eyebrow="Workflow guide" description="A small safety net for the core Product Story workflow.">
       <div className="w-full space-y-5">
         <SectionCard title="Workflow in 5 steps" description="Use this when you need to recover the next step.">
           <DataTable columns={["Step", "What it is for"]} rows={guideRows} empty="Guide unavailable." />
@@ -1726,7 +1736,7 @@ function SettingsScreen({ workspace, currentUser, demoMode, onLogout, githubRepo
           <div className="space-y-4 py-3">
             <div className="rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4 text-sm leading-6 text-[var(--lr-text-2)]">
               <div className="font-semibold text-[var(--lr-text)]">Optional: use your own AI key for generation.</div>
-              <p className="mt-1">V1 works with source import, review, and deterministic drafts. If you add a provider key, LaunchRelay can use it only when you choose to generate.</p>
+              <p className="mt-1">V1 works with source import, review, and deterministic drafts. If you add a provider key, Product Story can use it only when you choose to generate.</p>
             </div>
             <label className="block">
               <span className="mb-2 block text-sm font-medium text-[var(--lr-text)]">Provider</span>
@@ -1746,7 +1756,7 @@ function SettingsScreen({ workspace, currentUser, demoMode, onLogout, githubRepo
             <label className="block">
               <span className="mb-2 block text-sm font-medium text-[var(--lr-text)]">API key</span>
               <Input type="password" value={draftConnection.apiKey || ""} onChange={(event) => updateConnection("apiKey", event.target.value)} placeholder={aiConnection?.keyMasked || "Paste your provider key"} className="h-11 rounded-xl border-[var(--lr-border)] bg-white text-[var(--lr-text)] shadow-sm" />
-              <span className="mt-1 block text-xs leading-5 text-[var(--lr-muted)]">Session only. LaunchRelay stores provider/model metadata in this browser, but the raw key is kept only in session storage.</span>
+              <span className="mt-1 block text-xs leading-5 text-[var(--lr-muted)]">Session only. Product Story stores provider/model metadata in this browser, but the raw key is kept only in session storage.</span>
             </label>
             <div className="flex flex-wrap items-center gap-2">
               <Button onClick={saveConnection} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">{connected ? "Update AI connection" : "Connect AI"}</Button>
@@ -1858,7 +1868,7 @@ function ProductProfileStep({ workspace, setWorkspace, onSave, isBusy, onNext })
     ["primary_repo_url", "Primary repository", "Public GitHub URL or owner/repo."],
   ];
   return (
-    <SectionCard title="Step 1: Product Profile" description="Tell LaunchRelay what product this is before adding source activity.">
+    <SectionCard title="Step 1: Product Profile" description="Tell Product Story what product this is before adding source activity.">
       <div className="grid gap-4 md:grid-cols-2">{fields.map(([key, label, help]) => <Field key={key} label={label} help={help} value={workspace[key]} onChange={(value) => setWorkspace({ ...workspace, [key]: value })} />)}</div>
       <div className="mt-5 flex flex-wrap gap-2">
         <Button onClick={onSave} disabled={isBusy} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">Save product profile</Button>
@@ -1932,7 +1942,7 @@ function ActivityDetailsDisclosure({ activities }) {
 
 function ProductContextForm({ workspace, setWorkspace, onSave, isBusy, settingsMode = false }) {
   const essentialFields = [
-    ["name", "Product name", "The product LaunchRelay should understand and explain."],
+    ["name", "Product name", "The product Product Story should understand and explain."],
     ["description", "Product description", "One clear sentence about what the product helps users do."],
     ["target_audience", "Audience", "Who the launch story should be useful for."],
     ["primary_repo_url", "Primary repository", "Public repo or owner/repo used for source activity import."],
@@ -1940,7 +1950,7 @@ function ProductContextForm({ workspace, setWorkspace, onSave, isBusy, settingsM
     ["product_stage", "Stage", "MVP, beta, mature product, or another operating stage."],
   ];
   return (
-    <SectionCard title={settingsMode ? "General workspace details" : "Product context"} description="These inputs shape what LaunchRelay considers launch-worthy, how it explains value, and which terminology it should preserve.">
+    <SectionCard title={settingsMode ? "General workspace details" : "Product context"} description="These inputs shape what Product Story considers launch-worthy, how it explains value, and which terminology it should preserve.">
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
         <div className="space-y-5">
           <div className="rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-4">
@@ -1950,7 +1960,7 @@ function ProductContextForm({ workspace, setWorkspace, onSave, isBusy, settingsM
           </div>
           <div className="rounded-2xl border border-[var(--lr-border)] bg-white p-4">
             <h3 className="text-sm font-semibold text-[var(--lr-text)]">Voice and positioning</h3>
-            <TextArea label="Positioning" help="The strategic angle LaunchRelay should protect when turning shipped work into education." value={workspace.positioning_notes} onChange={(value) => setWorkspace({ ...workspace, positioning_notes: value })} />
+            <TextArea label="Positioning" help="The strategic angle Product Story should protect when turning shipped work into education." value={workspace.positioning_notes} onChange={(value) => setWorkspace({ ...workspace, positioning_notes: value })} />
             <div className="grid gap-4 md:grid-cols-2">
               <TextArea label="Terminology" help="Words and concepts the product should consistently use or avoid." value={workspace.terminology_notes} onChange={(value) => setWorkspace({ ...workspace, terminology_notes: value })} />
               <TextArea label="Style guidance" help="Tone rules for drafts, such as practical, non-hypey, beginner-friendly, or technical." value={workspace.style_guidance} onChange={(value) => setWorkspace({ ...workspace, style_guidance: value })} />
@@ -1959,7 +1969,7 @@ function ProductContextForm({ workspace, setWorkspace, onSave, isBusy, settingsM
         </div>
         <div className="rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-orange-tint)] p-4 text-sm leading-6 text-[var(--lr-text-2)]">
           <div className="text-sm font-semibold text-[var(--lr-text)]">Why this matters</div>
-          <p className="mt-2">Source receipts are only useful when LaunchRelay knows the product, audience, channels, and voice they should serve.</p>
+          <p className="mt-2">Source receipts are only useful when Product Story knows the product, audience, channels, and voice they should serve.</p>
           <p className="mt-3">Save context first, then import evidence. This keeps launch moments practical instead of generic.</p>
         </div>
       </div>
@@ -2022,7 +2032,7 @@ function ManualNotesPanel({ activityText, setActivityText, manualNotes, setManua
   );
   if (compact) return <div className="mt-4">{content}</div>;
   return (
-    <SectionCard title="Manual notes" description="Add separate shipped-work notes. LaunchRelay normalizes them together while keeping them written separately.">
+    <SectionCard title="Manual notes" description="Add separate shipped-work notes. Product Story normalizes them together while keeping them written separately.">
       {content}
     </SectionCard>
   );
@@ -2261,7 +2271,7 @@ function SourceToStoryPreview() {
         <PreviewColumn title="Trusted story" items={["Editable launch draft", "Inline source trail", "5 follow-up opportunities"]} tone="green" />
       </div>
       <div className="mt-4 rounded-2xl bg-[var(--lr-canvas)] p-4 text-sm leading-6 text-[var(--lr-text-2)]">
-        <strong className="text-[var(--lr-text)]">Preview:</strong> LaunchRelay notices that onboarding work changed signup guidance, groups the source receipts, and turns the accepted moment into product education your team can trust.
+        <strong className="text-[var(--lr-text)]">Preview:</strong> Product Story notices that onboarding work changed signup guidance, groups the source receipts, and turns the accepted moment into product education your team can trust.
       </div>
     </div>
   );
@@ -2426,7 +2436,11 @@ function MiniTimeline({ items }) {
 }
 
 function BrandMark() {
-  return <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--lr-orange)] text-white shadow-sm"><Layers3 className="h-5 w-5" /></div>;
+  return <img src="/assets/product-story-mark.png" alt="" className="h-10 w-10 rounded-2xl object-contain" aria-hidden="true" />;
+}
+
+function BrandLockup() {
+  return <img src="/assets/product-story-logo.png" alt="Product Story" className="h-10 w-auto object-contain" />;
 }
 
 function viewLabel(view) {
@@ -2762,7 +2776,7 @@ function isRecordOwnedByUser(record, user) {
 }
 
 function avatarInitials(name, email) {
-  const source = (name && name !== "LaunchRelay" ? name : email || "LR").trim();
+  const source = (name && name !== "Product Story" ? name : email || "LR").trim();
   const parts = source.includes("@") ? source.split("@")[0].split(/[._-]+/) : source.split(/\s+/);
   return parts.filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "LR";
 }

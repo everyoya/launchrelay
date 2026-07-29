@@ -6,11 +6,11 @@ const appSource = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8
 
 test('sign in is a centered auth card without onboarding proof content', () => {
   assert.match(appSource, /<main className="mx-auto grid min-h-\[calc\(100vh-73px\)\] max-w-md/);
-  assert.match(appSource, /<h1 className="text-3xl font-semibold tracking-\[-0\.035em\]">Sign in to LaunchRelay<\/h1>/);
+  assert.match(appSource, /<h1 className="text-3xl font-semibold tracking-\[-0\.035em\]">Sign in to Product Story<\/h1>/);
   assert.doesNotMatch(appSource, /Real workspace sign in/);
   assert.doesNotMatch(appSource, /SignInProof/);
   assert.doesNotMatch(appSource, /source trail saved/);
-  assert.doesNotMatch(appSource, /LaunchRelay is a normal product workspace/);
+  assert.doesNotMatch(appSource, /Product Story is a normal product workspace/);
 });
 
 test('app shell keeps four workflow destinations primary and settings secondary', () => {

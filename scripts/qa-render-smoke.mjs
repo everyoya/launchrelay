@@ -12,7 +12,7 @@ const sampleCluster = {
 const sampleActivity = { id: 'activity_1', title: 'Added onboarding checklist' };
 const sampleDraft = {
   id: 'draft_1',
-  title: 'LaunchRelay improves onboarding guidance',
+  title: 'Product Story improves onboarding guidance',
   body: 'Draft body',
   status: 'published',
   updated_at: new Date().toISOString(),
@@ -46,7 +46,7 @@ try {
   }
 
   const settingsHtml = renderToString(React.createElement(SettingsScreen, {
-    workspace: { name: 'LaunchRelay' },
+    workspace: { name: 'Product Story' },
     currentUser: { email: 'qa@example.com' },
     demoMode: false,
     onLogout: () => {},

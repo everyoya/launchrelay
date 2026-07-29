@@ -92,7 +92,7 @@ async function fetchPublicGitHubPayloads(owner, repo, githubAuth = getGitHubAuth
 async function githubJson(path, githubAuth = getGitHubAuth()) {
   const headers = {
     Accept: 'application/vnd.github+json',
-    'User-Agent': 'LaunchRelay-public-import',
+    'User-Agent': 'Product Story-public-import',
     'X-GitHub-Api-Version': '2022-11-28',
   };
 

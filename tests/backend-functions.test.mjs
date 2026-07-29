@@ -29,7 +29,7 @@ test('importPublicGitHubActivity backend function normalizes injected GitHub pay
     repoInput: 'everyoya/launchrelay',
     importedAt: '2026-07-23T00:00:00.000Z',
     githubPayloads: {
-      repo: { description: 'LaunchRelay test repo', default_branch: 'main', stargazers_count: 1, open_issues_count: 0 },
+      repo: { description: 'Product Story test repo', default_branch: 'main', stargazers_count: 1, open_issues_count: 0 },
       pulls: [{ number: 1, title: 'Add onboarding import flow', body: '', html_url: 'https://github.com/everyoya/launchrelay/pull/1', user: { login: 'everyoya' }, updated_at: '2026-07-23T00:00:00Z' }],
       commits: [{ sha: 'def456', html_url: 'https://github.com/everyoya/launchrelay/commit/def456', commit: { message: 'wire backend functions', author: { name: 'Yotam', date: '2026-07-23T01:00:00Z' } }, author: { login: 'everyoya' } }],
       releases: [],
@@ -57,7 +57,7 @@ test('importPublicGitHubActivity uses backend GitHub token secret for server fet
       ? [{ number: 3, title: 'Add guided source import', body: 'helps onboarding', html_url: 'https://github.com/everyoya/launchrelay/pull/3', user: { login: 'everyoya' }, updated_at: '2026-07-23T00:00:00Z' }]
       : path.includes('/commits') || path.includes('/releases')
         ? []
-        : { description: 'LaunchRelay test repo', default_branch: 'main', stargazers_count: 1, open_issues_count: 0 };
+        : { description: 'Product Story test repo', default_branch: 'main', stargazers_count: 1, open_issues_count: 0 };
 
     return new Response(JSON.stringify(payload), {
       status: 200,
@@ -190,7 +190,7 @@ test('runUserAiGeneration refuses to use app-owned AI credentials when user key 
       task: 'draft',
       provider: 'openai',
       model: 'gpt-4o-mini',
-      workspace: { name: 'LaunchRelay' },
+      workspace: { name: 'Product Story' },
       cluster: { title: 'Faster onboarding' },
       sources: [],
     });
@@ -229,7 +229,7 @@ test('runUserAiGeneration calls OpenAI with the user supplied key and structured
       provider: 'openai',
       model: 'gpt-4o-mini',
       apiKey: 'user-owned-openai-key',
-      workspace: { name: 'LaunchRelay', target_audience: 'Product educators' },
+      workspace: { name: 'Product Story', target_audience: 'Product educators' },
       cluster: { title: 'Faster onboarding', user_value: 'Less setup friction.' },
       sources: [{ id: 'activity_1', title: 'PR: Added onboarding checklist' }],
       maxOutputTokens: 1200,
