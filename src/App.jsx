@@ -332,6 +332,7 @@ export default function App() {
   }
 
   function startOnboardingWorkflow(nextView = "workspace") {
+    const destinationView = typeof nextView === "string" ? nextView : "workspace";
     const workspaceRecordSeed = { id: "local_workspace", ...workspace };
     const importedAt = new Date().toISOString();
     const seededActivities = createManualActivityItemsFromText(sampleActivity, {
@@ -356,7 +357,7 @@ export default function App() {
     setOpportunities([]);
     setImportPhase("complete");
     setStatus({ tone: "success", message: "Sample workspace loaded with evidence and a suggested improvement." });
-    goApp(nextView);
+    goApp(destinationView);
   }
 
   function completeV2Onboarding() {
