@@ -18,8 +18,8 @@ test('library uses Drafts Suggested Highlights and Published without saved-work 
   assert.match(appSource, /function DraftLibraryCard/);
   assert.match(appSource, /function SuggestedHighlightCard/);
   assert.match(appSource, /function PublishedCard/);
-  assert.match(appSource, /Search Library/);
-  assert.match(appSource, /Continue Editing →/);
+  assert.match(appSource, /LibrarySummaryCard/);
+  assert.match(appSource, /Continue editing →/);
   assert.match(appSource, /Review Highlight →/);
   assert.match(appSource, /Published content stays here as a receipt/);
   assert.doesNotMatch(appSource, /const tabs = \["Drafts", "Ready", "Published", "Opportunities", "Moments"\]/);

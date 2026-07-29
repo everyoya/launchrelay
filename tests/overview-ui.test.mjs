@@ -6,10 +6,12 @@ const appSource = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8
 
 test('workspace is a focused inbox instead of an overview dashboard', () => {
   assert.match(appSource, /function WorkspaceScreen/);
-  assert.match(appSource, /Review the shipped work LaunchRelay found before anything becomes a draft\./);
+  assert.match(appSource, /Your review queue\./);
+  assert.match(appSource, /Check the product changes LaunchRelay found, confirm what matters, and move approved highlights into drafting\./);
   assert.match(appSource, /Highlights to review/);
   assert.match(appSource, /Recently Completed/);
-  assert.match(appSource, /Add source activity/);
+  assert.match(appSource, /Add another product update\./);
+  assert.match(appSource, /Add work →/);
   assert.doesNotMatch(appSource, /function Overview/);
   assert.doesNotMatch(appSource, /Continue where you left off/);
   assert.doesNotMatch(appSource, /Workspace command center/);

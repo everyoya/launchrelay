@@ -15,9 +15,9 @@ function sliceBetween(start, end) {
 const librarySource = sliceBetween('function LibraryScreen', 'function HelpDocsScreen');
 const settingsSource = sliceBetween('function SettingsScreen', 'function SourceSetupFlow');
 
-test('library uses V2 tabs and search without saved-work hero or metadata', () => {
+test('library uses V2 tabs and summary cards without saved-work hero or metadata', () => {
   assert.match(librarySource, /const tabs = \["Drafts", "Suggested Highlights", "Published"\]/);
-  assert.match(librarySource, /placeholder="Search Library"/);
+  assert.match(librarySource, /function LibrarySummaryCard/);
   assert.match(librarySource, /grid gap-4 sm:grid-cols-2 xl:grid-cols-3/);
   assert.doesNotMatch(librarySource, /Saved work/);
   assert.doesNotMatch(librarySource, /Drafts saved work/);
@@ -29,10 +29,10 @@ test('library uses V2 tabs and search without saved-work hero or metadata', () =
 
 test('library cards are simplified and suggested highlights open Review', () => {
   assert.match(appSource, /function DraftLibraryCard/);
-  assert.match(appSource, /Continue Editing →/);
+  assert.match(appSource, /Continue editing →/);
   assert.match(appSource, /function SuggestedHighlightCard/);
   assert.match(appSource, /Review Highlight →/);
-  assert.match(appSource, /Based on \{cluster\.activity_item_ids\?\.length \|\| sources\.length \|\| 0\} sources/);
+  assert.match(appSource, /\{cluster\.activity_item_ids\?\.length \|\| sources\.length \|\| 0\} sources/);
   assert.match(appSource, /onReview\(cluster\)/);
   assert.match(appSource, /function PublishedCard/);
   assert.match(appSource, /Published content stays here as a receipt/);

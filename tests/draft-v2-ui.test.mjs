@@ -15,11 +15,12 @@ function sliceBetween(start, end) {
 const draftScreenSource = sliceBetween('function DraftScreen', 'function Opportunities');
 const draftEditorSource = sliceBetween('function DraftHighlightContext', 'function OpportunityCard');
 
-test('draft page uses Draft and Based on Highlight framing instead of Story Studio hero', () => {
+test('draft page uses Draft and source-grounded framing instead of Story Studio hero', () => {
   assert.match(draftScreenSource, /function DraftScreen/);
   assert.match(draftScreenSource, /title="Draft"/);
-  assert.match(draftScreenSource, /Based on Highlight/);
-  assert.match(draftScreenSource, /max-w-\[960px\]/);
+  assert.match(draftScreenSource, /source-grounded launch draft/);
+  assert.match(draftScreenSource, /w-full space-y-8/);
+  assert.doesNotMatch(draftScreenSource, /max-w-\[960px\]/);
   assert.doesNotMatch(draftScreenSource, /Page title="Story Studio"/);
   assert.doesNotMatch(draftScreenSource, /eyebrow="Focused editor"/);
   assert.doesNotMatch(draftScreenSource, /Edit and save one source-grounded draft\./);
@@ -29,7 +30,8 @@ test('draft replaces accepted-moment card with highlight context and visible evi
   assert.match(draftEditorSource, /function DraftHighlightContext/);
   assert.match(draftEditorSource, /Highlight/);
   assert.match(draftEditorSource, /Why it matters/);
-  assert.match(draftEditorSource, /Based on/);
+  assert.match(draftEditorSource, /Source receipts/);
+  assert.match(draftEditorSource, /xl:grid-cols-2/);
   assert.match(draftEditorSource, /visibleEvidence = sourceItems\.slice\(0, 4\)/);
   assert.match(draftEditorSource, /moreEvidenceCount > 0/);
   assert.doesNotMatch(draftEditorSource, /Accepted moment/);

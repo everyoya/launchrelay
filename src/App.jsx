@@ -20,7 +20,6 @@ import {
   Loader2,
   Menu,
   PenLine,
-  Search,
   Settings,
   ShieldCheck,
   Sparkles,
@@ -123,7 +122,6 @@ export default function App() {
   const [sourceTab, setSourceTab] = useState("context");
   const [libraryTab, setLibraryTab] = useState("Drafts");
   const [launchFilter, setLaunchFilter] = useState("all");
-  const [librarySearch, setLibrarySearch] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -173,7 +171,10 @@ export default function App() {
         if (cancelled) return;
         clearLocalAuthToken();
         setCurrentUser(null);
-        if (isAppRoute(initialViewFromLocation())) {
+        const routeView = initialViewFromLocation();
+        if (isLocalPreviewHost() && isAppRoute(routeView)) {
+          startOnboardingWorkflow(routeView);
+        } else if (isAppRoute(routeView)) {
           setStatus({ tone: "warning", message: "Sign in to continue to your workspace." });
           goPublic("sign-in", { replace: true });
         }
@@ -330,7 +331,7 @@ export default function App() {
     }
   }
 
-  function startOnboardingWorkflow() {
+  function startOnboardingWorkflow(nextView = "workspace") {
     const workspaceRecordSeed = { id: "local_workspace", ...workspace };
     const importedAt = new Date().toISOString();
     const seededActivities = createManualActivityItemsFromText(sampleActivity, {
@@ -355,7 +356,7 @@ export default function App() {
     setOpportunities([]);
     setImportPhase("complete");
     setStatus({ tone: "success", message: "Sample workspace loaded with evidence and a suggested improvement." });
-    goApp("workspace");
+    goApp(nextView);
   }
 
   function completeV2Onboarding() {
@@ -884,7 +885,7 @@ export default function App() {
             {renderedView === "review" && <LaunchMoments clusters={clusters} activities={activities} selectedCluster={selectedCluster} selectedSources={selectedSources} setSelectedCluster={setSelectedCluster} onAccept={acceptCluster} onDetect={detectLaunchMoments} isBusy={isBusy} launchFilter={launchFilter} setLaunchFilter={setLaunchFilter} />}
             {renderedView === "draft" && <DraftScreen cluster={acceptedCluster} sourceItems={acceptedSources} draft={draft} setDraft={setDraft} onSaveDraft={saveDraft} onPublishDraft={publishDraft} onCreateDraft={createDraft} isBusy={isBusy} onBack={() => goApp("review")} />}
             {renderedView === "opportunities" && <Opportunities opportunities={visibleOpportunities} cluster={acceptedCluster} onCreateOpportunities={createOpportunities} onSaveOpportunity={saveOpportunity} onPromote={promoteOpportunity} onIgnore={ignoreOpportunity} isBusy={isBusy} />}
-            {renderedView === "library" && <LibraryScreen libraryTab={libraryTab} setLibraryTab={setLibraryTab} draftRows={draftRows} clusters={clusters} activities={activities} onReview={(cluster) => { setSelectedCluster(cluster); goApp("review"); }} onDraft={() => goApp("draft")} onWorkspace={() => goApp("workspace")} librarySearch={librarySearch} setLibrarySearch={setLibrarySearch} />}
+            {renderedView === "library" && <LibraryScreen libraryTab={libraryTab} setLibraryTab={setLibraryTab} draftRows={draftRows} clusters={clusters} activities={activities} onReview={(cluster) => { setSelectedCluster(cluster); goApp("review"); }} onDraft={() => goApp("draft")} onWorkspace={() => goApp("workspace")} />}
             {renderedView === "settings" && <SettingsScreen workspace={workspace} currentUser={currentUser} demoMode={demoMode} onLogout={logout} githubRepoInput={githubRepoInput} activities={activities} aiConnection={aiConnection} setAiConnection={setAiConnection} connectorConfig={connectorConfig} setConnectorConfig={updateConnectorConfig} onConnectSource={connectSourceAccount} onDisconnectSource={disconnectSourceAccount} />}
             {renderedView === "help" && <HelpDocsScreen goApp={goApp} />}
           </main>
@@ -1341,8 +1342,8 @@ function Topbar({ view, goApp, workspace, currentUser, demoMode, onLogout, userM
   const userName = currentUser ? displayUserName(currentUser) : "LaunchRelay";
   const initials = avatarInitials(userName, currentUser?.email);
   return (
-    <header className="sticky top-0 z-20 border-b border-[var(--lr-border)] bg-[var(--lr-canvas)]/88 px-4 py-3 backdrop-blur sm:px-6 lg:px-8">
-      <div className="flex items-center gap-3">
+    <header className="sticky top-0 z-20 flex min-h-[73px] items-center border-b border-[var(--lr-border)] bg-[var(--lr-canvas)]/88 px-4 py-3 backdrop-blur sm:px-6 lg:px-8">
+      <div className="flex w-full items-center gap-3">
         <button className="rounded-xl border border-[var(--lr-border)] bg-white p-2 text-[var(--lr-text-2)] lg:hidden" onClick={() => setSidebarOpen(true)} aria-label="Open sidebar"><Menu className="h-5 w-5" /></button>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 text-xs text-[var(--lr-muted)]">
@@ -1484,7 +1485,7 @@ function WorkspaceScreen({ activities, clusters, draftRows, onReview, onNewIniti
   const waitingImprovements = clusters.filter((cluster) => cluster.status !== "accepted" && cluster.status !== "edited");
   const completedDrafts = draftRows.filter((item) => item.status === "ready" || item.status === "published");
   return (
-    <Page title="Workspace" eyebrow="Workspace" description="Review the shipped work LaunchRelay found before anything becomes a draft.">
+    <Page title="Your review queue." eyebrow="Workspace" description="Check the product changes LaunchRelay found, confirm what matters, and move approved highlights into drafting.">
       <div className="space-y-6">
         <section>
           <div className="mb-3 flex items-center justify-between gap-3">
@@ -1502,13 +1503,22 @@ function WorkspaceScreen({ activities, clusters, draftRows, onReview, onNewIniti
         <section>
           <h2 className="mb-3 text-lg font-semibold tracking-[-0.02em] text-[var(--lr-text)]">Recently Completed</h2>
           <div className="grid gap-3 md:grid-cols-2">
-            {completedDrafts.length ? completedDrafts.map((item) => <article key={item.id || item.title} className="rounded-2xl border border-[var(--lr-border)] bg-white p-4 text-left shadow-sm"><div className="font-semibold text-[var(--lr-text)]">✓ {item.title}</div><div className="mt-2 text-sm text-[var(--lr-muted)]">{item.status === "published" ? "Published" : "Approved"}</div></article>) : <div className="rounded-2xl border border-dashed border-[var(--lr-border)] bg-white p-5 text-sm text-[var(--lr-muted)]">Drafts you mark ready or publish will appear here as your launch record.</div>}
+            {completedDrafts.length ? completedDrafts.map((item) => <article key={item.id || item.title} className="rounded-2xl border border-[var(--lr-border)] bg-white p-4 text-left shadow-sm"><div className="font-semibold text-[var(--lr-text)]">✓ {item.title}</div><div className="mt-2 text-sm text-[var(--lr-muted)]">{item.status === "published" ? "Published" : "Approved"}</div></article>) : <div className="w-fit max-w-full rounded-2xl border border-dashed border-[var(--lr-border)] bg-white p-4 text-sm leading-5 text-[var(--lr-muted)]"><div className="max-w-[420px]">Drafts you mark ready or publish will appear here as your launch record.</div></div>}
           </div>
         </section>
 
-        <div className="border-t border-[var(--lr-border)] pt-5">
-          <Button onClick={onNewInitiative} variant="ghost" className="rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Add source activity</Button>
-        </div>
+        <section className="border-t border-[var(--lr-border)] pt-5">
+          <button onClick={onNewInitiative} className="group w-fit max-w-full rounded-[20px] border border-[var(--lr-border)] bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+            <div className="flex max-w-[680px] flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <div className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--lr-blue-strong)]">Add another</div>
+                <h3 className="mt-1 font-display text-lg font-bold tracking-[-0.035em] text-[var(--lr-text)]">Add another product update.</h3>
+                <p className="mt-1 max-w-xl text-sm leading-6 text-[var(--lr-text-2)]">Add a feature, build, fix, or launch note. LaunchRelay will turn it into another highlight for this queue.</p>
+              </div>
+              <span className="shrink-0 rounded-xl bg-[var(--lr-orange)] px-3.5 py-2 text-sm font-medium text-white transition group-hover:bg-[#1D46B8]">Add work →</span>
+            </div>
+          </button>
+        </section>
       </div>
     </Page>
   );
@@ -1518,19 +1528,19 @@ function ImprovementCard({ cluster, activities, onReview }) {
   const evidence = activities.filter((item) => cluster.activity_item_ids?.includes(item.id)).slice(0, 2);
   const extraCount = Math.max(0, (cluster.activity_item_ids?.length || 0) - evidence.length);
   return (
-    <button onClick={onReview} className="group w-full rounded-[24px] border border-[var(--lr-border)] bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+    <button onClick={onReview} className="group w-fit max-w-full rounded-[20px] border border-[var(--lr-border)] bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+      <div className="flex max-w-[760px] flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0">
-          <h3 className="font-display text-xl font-bold tracking-[-0.035em] text-[var(--lr-text)]">{cluster.title}</h3>
-          <div className="mt-4 text-sm font-semibold text-[var(--lr-text)]">Why it matters</div>
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--lr-text-2)]">{cluster.user_value || cluster.summary}</p>
-          <div className="mt-4 text-sm font-semibold text-[var(--lr-text)]">Based on</div>
-          <ul className="mt-2 space-y-1 text-sm text-[var(--lr-text-2)]">
+          <h3 className="font-display text-lg font-bold tracking-[-0.035em] text-[var(--lr-text)]">{cluster.title}</h3>
+          <div className="mt-3 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--lr-text)]">Why it matters</div>
+          <p className="mt-1 max-w-2xl text-sm leading-5 text-[var(--lr-text-2)]">{cluster.user_value || cluster.summary}</p>
+          <div className="mt-3 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--lr-text)]">Based on</div>
+          <ul className="mt-1.5 space-y-0.5 text-sm leading-5 text-[var(--lr-text-2)]">
             {evidence.map((item) => <li key={item.id || item.title}>• {sentenceCase(item.title || item.summary || "Evidence item")}</li>)}
             {extraCount > 0 && <li>• {extraCount} additional changes</li>}
           </ul>
         </div>
-        <span className="shrink-0 rounded-xl bg-[var(--lr-orange)] px-4 py-2 text-sm font-medium text-white transition group-hover:bg-[#1D46B8]">Review →</span>
+        <span className="shrink-0 rounded-[10px] bg-[var(--lr-orange)] px-3 py-1.5 text-xs font-semibold text-white transition group-hover:bg-[#1D46B8]">Review →</span>
       </div>
     </button>
   );
@@ -1575,11 +1585,11 @@ function LaunchMoments({ clusters, activities, selectedCluster, selectedSources,
 
 function DraftScreen({ cluster, sourceItems, draft, setDraft, onSaveDraft, onPublishDraft, onCreateDraft, isBusy, onBack }) {
   if (!cluster) {
-    return <Page title="Draft" description="Based on Highlight"><div className="mx-auto max-w-[960px]"><EmptyState icon={PenLine} eyebrow="Human review required" title="No Highlight selected" body="Draft opens after a person reviews a Highlight." actionLabel="Review" onAction={onBack} /></div></Page>;
+    return <Page title="Draft" description="Turn an accepted Highlight and its source receipts into a source-grounded launch draft."><div className="w-full"><EmptyState icon={PenLine} eyebrow="Human review required" title="No Highlight selected" body="Draft opens after a person reviews a Highlight." actionLabel="Review" onAction={onBack} /></div></Page>;
   }
   return (
-    <Page title="Draft" description="Based on Highlight">
-      <div className="mx-auto max-w-[960px] space-y-8">
+    <Page title="Draft" description="Turn an accepted Highlight and its source receipts into a source-grounded launch draft.">
+      <div className="w-full space-y-8">
         <DraftHighlightContext cluster={cluster} sourceItems={sourceItems} />
         <StoryEditorWorkspace cluster={cluster} sourceItems={sourceItems} draft={draft} setDraft={setDraft} onSaveDraft={onSaveDraft} onPublishDraft={onPublishDraft} onCreateDraft={onCreateDraft} isBusy={isBusy} />
       </div>
@@ -1611,33 +1621,31 @@ function Opportunities({ opportunities, cluster, onCreateOpportunities, onSaveOp
   );
 }
 
-function LibraryScreen({ libraryTab, setLibraryTab, draftRows, clusters, activities, onReview, onDraft, onWorkspace, librarySearch, setLibrarySearch }) {
+function LibraryScreen({ libraryTab, setLibraryTab, draftRows, clusters, activities, onReview, onDraft, onWorkspace }) {
   const tabs = ["Drafts", "Suggested Highlights", "Published"];
   const activeTab = tabs.includes(libraryTab) ? libraryTab : "Drafts";
-  const query = librarySearch.trim().toLowerCase();
   const suggestedHighlights = clusters.filter((item) => item.status !== "accepted" && item.status !== "drafted");
   const publishedDrafts = draftRows.filter((item) => item.status === "published");
   const visibleDrafts = draftRows.filter((item) => item.status !== "published");
-  const matches = (...values) => !query || values.some((value) => String(value || "").toLowerCase().includes(query));
-  const filteredDrafts = visibleDrafts.filter((item) => matches(item.title, item.updated_at, item.status));
-  const filteredHighlights = suggestedHighlights.filter((item) => matches(item.title, item.why_it_matters, item.user_value, item.summary));
-  const filteredPublished = publishedDrafts.filter((item) => matches(item.title, item.updated_at, item.status));
   return (
-    <Page title="Library">
-      <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-wrap rounded-2xl border border-[var(--lr-border)] bg-white p-1 shadow-sm">{tabs.map((tab) => <LibraryTabButton key={tab} active={activeTab === tab} onClick={() => setLibraryTab(tab)}>{tab}</LibraryTabButton>)}</div>
-        <label className="flex items-center gap-2 rounded-xl border border-[var(--lr-border)] bg-white px-3 py-2 text-sm text-[var(--lr-muted)]">
-          <Search className="h-4 w-4" />
-          <input aria-label="Search library" value={librarySearch} onChange={(event) => setLibrarySearch(event.target.value)} placeholder="Search Library" className="min-w-[180px] bg-transparent text-[var(--lr-text)] outline-none placeholder:text-[var(--lr-muted)]" />
-        </label>
+    <Page title="Library" description="Find drafts, suggested highlights, and published launch content in one place.">
+      <div className="mb-5 grid gap-3 md:grid-cols-3">
+        <LibrarySummaryCard label="Drafts" value={visibleDrafts.length} />
+        <LibrarySummaryCard label="Suggested highlights" value={suggestedHighlights.length} />
+        <LibrarySummaryCard label="Published" value={publishedDrafts.length} />
       </div>
+      <div className="mb-5 flex flex-wrap rounded-2xl border border-[var(--lr-border)] bg-white p-1 shadow-sm">{tabs.map((tab) => <LibraryTabButton key={tab} active={activeTab === tab} onClick={() => setLibraryTab(tab)}>{tab}</LibraryTabButton>)}</div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {activeTab === "Drafts" && (filteredDrafts.length ? filteredDrafts.map((item) => <DraftLibraryCard key={item.id || item.title} draft={item} onDraft={onDraft} />) : <div className="sm:col-span-2 xl:col-span-3"><EmptyState icon={FileText} title={query ? `No drafts match “${librarySearch}”.` : "No drafts yet."} body="Create your first draft from a Highlight." actionLabel="Go to Workspace" onAction={onWorkspace} /></div>)}
-        {activeTab === "Suggested Highlights" && (filteredHighlights.length ? filteredHighlights.map((item) => <SuggestedHighlightCard key={item.id || item.title} cluster={item} activities={activities} onReview={onReview} />) : <div className="sm:col-span-2 xl:col-span-3"><EmptyState icon={Sparkles} title={query ? `No Highlights match “${librarySearch}”.` : "No new Highlights right now."} body="We'll keep watching your connected sources." /></div>)}
-        {activeTab === "Published" && (filteredPublished.length ? filteredPublished.map((item) => <PublishedCard key={item.id || item.title} draft={item} />) : <div className="sm:col-span-2 xl:col-span-3"><EmptyState icon={Library} title={query ? `No published content matches “${librarySearch}”.` : "Nothing published yet."} body="Publish a draft to see it here." /></div>)}
+        {activeTab === "Drafts" && (visibleDrafts.length ? visibleDrafts.map((item) => <DraftLibraryCard key={item.id || item.title} draft={item} onDraft={onDraft} />) : <div className="sm:col-span-2 xl:col-span-3"><EmptyState icon={FileText} title="No drafts yet." body="Create your first draft from a Highlight." actionLabel="Go to Workspace" onAction={onWorkspace} /></div>)}
+        {activeTab === "Suggested Highlights" && (suggestedHighlights.length ? suggestedHighlights.map((item) => <SuggestedHighlightCard key={item.id || item.title} cluster={item} activities={activities} onReview={onReview} />) : <div className="sm:col-span-2 xl:col-span-3"><EmptyState icon={Sparkles} title="No new Highlights right now." body="We'll keep watching your connected sources." /></div>)}
+        {activeTab === "Published" && (publishedDrafts.length ? publishedDrafts.map((item) => <PublishedCard key={item.id || item.title} draft={item} />) : <div className="sm:col-span-2 xl:col-span-3"><EmptyState icon={Library} title="Nothing published yet." body="Publish a draft to see it here." /></div>)}
       </div>
     </Page>
   );
+}
+
+function LibrarySummaryCard({ label, value }) {
+  return <div className="rounded-2xl border border-[var(--lr-border)] bg-white p-4 shadow-sm"><div className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--lr-muted)]">{label}</div><div className="mt-2 font-display text-2xl font-bold tracking-[-0.035em] text-[var(--lr-text)]">{value}</div></div>;
 }
 
 function HelpDocsScreen({ goApp }) {
@@ -2087,24 +2095,28 @@ function HighlightReview({ cluster, sources, onContinue }) {
     );
   }
   return (
-    <div className="mx-auto max-w-[960px] py-8">
-      <article className="rounded-[28px] border border-[var(--lr-border)] bg-white p-6 shadow-[var(--lr-shadow-tight)] md:p-8">
-        <div className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--lr-muted)]">Highlight</div>
-        <h1 className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-[var(--lr-text)] md:text-4xl">{cluster.title}</h1>
+    <div className="w-full">
+      <article className="lr-work-surface p-6 md:p-7">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge tone="blue">Highlight</Badge>
+          <span className="text-xs text-[var(--lr-muted)]">Review before drafting</span>
+        </div>
+        <h1 className="mt-4 max-w-4xl font-display text-3xl font-bold tracking-[-0.045em] text-[var(--lr-text)] md:text-[2.45rem] md:leading-[1.05]">{cluster.title}</h1>
 
-        <section className="mt-8 rounded-2xl bg-[var(--lr-orange-tint)] p-5">
+        <section className="mt-6 max-w-4xl rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-5">
           <div className="text-sm font-semibold text-[var(--lr-text)]">Why it matters</div>
           <p className="mt-2 text-sm leading-6 text-[var(--lr-text-2)]">{cluster.user_value || cluster.why_it_matters}</p>
         </section>
 
-        <section className="mt-8">
-          <p className="text-base leading-7 text-[var(--lr-text-2)]">{cluster.summary}</p>
+        <section className="mt-6 max-w-5xl">
+          <div className="text-sm font-semibold text-[var(--lr-text)]">Related shipped work</div>
+          <p className="mt-2 text-sm leading-6 text-[var(--lr-text-2)] md:text-[15px]">{cluster.summary}</p>
         </section>
 
         <section className="mt-8">
-          <div className="text-sm font-semibold text-[var(--lr-text)]">Based on</div>
-          <div className="mt-4 space-y-3">
-            {visibleEvidence.length ? visibleEvidence.map((item) => <SourceReceipt key={item.id || item.title} item={item} compact />) : <p className="text-sm text-[var(--lr-muted)]">No evidence is linked to this Highlight yet.</p>}
+          <div className="text-sm font-semibold text-[var(--lr-text)]">Source receipts</div>
+          <div className="mt-4 grid gap-3 xl:grid-cols-2">
+            {visibleEvidence.length ? visibleEvidence.map((item) => <SourceReceipt key={item.id || item.title} item={item} />) : <p className="text-sm text-[var(--lr-muted)]">No evidence is linked to this Highlight yet.</p>}
             {moreEvidenceCount > 0 && <div className="rounded-2xl border border-dashed border-[var(--lr-border)] bg-[var(--lr-canvas)] px-4 py-3 text-sm font-medium text-[var(--lr-muted)]">+{moreEvidenceCount} more</div>}
           </div>
         </section>
@@ -2119,17 +2131,20 @@ function DraftHighlightContext({ cluster, sourceItems }) {
   const visibleEvidence = sourceItems.slice(0, 4);
   const moreEvidenceCount = Math.max(0, sourceItems.length - visibleEvidence.length);
   return (
-    <section className="rounded-[28px] border border-[var(--lr-border)] bg-white p-6 shadow-[var(--lr-shadow-tight)] md:p-8">
-      <div className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--lr-muted)]">Highlight</div>
-      <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-[var(--lr-text)]">{cluster.title}</h2>
-      <div className="mt-5 rounded-2xl bg-[var(--lr-orange-tint)] p-5">
+    <section className="lr-work-surface p-6 md:p-7">
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge tone="blue">Highlight</Badge>
+        <span className="text-xs text-[var(--lr-muted)]">{sourceItems.length} source receipts</span>
+      </div>
+      <h2 className="mt-4 max-w-4xl font-display text-2xl font-bold tracking-[-0.04em] text-[var(--lr-text)] md:text-3xl">{cluster.title}</h2>
+      <div className="mt-5 max-w-4xl rounded-2xl border border-[var(--lr-border)] bg-[var(--lr-canvas)] p-5">
         <div className="text-sm font-semibold text-[var(--lr-text)]">Why it matters</div>
         <p className="mt-2 text-sm leading-6 text-[var(--lr-text-2)]">{cluster.user_value || cluster.why_it_matters}</p>
       </div>
       <div className="mt-8">
-        <div className="text-sm font-semibold text-[var(--lr-text)]">Based on</div>
-        <div className="mt-4 space-y-3">
-          {visibleEvidence.length ? visibleEvidence.map((item) => <SourceReceipt key={item.id || item.title} item={item} compact />) : <p className="text-sm text-[var(--lr-muted)]">No evidence is linked to this Highlight yet.</p>}
+        <div className="text-sm font-semibold text-[var(--lr-text)]">Source receipts</div>
+        <div className="mt-4 grid gap-3 xl:grid-cols-2">
+          {visibleEvidence.length ? visibleEvidence.map((item) => <SourceReceipt key={item.id || item.title} item={item} />) : <p className="text-sm text-[var(--lr-muted)]">No evidence is linked to this Highlight yet.</p>}
           {moreEvidenceCount > 0 && <div className="rounded-2xl border border-dashed border-[var(--lr-border)] bg-[var(--lr-canvas)] px-4 py-3 text-sm font-medium text-[var(--lr-muted)]">+{moreEvidenceCount} more</div>}
         </div>
       </div>
@@ -2147,17 +2162,17 @@ function StoryEditorWorkspace({ draft, setDraft, onSaveDraft, onPublishDraft, on
   }
 
   return (
-    <section className="rounded-[28px] border border-[var(--lr-border)] bg-white p-6 shadow-[var(--lr-shadow-tight)] md:p-8">
+    <section className="lr-work-surface p-6 md:p-7">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--lr-muted)]">Draft Editor</div>
-          <h2 className="mt-2 text-xl font-semibold tracking-[-0.02em] text-[var(--lr-text)]">Draft</h2>
+          <h2 className="mt-2 font-display text-xl font-semibold tracking-[-0.025em] text-[var(--lr-text)]">Draft</h2>
         </div>
-        {draft && <span className="rounded-full bg-[var(--lr-canvas)] px-3 py-1 text-xs font-medium text-[var(--lr-muted)]">{autoSaveLabel}</span>}
+        {draft && <span className="rounded-full border border-[var(--lr-border)] bg-[var(--lr-canvas)] px-3 py-1 text-xs font-medium text-[var(--lr-muted)]">{autoSaveLabel}</span>}
       </div>
       {draft ? (
         <div className="space-y-4">
-          <Input aria-label="Draft title" value={draft.title} onChange={(event) => updateDraft("title", event.target.value)} className="h-12 rounded-xl border-[var(--lr-border)] bg-white text-lg font-semibold text-[var(--lr-text)]" />
+          <Input aria-label="Draft title" value={draft.title} onChange={(event) => updateDraft("title", event.target.value)} className="h-12 rounded-xl border-[var(--lr-border)] bg-white font-display text-lg font-semibold tracking-[-0.02em] text-[var(--lr-text)] shadow-sm" />
           <textarea aria-label="Draft body" value={draft.body} onChange={(event) => updateDraft("body", event.target.value)} className="min-h-[560px] w-full rounded-2xl border border-[var(--lr-border)] bg-white p-5 text-sm leading-7 text-[var(--lr-text)] shadow-sm outline-none focus:ring-2 focus:ring-[var(--lr-orange)]" />
           <div className="flex flex-wrap gap-2 pt-2">
             <Button onClick={onPublishDraft} disabled={isBusy} className="rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">Publish</Button>
@@ -2196,14 +2211,16 @@ function OpportunityCard({ item, onSave, onPromote, onIgnore }) {
 
 function DraftLibraryCard({ draft, onDraft }) {
   return (
-    <article className="rounded-2xl border border-[var(--lr-border)] bg-white p-5 shadow-sm">
+    <article className="lr-object-card p-5 pl-6">
       <div className="flex items-start justify-between gap-3">
-        <h3 className="font-semibold tracking-[-0.01em] text-[var(--lr-text)]">{draft.title || "Untitled draft"}</h3>
+        <h3 className="font-display font-semibold tracking-[-0.02em] text-[var(--lr-text)]">{draft.title || "Untitled draft"}</h3>
         <Badge tone="blue">Draft</Badge>
       </div>
-      <div className="mt-4 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--lr-muted)]">Last edited</div>
-      <p className="mt-1 text-sm text-[var(--lr-text-2)]">{formatRelativeDate(draft.updated_at || draft.created_at)}</p>
-      <Button onClick={onDraft} variant="ghost" className="mt-5 rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Continue Editing →</Button>
+      <div className="mt-4 rounded-2xl bg-[var(--lr-canvas)] px-4 py-3">
+        <div className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--lr-muted)]">Last edited</div>
+        <p className="mt-1 text-sm text-[var(--lr-text-2)]">{formatRelativeDate(draft.updated_at || draft.created_at)}</p>
+      </div>
+      <Button onClick={onDraft} variant="ghost" className="mt-5 rounded-xl border border-[var(--lr-border)] bg-white text-[var(--lr-text)] hover:bg-[var(--lr-surface-2)]">Continue editing →</Button>
     </article>
   );
 }
@@ -2211,10 +2228,10 @@ function DraftLibraryCard({ draft, onDraft }) {
 function SuggestedHighlightCard({ cluster, activities, onReview }) {
   const sources = getSourcesForCluster(cluster, activities);
   return (
-    <article className="rounded-2xl border border-[var(--lr-border)] bg-white p-5 shadow-sm">
-      <h3 className="font-semibold tracking-[-0.01em] text-[var(--lr-text)]">{cluster.title}</h3>
+    <article className="lr-object-card p-5 pl-6">
+      <div className="mb-3 flex flex-wrap items-center gap-2"><Badge tone="blue">Highlight</Badge><span className="text-xs text-[var(--lr-muted)]">{cluster.activity_item_ids?.length || sources.length || 0} sources</span></div>
+      <h3 className="font-display font-semibold tracking-[-0.02em] text-[var(--lr-text)]">{cluster.title}</h3>
       <p className="mt-3 text-sm leading-6 text-[var(--lr-text-2)]">{cluster.why_it_matters || cluster.user_value || cluster.summary}</p>
-      <p className="mt-4 text-sm font-medium text-[var(--lr-muted)]">Based on {cluster.activity_item_ids?.length || sources.length || 0} sources</p>
       <Button onClick={() => onReview(cluster)} className="mt-5 rounded-xl bg-[var(--lr-orange)] text-white shadow-none hover:bg-[#1D46B8]">Review Highlight →</Button>
     </article>
   );
@@ -2222,11 +2239,13 @@ function SuggestedHighlightCard({ cluster, activities, onReview }) {
 
 function PublishedCard({ draft }) {
   return (
-    <article className="rounded-2xl border border-[var(--lr-border)] bg-white p-5 shadow-sm">
-      <h3 className="font-semibold tracking-[-0.01em] text-[var(--lr-text)]">{draft.title || "Published content"}</h3>
-      <div className="mt-4 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--lr-muted)]">Published</div>
-      <p className="mt-1 text-sm text-[var(--lr-text-2)]">{formatRelativeDate(draft.updated_at || draft.created_at)}</p>
-      <div className="mt-4"><Badge tone="green">Published</Badge></div>
+    <article className="lr-object-card p-5 pl-6">
+      <div className="mb-3"><Badge tone="green">Published</Badge></div>
+      <h3 className="font-display font-semibold tracking-[-0.02em] text-[var(--lr-text)]">{draft.title || "Published content"}</h3>
+      <div className="mt-4 rounded-2xl bg-[var(--lr-canvas)] px-4 py-3">
+        <div className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--lr-muted)]">Published</div>
+        <p className="mt-1 text-sm text-[var(--lr-text-2)]">{formatRelativeDate(draft.updated_at || draft.created_at)}</p>
+      </div>
       <p className="mt-4 text-sm leading-6 text-[var(--lr-text-2)]">Published content stays here as a receipt for the walkthrough.</p>
     </article>
   );
@@ -2625,6 +2644,11 @@ function extractHashRoute(hash) {
 
 function isAppRoute(view) {
   return appRouteIds.includes(view);
+}
+
+function isLocalPreviewHost() {
+  if (typeof window === "undefined") return false;
+  return ["127.0.0.1", "localhost"].includes(window.location.hostname);
 }
 
 function writeViewToUrl(view, { replace = false } = {}) {
