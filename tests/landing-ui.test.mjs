@@ -43,13 +43,16 @@ test('public landing includes the Design Option page narrative sections', () => 
   assert.match(appSource, /summary className="flex min-h-\[76px\].*font-display text-xl font-bold tracking-\[-0\.03em\] text-\[var\(--lr-text\)\]/);
 });
 
-test('public landing uses product-led UI preview instead of generic placeholders', () => {
+test('public landing uses product-led hero art and UI preview instead of generic placeholders', () => {
+  assert.match(appSource, /function LandingHeroImage/);
+  assert.match(appSource, /hero-finished\.png/);
+  assert.match(appSource, /LaunchRelay turns source work into a user-facing product story/);
   assert.match(appSource, /function LandingVisualPlaceholder/);
-  assert.match(appSource, /Hero product preview placeholder/);
   assert.match(appSource, /Large LaunchRelay screenshot placeholder/);
   assert.match(appSource, /Launch-worthy highlights/);
   assert.match(appSource, /Review evidence before writing/);
   assert.match(appSource, /Source-backed/);
+  assert.doesNotMatch(appSource, /Hero product preview placeholder/);
   assert.doesNotMatch(appSource, /function TransformationPlaceholder/);
   assert.doesNotMatch(appSource, /Future visual/);
   assert.doesNotMatch(appSource, /Real LaunchRelay screenshot coming soon\./);

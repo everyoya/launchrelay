@@ -952,8 +952,8 @@ function MarketingHome({ currentUser, onSample, goPublic, goApp }) {
   return (
     <main className="overflow-hidden">
       <section className="relative overflow-hidden bg-[radial-gradient(circle_at_72%_12%,rgba(217,229,255,0.95),transparent_28rem),radial-gradient(circle_at_92%_34%,rgba(184,240,210,0.72),transparent_22rem),linear-gradient(180deg,#F8FBFF_0%,#FFFFFF_72%)]">
-        <div className="mx-auto grid max-w-7xl items-center gap-14 px-5 py-24 lg:grid-cols-[0.86fr_1.14fr] lg:px-11 lg:py-32">
-          <div>
+        <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-5 py-24 lg:grid-cols-[0.86fr_1.14fr] lg:px-11 lg:py-32">
+          <div className="relative z-10">
             <h1 className="max-w-3xl font-display text-5xl font-bold leading-[0.98] tracking-[-0.045em] text-[var(--lr-text)] sm:text-6xl lg:text-[72px]">
               You built a great app. We help users understand it.
             </h1>
@@ -965,7 +965,7 @@ function MarketingHome({ currentUser, onSample, goPublic, goApp }) {
               <button type="button" onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="inline-flex h-12 min-h-12 items-center justify-center rounded-[14px] border border-[var(--lr-border)] bg-[var(--lr-blue-tint)] px-5 py-0 text-sm font-semibold leading-none text-[var(--lr-blue-strong)] transition-colors hover:bg-white">See How It Works</button>
             </div>
           </div>
-          <LandingVisualPlaceholder label="Hero product preview placeholder" />
+          <LandingHeroImage />
         </div>
       </section>
 
@@ -1052,6 +1052,97 @@ function MarketingHome({ currentUser, onSample, goPublic, goApp }) {
         </div>
       </footer>
     </main>
+  );
+}
+
+const heroTunerDefaults = { x: 56, y: -22, scale: 130, rotate: 0, tiltX: 0.3, tiltY: -16.1, perspective: 1110, parallaxX: 4, parallaxY: 4 };
+
+function LandingHeroImage() {
+  const [tune, setTune] = useState(() => loadHeroTune());
+  const [pointer, setPointer] = useState({ x: 0, y: 0 });
+  const isLocalTuning = typeof window !== "undefined" && ["127.0.0.1", "localhost"].includes(window.location.hostname);
+  const parallaxRotateY = pointer.x * tune.parallaxX;
+  const parallaxRotateX = pointer.y * tune.parallaxY;
+  const transform = `translate3d(calc(-50% + ${tune.x}px), calc(-50% + ${tune.y}px), 0) scale(${tune.scale / 100}) rotate(${tune.rotate}deg) rotateX(${tune.tiltX - parallaxRotateX}deg) rotateY(${tune.tiltY + parallaxRotateY}deg)`;
+  const stats = JSON.stringify(tune);
+
+  function updateTune(key, value) {
+    const next = { ...tune, [key]: Number(value) };
+    setTune(next);
+    window.localStorage.setItem("launchrelayHeroTune", JSON.stringify(next));
+  }
+
+  function resetTune() {
+    setTune(heroTunerDefaults);
+    window.localStorage.setItem("launchrelayHeroTune", JSON.stringify(heroTunerDefaults));
+  }
+
+  function copyStats() {
+    window.navigator.clipboard?.writeText(stats);
+  }
+
+  return (
+    <figure
+      className="relative z-0 min-h-[460px] overflow-visible lg:min-h-[560px]"
+      style={{ perspective: `${tune.perspective}px` }}
+      aria-label="LaunchRelay turns source work into a user-facing product story"
+      onPointerMove={(event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        setPointer({ x: ((event.clientX - rect.left) / rect.width - 0.5) * 2, y: ((event.clientY - rect.top) / rect.height - 0.5) * 2 });
+      }}
+      onPointerLeave={() => setPointer({ x: 0, y: 0 })}
+    >
+      <img
+        src="/assets/hero-finished.png"
+        alt="Illustration showing shipped source work becoming a user-facing product story"
+        className="absolute left-1/2 top-1/2 z-0 h-auto w-full max-w-none object-contain drop-shadow-[0_28px_56px_rgba(15,23,42,0.10)] transition-transform duration-150 ease-out will-change-transform"
+        style={{ transform }}
+      />
+      {isLocalTuning && <HeroTunePanel tune={tune} stats={stats} updateTune={updateTune} resetTune={resetTune} copyStats={copyStats} />}
+    </figure>
+  );
+}
+
+function loadHeroTune() {
+  if (typeof window === "undefined") return heroTunerDefaults;
+  try {
+    return { ...heroTunerDefaults, ...JSON.parse(window.localStorage.getItem("launchrelayHeroTune") || "{}") };
+  } catch {
+    return heroTunerDefaults;
+  }
+}
+
+function HeroTunePanel({ tune, stats, updateTune, resetTune, copyStats }) {
+  const controls = [
+    { key: "x", label: "X", min: -520, max: 260, step: 1 },
+    { key: "y", label: "Y", min: -240, max: 220, step: 1 },
+    { key: "scale", label: "Scale", min: 80, max: 230, step: 1 },
+    { key: "rotate", label: "Rotate", min: -35, max: 35, step: 0.1 },
+    { key: "tiltX", label: "Tilt X", min: -45, max: 45, step: 0.1 },
+    { key: "tiltY", label: "Tilt Y", min: -55, max: 55, step: 0.1 },
+    { key: "perspective", label: "Depth", min: 420, max: 1800, step: 10 },
+    { key: "parallaxX", label: "Move X", min: 0, max: 36, step: 0.1 },
+    { key: "parallaxY", label: "Move Y", min: 0, max: 32, step: 0.1 },
+  ];
+
+  return (
+    <div className="absolute right-0 top-0 z-30 w-72 rounded-2xl border border-[var(--lr-border)] bg-white/92 p-4 text-xs shadow-[var(--lr-shadow)] backdrop-blur">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="font-display text-sm font-bold text-[var(--lr-text)]">Hero position tuner</div>
+        <button type="button" onClick={resetTune} className="font-semibold text-[var(--lr-blue-strong)]">Reset</button>
+      </div>
+      <div className="space-y-3">
+        {controls.map((control) => (
+          <label key={control.key} className="grid grid-cols-[64px_1fr_42px] items-center gap-2 text-[var(--lr-text-2)]">
+            <span>{control.label}</span>
+            <input type="range" min={control.min} max={control.max} step={control.step} value={tune[control.key]} onChange={(event) => updateTune(control.key, event.target.value)} />
+            <span className="text-right font-mono text-[var(--lr-text)]">{tune[control.key]}</span>
+          </label>
+        ))}
+      </div>
+      <button type="button" onClick={copyStats} className="mt-4 w-full rounded-xl bg-[var(--lr-text)] px-3 py-2 font-semibold text-white">Copy stats</button>
+      <code className="mt-3 block break-all rounded-xl bg-[var(--lr-blue-tint)] p-2 font-mono text-[10px] leading-4 text-[var(--lr-text-2)]">{stats}</code>
+    </div>
   );
 }
 
